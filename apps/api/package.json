@@ -5,6 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "build": "nest build",
+    "dev": "nest start --watch",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "lint": "eslint \"{src,test,prisma}/**/*.ts\"",
