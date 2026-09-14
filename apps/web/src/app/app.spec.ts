@@ -203,6 +203,45 @@ describe("ATHLON public application", () => {
     ).toBeTruthy();
   });
 
+  it("cancels stale catalog requests when URL parameters change", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/ru/catalog?page=1");
+    fixture.detectChanges();
+
+    const oldCategories = http.expectOne((request) =>
+      request.url.endsWith("/categories"),
+    );
+    const oldBrands = http.expectOne((request) =>
+      request.url.endsWith("/brands"),
+    );
+    const oldProducts = http.expectOne(
+      (request) =>
+        request.url.endsWith("/products") && request.params.get("page") === "1",
+    );
+
+    await router.navigateByUrl("/ru/catalog?page=2");
+    fixture.detectChanges();
+
+    expect(oldCategories.cancelled).toBe(true);
+    expect(oldBrands.cancelled).toBe(true);
+    expect(oldProducts.cancelled).toBe(true);
+
+    http
+      .expectOne((request) => request.url.endsWith("/categories"))
+      .flush(categories);
+    http.expectOne((request) => request.url.endsWith("/brands")).flush([]);
+    http
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products") &&
+          request.params.get("page") === "2",
+      )
+      .flush({
+        items: [product],
+        meta: { page: 2, pageSize: 24, total: 30, totalPages: 2 },
+      });
+  });
+
   it("renders product facts, localized availability, contact CTA and related products", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru/product/demo-whey");
@@ -225,6 +264,13 @@ describe("ATHLON public application", () => {
           },
         ],
       });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Демо протеин");
+    expect(fixture.nativeElement.textContent).toContain(
+      "Полное описание продукта",
+    );
+
     http
       .expectOne((request) => request.url.endsWith("/public/settings"))
       .flush({ whatsapp: "+37499111222" });

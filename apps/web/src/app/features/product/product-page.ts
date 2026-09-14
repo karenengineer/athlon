@@ -65,6 +65,7 @@ export class ProductPage {
       .pipe(
         switchMap((product) => {
           this.product.set(product);
+          this.state.set("ready");
           return forkJoin({
             settings: this.api.settings().pipe(catchError(() => of({}))),
             related: this.api

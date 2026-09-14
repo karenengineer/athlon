@@ -2,7 +2,13 @@ import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, ParamMap, Router, RouterLink } from "@angular/router";
-import { combineLatest, distinctUntilChanged, forkJoin, map } from "rxjs";
+import {
+  combineLatest,
+  distinctUntilChanged,
+  forkJoin,
+  map,
+  Subscription,
+} from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import {
   Availability,
@@ -45,6 +51,7 @@ export class CatalogPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private loadSubscription?: Subscription;
 
   constructor() {
     combineLatest([
@@ -120,6 +127,7 @@ export class CatalogPage {
   }
 
   private load(locale: string, routeParams: ParamMap, params: ParamMap): void {
+    this.loadSubscription?.unsubscribe();
     const category = routeParams.get("categorySlug") || undefined;
     const q = params.get("q") || undefined;
     const parsedPage = Number(params.get("page") ?? "1");
@@ -143,7 +151,7 @@ export class CatalogPage {
       : "displayOrder";
     this.state.set("loading");
 
-    forkJoin({
+    this.loadSubscription = forkJoin({
       categories: this.api.categories(locale),
       brands: this.api.brands(locale),
       products: this.api.products({

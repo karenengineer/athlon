@@ -15,7 +15,16 @@ export class ProductsService {
     const pageSize = Math.min(query.pageSize ?? 24, 48);
     const where: Prisma.ProductWhereInput = {
       published: true,
-      ...(query.category ? { category: { slug: query.category } } : {}),
+      ...(query.category
+        ? {
+            category: {
+              OR: [
+                { slug: query.category },
+                { parent: { slug: query.category } },
+              ],
+            },
+          }
+        : {}),
       ...(query.brand ? { brand: { slug: query.brand } } : {}),
       ...(query.availability ? { availability: query.availability } : {}),
       ...(query.minPrice !== undefined || query.maxPrice !== undefined

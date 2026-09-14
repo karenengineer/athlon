@@ -106,6 +106,23 @@ describe("Public catalog", () => {
       });
   });
 
+  it("includes direct child categories when filtering by a parent category", async () => {
+    await request(app.getHttpServer())
+      .get("/api/v1/products?category=sports-nutrition")
+      .expect(200);
+
+    expect(prisma.product.count).toHaveBeenLastCalledWith({
+      where: expect.objectContaining({
+        category: {
+          OR: [
+            { slug: "sports-nutrition" },
+            { parent: { slug: "sports-nutrition" } },
+          ],
+        },
+      }),
+    });
+  });
+
   it("rejects unsupported sorting", async () => {
     await request(app.getHttpServer())
       .get("/api/v1/products?sort=rawSql")
