@@ -1,0 +1,24 @@
+{
+  "name": "athlon-sport",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @athlon/api build",
+    "dev": "pnpm --filter @athlon/api start:dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "pnpm --filter @athlon/api lint",
+    "prisma:validate": "pnpm --filter @athlon/api prisma:validate",
+    "test": "pnpm --filter @athlon/api test",
+    "test:e2e": "pnpm --filter @athlon/api test:e2e",
+    "typecheck": "pnpm --filter @athlon/api exec tsc -p tsconfig.json --noEmit",
+    "verify": "pnpm format:check && pnpm prisma:validate && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}

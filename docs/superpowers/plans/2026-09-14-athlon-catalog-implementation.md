@@ -264,6 +264,7 @@ PATCH  /api/v1/admin/settings
 ### Task 1: Workspace foundation and reproducible local environment
 
 **Files:**
+
 - Create: `package.json`
 - Create: `pnpm-workspace.yaml`
 - Create: `tsconfig.base.json`
@@ -275,6 +276,7 @@ PATCH  /api/v1/admin/settings
 - Test: root workspace scripts and both generated test suites
 
 **Interfaces:**
+
 - Produces: root scripts `dev`, `build`, `lint`, `test`, `format:check`; PostgreSQL service named `postgres`; workspace packages `@athlon/api`, `@athlon/web`, and `@athlon/api-client`.
 
 - [ ] Verify the installed Node package manager environment and record the selected stable runtime in `package.json#engines`.
@@ -289,6 +291,7 @@ PATCH  /api/v1/admin/settings
 ### Task 2: Prisma catalog schema, migrations, and demonstrative seed
 
 **Files:**
+
 - Create: `apps/api/prisma/schema.prisma`
 - Create: `apps/api/prisma/seed.ts`
 - Create: `apps/api/prisma/migrations/**`
@@ -297,6 +300,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/api/test/database/catalog-schema.e2e-spec.ts`
 
 **Interfaces:**
+
 - Produces: Prisma models and enums specified above; injectable `PrismaService`; seed command `pnpm --filter @athlon/api db:seed`.
 
 - [ ] Write schema integration assertions for unique SKU, unique translation locale per entity, nullable price, category parent relation, and deletion restrictions.
@@ -311,6 +315,7 @@ PATCH  /api/v1/admin/settings
 ### Task 3: API platform, error contract, health, and OpenAPI
 
 **Files:**
+
 - Modify: `apps/api/src/main.ts`
 - Modify: `apps/api/src/app.module.ts`
 - Create: `apps/api/src/config/environment.schema.ts`
@@ -323,6 +328,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/api/test/platform.e2e-spec.ts`
 
 **Interfaces:**
+
 - Produces: global prefix `/api/v1`; error envelope `{code,message,fieldErrors?,path,timestamp,requestId}`; health endpoints; generated OpenAPI JSON.
 
 - [ ] Write failing e2e cases for rejected unknown DTO fields, stable validation errors, request IDs, health routes, CORS, and absence of stack traces.
@@ -336,6 +342,7 @@ PATCH  /api/v1/admin/settings
 ### Task 4: Public catalog API
 
 **Files:**
+
 - Create: `apps/api/src/categories/**`
 - Create: `apps/api/src/brands/**`
 - Create: `apps/api/src/products/**`
@@ -344,6 +351,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/api/test/public-catalog.e2e-spec.ts`
 
 **Interfaces:**
+
 - Produces: public endpoints listed in the REST map; `PaginatedProductResponse`; locale fallback behavior; URL-safe filter DTO.
 
 - [ ] Write failing e2e cases for published-only results, all filters, allowlisted sorting, bounded pagination, localized fallback, slug lookup, featured/new lists, related items, and absent price.
@@ -358,6 +366,7 @@ PATCH  /api/v1/admin/settings
 ### Task 5: Admin authentication and authorization
 
 **Files:**
+
 - Create: `apps/api/src/users/**`
 - Create: `apps/api/src/auth/**`
 - Create: `apps/api/src/common/guards/admin-role.guard.ts`
@@ -365,6 +374,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/api/test/admin-auth.e2e-spec.ts`
 
 **Interfaces:**
+
 - Produces: login, refresh, logout, and me endpoints; rotated refresh sessions; reusable server-side `AdminRoleGuard`.
 
 - [ ] Write failing cases for valid login, invalid credentials, inactive user, secure cookie attributes, refresh rotation, replay rejection, logout revocation, CSRF rejection, and rate limiting.
@@ -377,6 +387,7 @@ PATCH  /api/v1/admin/settings
 ### Task 6: Administrative catalog API and local media storage
 
 **Files:**
+
 - Create: `apps/api/src/storage/storage-adapter.ts`
 - Create: `apps/api/src/storage/local-storage.adapter.ts`
 - Create: `apps/api/src/storage/storage.module.ts`
@@ -386,6 +397,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/api/test/media-security.e2e-spec.ts`
 
 **Interfaces:**
+
 - Produces: authenticated CRUD endpoints; `StorageAdapter`; card/detail/thumbnail variants; safe media metadata DTOs.
 
 - [ ] Write failing CRUD tests for translations, nullable price, publication, featured/new, ordering, destructive constraints, and third top-level category rejection.
@@ -400,6 +412,7 @@ PATCH  /api/v1/admin/settings
 ### Task 7: Angular shell, runtime localization, and brand assets
 
 **Files:**
+
 - Modify: `apps/web/src/app/app.config.ts`
 - Modify: `apps/web/src/app/app.routes.ts`
 - Create: `apps/web/src/app/core/i18n/**`
@@ -415,6 +428,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/web/src/app/layout/header/header.spec.ts`
 
 **Interfaces:**
+
 - Consumes: generated `@athlon/api-client`.
 - Produces: locale-prefixed public shell, language switcher, mobile navigation, shared API error mapping, exact preserved brand assets.
 
@@ -429,6 +443,7 @@ PATCH  /api/v1/admin/settings
 ### Task 8: Home page with visible sports-nutrition showcase
 
 **Files:**
+
 - Create: `apps/web/src/app/features/home/home.routes.ts`
 - Create: `apps/web/src/app/features/home/home-page.component.*`
 - Create: `apps/web/src/app/features/home/home.store.ts`
@@ -439,6 +454,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/web/e2e/home.spec.ts`
 
 **Interfaces:**
+
 - Consumes: categories, featured products, new products, and public settings API.
 - Produces: reusable `ProductCardComponent`; approved dark-header/light-showcase home page.
 
@@ -453,6 +469,7 @@ PATCH  /api/v1/admin/settings
 ### Task 9: Catalog, search, and product detail
 
 **Files:**
+
 - Create: `apps/web/src/app/features/catalog/**`
 - Create: `apps/web/src/app/features/search/**`
 - Create: `apps/web/src/app/features/product/**`
@@ -463,6 +480,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/web/e2e/product.spec.ts`
 
 **Interfaces:**
+
 - Consumes: public product list/detail/suggestions endpoints and URL query parameters.
 - Produces: linkable filter state, search results, product detail, gallery, contact action, and related products.
 
@@ -477,6 +495,7 @@ PATCH  /api/v1/admin/settings
 ### Task 10: Admin Angular application
 
 **Files:**
+
 - Create: `apps/web/src/app/core/auth/**`
 - Create: `apps/web/src/app/layout/admin-shell/**`
 - Create: `apps/web/src/app/features/admin/admin.routes.ts`
@@ -490,6 +509,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/web/e2e/admin.spec.ts`
 
 **Interfaces:**
+
 - Consumes: all authenticated admin endpoints and cookie session behavior.
 - Produces: lazy admin shell, session state, complete catalog CRUD UI, translation tabs, media manager, and guarded routes.
 
@@ -505,6 +525,7 @@ PATCH  /api/v1/admin/settings
 ### Task 11: SEO, SSR metadata, sitemap, and public content pages
 
 **Files:**
+
 - Create: `apps/web/src/app/core/seo/**`
 - Create: `apps/web/src/app/features/about/**`
 - Create: `apps/web/src/app/features/contacts/**`
@@ -519,6 +540,7 @@ PATCH  /api/v1/admin/settings
 - Test: `apps/web/e2e/seo.spec.ts`
 
 **Interfaces:**
+
 - Consumes: localized routes, products, categories, translations, settings, and stored images.
 - Produces: canonical, hreflang, Open Graph, Product/BreadcrumbList JSON-LD, localized 404, robots, and sitemap.
 
@@ -533,11 +555,13 @@ PATCH  /api/v1/admin/settings
 ### Task 12: Cross-application verification and operator documentation
 
 **Files:**
+
 - Create or finalize: `README.md`
 - Finalize: `.env.example`
 - Test: root verification scripts, API e2e, web e2e, accessibility checks
 
 **Interfaces:**
+
 - Consumes: completed applications and infrastructure.
 - Produces: documented clean-checkout setup and one root verification command.
 

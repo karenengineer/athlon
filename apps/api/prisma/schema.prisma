@@ -1,0 +1,185 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Locale {
+  HY
+  RU
+  EN
+}
+
+enum AvailabilityStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PREORDER
+  ON_REQUEST
+}
+
+enum AdminRole {
+  ADMIN
+}
+
+model Category {
+  id           String                @id @default(uuid()) @db.Uuid
+  code         String                @unique @db.VarChar(80)
+  slug         String                @unique @db.VarChar(160)
+  parentId     String?               @db.Uuid
+  parent       Category?             @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children     Category[]            @relation("CategoryTree")
+  translations CategoryTranslation[]
+  products     Product[]
+  published    Boolean               @default(true)
+  displayOrder Int                   @default(0)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([parentId, published, displayOrder])
+}
+
+model CategoryTranslation {
+  id             String   @id @default(uuid()) @db.Uuid
+  categoryId     String   @db.Uuid
+  category       Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  locale         Locale
+  name           String   @db.VarChar(180)
+  description    String?  @db.Text
+  seoTitle       String?  @db.VarChar(180)
+  seoDescription String?  @db.VarChar(320)
+
+  @@unique([categoryId, locale])
+  @@index([locale, name])
+}
+
+model Brand {
+  id           String             @id @default(uuid()) @db.Uuid
+  slug         String             @unique @db.VarChar(160)
+  name         String             @db.VarChar(180)
+  logoKey      String?            @db.VarChar(500)
+  published    Boolean            @default(true)
+  translations BrandTranslation[]
+  products     Product[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model BrandTranslation {
+  id          String @id @default(uuid()) @db.Uuid
+  brandId     String @db.Uuid
+  brand       Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  locale      Locale
+  name        String @db.VarChar(180)
+  description String? @db.Text
+
+  @@unique([brandId, locale])
+}
+
+model Product {
+  id              String                 @id @default(uuid()) @db.Uuid
+  sku             String                 @unique @db.VarChar(100)
+  slug            String                 @unique @db.VarChar(180)
+  categoryId      String                 @db.Uuid
+  category        Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brandId         String?                @db.Uuid
+  brand           Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  price           Decimal?               @db.Decimal(12, 2)
+  currency        String                 @default("AMD") @db.Char(3)
+  availability    AvailabilityStatus     @default(ON_REQUEST)
+  characteristics Json                   @default("{}")
+  featured        Boolean                @default(false)
+  isNew           Boolean                @default(false)
+  published       Boolean                @default(false)
+  displayOrder    Int                    @default(0)
+  translations    ProductTranslation[]
+  images          ProductImage[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([published, categoryId, displayOrder])
+  @@index([published, brandId])
+  @@index([published, featured, displayOrder])
+  @@index([published, isNew, displayOrder])
+  @@index([availability])
+  @@index([price])
+}
+
+model ProductTranslation {
+  id               String  @id @default(uuid()) @db.Uuid
+  productId        String  @db.Uuid
+  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locale           Locale
+  name             String  @db.VarChar(220)
+  shortDescription String? @db.VarChar(500)
+  description      String? @db.Text
+  seoTitle         String? @db.VarChar(180)
+  seoDescription   String? @db.VarChar(320)
+
+  @@unique([productId, locale])
+  @@index([locale, name])
+}
+
+model ProductImage {
+  id           String                    @id @default(uuid()) @db.Uuid
+  productId    String                    @db.Uuid
+  product      Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  originalKey  String                    @db.VarChar(500)
+  thumbnailKey String                    @db.VarChar(500)
+  cardKey      String                    @db.VarChar(500)
+  detailKey    String                    @db.VarChar(500)
+  mimeType     String                    @db.VarChar(100)
+  width        Int
+  height       Int
+  sizeBytes    Int
+  position     Int                       @default(0)
+  primary      Boolean                   @default(false)
+  translations ProductImageTranslation[]
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  @@index([productId, position])
+}
+
+model ProductImageTranslation {
+  id             String       @id @default(uuid()) @db.Uuid
+  productImageId String       @db.Uuid
+  productImage   ProductImage @relation(fields: [productImageId], references: [id], onDelete: Cascade)
+  locale         Locale
+  altText        String       @db.VarChar(250)
+
+  @@unique([productImageId, locale])
+}
+
+model AdminUser {
+  id              String           @id @default(uuid()) @db.Uuid
+  email           String           @unique @db.VarChar(320)
+  passwordHash    String           @db.VarChar(255)
+  role            AdminRole        @default(ADMIN)
+  active          Boolean          @default(true)
+  refreshSessions RefreshSession[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model RefreshSession {
+  id         String    @id @db.Uuid
+  adminUserId String   @db.Uuid
+  adminUser  AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash  String    @db.VarChar(255)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([adminUserId, expiresAt])
+}
+
+model SiteSetting {
+  key       String   @id @db.VarChar(100)
+  value     String?  @db.Text
+  public    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
