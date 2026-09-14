@@ -14,11 +14,13 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "pnpm --filter @athlon/api lint && pnpm --filter @athlon/web lint",
+    "postinstall": "pnpm prisma:generate",
+    "prisma:generate": "pnpm --filter @athlon/api prisma:generate",
     "prisma:validate": "pnpm --filter @athlon/api prisma:validate",
     "test": "pnpm --filter @athlon/api test && pnpm --filter @athlon/web test",
     "test:e2e": "pnpm --filter @athlon/api test:e2e",
     "typecheck": "pnpm --filter @athlon/api exec tsc -p tsconfig.json --noEmit && pnpm --filter @athlon/web exec tsc -p tsconfig.app.json --noEmit",
-    "verify": "pnpm format:check && pnpm prisma:validate && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build"
+    "verify": "pnpm format:check && pnpm prisma:validate && pnpm prisma:generate && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build"
   },
   "devDependencies": {
     "prettier": "3.6.2"
