@@ -1,0 +1,202 @@
+:host {
+  display: block;
+  color: #fff;
+}
+
+.announcement {
+  min-height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 4px 20px;
+  background: #e5001b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.header {
+  position: relative;
+  z-index: 20;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  max-width: 1240px;
+  margin: auto;
+  padding: 8px 24px;
+  background: #080809;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.brand img {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+.brand-copy {
+  display: grid;
+  line-height: 1;
+}
+
+.brand-copy b {
+  font-size: 1.15rem;
+  font-style: italic;
+  letter-spacing: 0.04em;
+}
+
+.brand-copy small {
+  margin-top: 4px;
+  color: #b8b8bd;
+  font-size: 0.55rem;
+  letter-spacing: 0.16em;
+}
+
+.header-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+nav {
+  display: flex;
+  gap: 22px;
+}
+
+nav a {
+  padding: 10px 0;
+  color: #d7d7da;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+nav a.active,
+nav a:hover {
+  color: #fff;
+}
+
+.search {
+  flex: 1;
+  max-width: 390px;
+  display: flex;
+  margin-left: auto;
+  border: 1px solid #353539;
+  border-radius: 6px;
+  background: #161618;
+}
+
+.search:focus-within {
+  border-color: #e5001b;
+}
+
+.search input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px 13px;
+  border: 0;
+  outline: 0;
+  color: #fff;
+  background: transparent;
+}
+
+.search button {
+  width: 42px;
+  border: 0;
+  color: #fff;
+  background: #e5001b;
+  cursor: pointer;
+  font-size: 1.3rem;
+}
+
+.languages {
+  display: flex;
+  gap: 5px;
+}
+
+.languages a {
+  padding: 7px 6px;
+  border-radius: 4px;
+  color: #99999f;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.languages a.active,
+.languages a:hover {
+  color: #fff;
+  background: #2a2a2d;
+}
+
+.menu-button {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .header {
+    padding-inline: 16px;
+  }
+
+  .brand-copy {
+    display: none;
+  }
+
+  .menu-button {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-content: center;
+    gap: 5px;
+    margin-left: auto;
+    border: 1px solid #3b3b3f;
+    border-radius: 5px;
+    color: #fff;
+    background: #171719;
+  }
+
+  .menu-button span:not(.sr-only) {
+    width: 20px;
+    height: 2px;
+    background: currentColor;
+  }
+
+  .header-content {
+    position: absolute;
+    top: 100%;
+    right: 12px;
+    left: 12px;
+    display: none;
+    align-items: stretch;
+    padding: 18px;
+    border: 1px solid #333338;
+    border-radius: 8px;
+    background: #0e0e10;
+    box-shadow: 0 18px 40px #0009;
+  }
+
+  .header-content.open {
+    display: grid;
+  }
+
+  nav {
+    display: grid;
+  }
+
+  .search {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+}

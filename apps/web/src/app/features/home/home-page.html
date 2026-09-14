@@ -1,0 +1,85 @@
+<section class="home-top">
+  <div class="category-strip page-width" aria-label="Catalog categories">
+    @if (categories().length) { @for (category of categories(); track
+    category.id) {
+    <a
+      data-testid="category-control"
+      [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+      [class.primary]="category.code === 'sports-nutrition'"
+    >
+      <span>{{ category.name }}</span><b aria-hidden="true">↗</b>
+    </a>
+    } } @else {
+    <a
+      data-testid="category-control"
+      class="primary"
+      [routerLink]="['/', i18n.locale(), 'catalog', 'sports-nutrition']"
+      ><span>{{ i18n.t("nutrition") }}</span><b aria-hidden="true">↗</b></a
+    >
+    <a
+      data-testid="category-control"
+      [routerLink]="['/', i18n.locale(), 'catalog', 'accessories']"
+      ><span>{{ i18n.t("accessories") }}</span><b aria-hidden="true">↗</b></a
+    >
+    }
+  </div>
+
+  <div class="hero page-width">
+    <div class="hero-copy">
+      <p class="eyebrow">{{ i18n.t("heroEyebrow") }}</p>
+      <h1>{{ i18n.t("heroTitle") }}</h1>
+      <p class="hero-text">{{ i18n.t("heroText") }}</p>
+      <a class="primary-button" [routerLink]="['/', i18n.locale(), 'catalog']">
+        {{ i18n.t("explore") }} <span aria-hidden="true">→</span>
+      </a>
+    </div>
+    <div class="hero-visual">
+      <img
+        src="/brand/athlon-hero-wide.jpeg"
+        width="1280"
+        height="634"
+        alt="ATHLON Sports Nutrition Store"
+      />
+    </div>
+  </div>
+</section>
+
+<section class="showcase">
+  <div class="page-width">
+    <header class="section-heading">
+      <div>
+        <p class="eyebrow red">{{ i18n.t("showcaseEyebrow") }}</p>
+        <h2>{{ i18n.t("showcaseTitle") }}</h2>
+        <p>{{ i18n.t("showcaseText") }}</p>
+      </div>
+      <a [routerLink]="['/', i18n.locale(), 'catalog', 'sports-nutrition']">
+        {{ i18n.t("viewAll") }} <span aria-hidden="true">→</span>
+      </a>
+    </header>
+
+    @switch (state()) { @case ("loading") {
+    <app-status-panel kind="loading" />
+    } @case ("error") {
+    <app-status-panel kind="error" (retry)="load()" />
+    } @case ("empty") {
+    <app-status-panel kind="empty" />
+    } @default {
+    <app-product-grid [products]="products()" [eagerFirstRow]="true" />
+    } }
+  </div>
+</section>
+
+<section class="brand-proof page-width">
+  <img
+    src="/brand/athlon-packaging.png"
+    width="1456"
+    height="1092"
+    loading="lazy"
+    alt="ATHLON branded packaging"
+  />
+  <div>
+    <p class="eyebrow red">ATHLON</p>
+    <h2>{{ i18n.t("heroTitle") }}</h2>
+    <p>{{ i18n.t("heroText") }}</p>
+  </div>
+</section>

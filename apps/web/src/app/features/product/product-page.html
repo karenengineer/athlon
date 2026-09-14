@@ -1,0 +1,67 @@
+<section class="product-page page-width">
+  @switch (state()) { @case ("loading") { <app-status-panel kind="loading" /> }
+  @case ("error") { <app-status-panel kind="error" (retry)="load()" /> }
+  @default { @if (product(); as item) {
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a [routerLink]="['/', i18n.locale(), 'catalog']"
+      >{{ i18n.t("catalog") }}</a
+    >
+    <span>/</span>
+    <a [routerLink]="['/', i18n.locale(), 'catalog', item.category.slug]"
+      >{{ item.category.name }}</a
+    >
+    <span>/</span>
+    <b>{{ item.name }}</b>
+  </nav>
+  <div class="product-layout">
+    <div class="gallery">
+      <div class="main-image">
+        <img
+          [src]="image()"
+          [alt]="item.images[selectedImage()]?.alt || item.name"
+          width="900"
+          height="900"
+        />
+      </div>
+      @if (item.images.length > 1) {
+      <div class="thumbs">
+        @for (picture of item.images; track picture.id; let index = $index) {
+        <button
+          type="button"
+          [class.active]="selectedImage() === index"
+          (click)="selectedImage.set(index)"
+        >
+          <img
+            [src]="picture.thumbnailUrl"
+            [alt]="picture.alt"
+            width="90"
+            height="90"
+          />
+        </button>
+        }
+      </div>
+      }
+    </div>
+    <article class="product-copy">
+      <p class="eyebrow">{{ item.brand?.name || item.category.name }}</p>
+      <h1>{{ item.name }}</h1>
+      <p class="sku">SKU {{ item.sku }}</p>
+      <p class="description">{{ item.description || item.shortDescription }}</p>
+      <div class="price">
+        @if (item.price !== null) { <strong>{{ item.price }} AMD</strong> }
+        @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
+        <span>{{ item.availability }}</span>
+      </div>
+      @if (item.characteristics && (item.characteristics | json) !== "{}") {
+      <section class="characteristics">
+        <h2>{{ i18n.t("characteristics") }}</h2>
+        <pre>{{ item.characteristics | json }}</pre>
+      </section>
+      }
+      <a class="back" [routerLink]="['/', i18n.locale(), 'catalog']"
+        >← {{ i18n.t("backToCatalog") }}</a
+      >
+    </article>
+  </div>
+  } } }
+</section>

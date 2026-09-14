@@ -1,0 +1,64 @@
+<section class="catalog-page page-width">
+  <header class="catalog-heading">
+    <p>ATHLON CATALOG</p>
+    <h1>{{ i18n.t("catalog") }}</h1>
+    <span>{{ meta().total }} products</span>
+  </header>
+
+  <form class="filters" (ngSubmit)="applyFilters()">
+    <strong>{{ i18n.t("filters") }}</strong>
+    <label>
+      <span class="sr-only">{{ i18n.t("allBrands") }}</span>
+      <select name="brand" [(ngModel)]="brand">
+        <option value="">{{ i18n.t("allBrands") }}</option>
+        @for (item of brands(); track item.id) {
+        <option [value]="item.slug">{{ item.name }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      <span class="sr-only">{{ i18n.t("allAvailability") }}</span>
+      <select name="availability" [(ngModel)]="availability">
+        <option value="">{{ i18n.t("allAvailability") }}</option>
+        <option value="IN_STOCK">{{ i18n.t("available") }}</option>
+        <option value="PREORDER">{{ i18n.t("preorder") }}</option>
+        <option value="ON_REQUEST">{{ i18n.t("onRequest") }}</option>
+        <option value="OUT_OF_STOCK">{{ i18n.t("unavailable") }}</option>
+      </select>
+    </label>
+    <label>
+      <span class="sr-only">Sort</span>
+      <select name="sort" [(ngModel)]="sort">
+        <option value="displayOrder">{{ i18n.t("recommended") }}</option>
+        <option value="newest">{{ i18n.t("newest") }}</option>
+        <option value="priceAsc">{{ i18n.t("priceAsc") }}</option>
+        <option value="priceDesc">{{ i18n.t("priceDesc") }}</option>
+      </select>
+    </label>
+    <button type="submit">{{ i18n.t("apply") }}</button>
+  </form>
+
+  @switch (state()) { @case ("loading") { <app-status-panel kind="loading" /> }
+  @case ("error") { <app-status-panel kind="error" (retry)="retry()" /> } @case
+  ("empty") { <app-status-panel kind="empty" /> } @default {
+  <app-product-grid [products]="products()" /> } } @if (state() === "ready" &&
+  meta().totalPages > 1) {
+  <nav class="pagination" aria-label="Pagination">
+    <button
+      type="button"
+      [disabled]="meta().page <= 1"
+      (click)="goToPage(meta().page - 1)"
+    >
+      ← {{ i18n.t("previous") }}
+    </button>
+    <span>{{ meta().page }} / {{ meta().totalPages }}</span>
+    <button
+      type="button"
+      [disabled]="meta().page >= meta().totalPages"
+      (click)="goToPage(meta().page + 1)"
+    >
+      {{ i18n.t("next") }} →
+    </button>
+  </nav>
+  }
+</section>

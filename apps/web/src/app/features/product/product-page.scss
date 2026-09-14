@@ -1,0 +1,154 @@
+.product-page {
+  min-height: 70vh;
+  padding-block: 28px 80px;
+}
+
+.breadcrumbs {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  color: #77777d;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.breadcrumbs a {
+  color: inherit;
+}
+
+.breadcrumbs b {
+  overflow: hidden;
+  color: #202024;
+  text-overflow: ellipsis;
+}
+
+.product-layout {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(30px, 6vw, 80px);
+  padding: clamp(18px, 4vw, 46px);
+  border: 1px solid #dddde1;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.main-image {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 8px;
+  background: #f1f1f3;
+}
+
+.main-image > img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+}
+
+.thumbs {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.thumbs button {
+  width: 64px;
+  height: 64px;
+  padding: 3px;
+  border: 1px solid #d5d5d9;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.thumbs button.active {
+  border-color: #e5001b;
+}
+
+.thumbs img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.product-copy {
+  align-self: center;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #e5001b;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  color: #141416;
+  font-size: clamp(2.2rem, 5vw, 4.3rem);
+  font-style: italic;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.sku {
+  color: #8b8b91;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+}
+
+.description {
+  color: #595960;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 25px;
+  padding: 18px 0;
+  border-block: 1px solid #e1e1e4;
+}
+
+.price strong {
+  color: #e5001b;
+  font-size: 1.35rem;
+}
+
+.price span {
+  color: #5f5f65;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.characteristics h2 {
+  font-size: 1rem;
+}
+
+pre {
+  padding: 12px;
+  overflow: auto;
+  border-radius: 5px;
+  background: #f2f2f4;
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.back {
+  display: inline-block;
+  margin-top: 20px;
+  color: #171719;
+  font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  .product-layout {
+    grid-template-columns: 1fr;
+  }
+}

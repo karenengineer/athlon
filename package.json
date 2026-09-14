@@ -4,18 +4,20 @@
   "private": true,
   "packageManager": "pnpm@11.19.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "pnpm --filter @athlon/api build",
-    "dev": "pnpm --filter @athlon/api start:dev",
+    "build": "pnpm --filter @athlon/api build && pnpm --filter @athlon/web build",
+    "build:api": "pnpm --filter @athlon/api build",
+    "build:web": "pnpm --filter @athlon/web build",
+    "dev": "pnpm --parallel --filter @athlon/api --filter @athlon/web dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "pnpm --filter @athlon/api lint",
+    "lint": "pnpm --filter @athlon/api lint && pnpm --filter @athlon/web lint",
     "prisma:validate": "pnpm --filter @athlon/api prisma:validate",
-    "test": "pnpm --filter @athlon/api test",
+    "test": "pnpm --filter @athlon/api test && pnpm --filter @athlon/web test",
     "test:e2e": "pnpm --filter @athlon/api test:e2e",
-    "typecheck": "pnpm --filter @athlon/api exec tsc -p tsconfig.json --noEmit",
+    "typecheck": "pnpm --filter @athlon/api exec tsc -p tsconfig.json --noEmit && pnpm --filter @athlon/web exec tsc -p tsconfig.app.json --noEmit",
     "verify": "pnpm format:check && pnpm prisma:validate && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build"
   },
   "devDependencies": {

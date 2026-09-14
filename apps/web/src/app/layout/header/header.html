@@ -1,0 +1,68 @@
+<div class="announcement">{{ i18n.t("announcement") }}</div>
+<header class="header">
+  <a class="brand" [routerLink]="['/', i18n.locale()]" aria-label="ATHLON home">
+    <img
+      src="/brand/athlon-logo-round.jpeg"
+      width="58"
+      height="58"
+      alt="ATHLON"
+    />
+    <span class="brand-copy"><b>ATHLON</b><small>SPORTS NUTRITION</small></span>
+  </a>
+
+  <button
+    class="menu-button"
+    type="button"
+    [attr.aria-expanded]="menuOpen()"
+    aria-controls="primary-navigation"
+    (click)="menuOpen.set(!menuOpen())"
+  >
+    <span></span><span></span><span></span><span class="sr-only">Menu</span>
+  </button>
+
+  <div class="header-content" id="primary-navigation" [class.open]="menuOpen()">
+    <nav aria-label="Primary navigation">
+      <a
+        [routerLink]="['/', i18n.locale()]"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="menuOpen.set(false)"
+        >{{ i18n.t("home") }}</a
+      >
+      <a
+        [routerLink]="['/', i18n.locale(), 'catalog']"
+        routerLinkActive="active"
+        (click)="menuOpen.set(false)"
+        >{{ i18n.t("catalog") }}</a
+      >
+    </nav>
+
+    <form
+      class="search"
+      role="search"
+      (submit)="$event.preventDefault(); search(searchBox.value)"
+    >
+      <label class="sr-only" for="site-search">{{ i18n.t("search") }}</label>
+      <input
+        #searchBox
+        id="site-search"
+        type="search"
+        [placeholder]="i18n.t('searchPlaceholder')"
+        autocomplete="off"
+      />
+      <button type="submit" [attr.aria-label]="i18n.t('search')">⌕</button>
+    </form>
+
+    <div class="languages" aria-label="Language">
+      @for (locale of locales; track locale) {
+      <a
+        data-testid="language-link"
+        [href]="localeHref(locale)"
+        [class.active]="locale === i18n.locale()"
+        [attr.aria-current]="locale === i18n.locale() ? 'page' : null"
+        >{{ locale.toUpperCase() }}</a
+      >
+      }
+    </div>
+  </div>
+</header>

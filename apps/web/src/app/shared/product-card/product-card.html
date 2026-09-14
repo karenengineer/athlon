@@ -1,0 +1,52 @@
+<article class="product-card">
+  <a
+    class="image-well"
+    [routerLink]="['/', i18n.locale(), 'product', product().slug]"
+    tabindex="-1"
+    aria-hidden="true"
+  >
+    @if (product().isNew) {
+    <span class="badge">NEW</span>
+    }
+    <img
+      [src]="imageUrl()"
+      [alt]="product().images[0]?.alt || product().name"
+      width="560"
+      height="560"
+      [attr.loading]="eager() ? 'eager' : 'lazy'"
+    />
+  </a>
+  <div class="card-copy">
+    <div class="meta-row">
+      <span>{{ product().brand?.name || product().category.name }}</span>
+      <span
+        class="availability"
+        [class.in-stock]="product().availability === 'IN_STOCK'"
+      >
+        {{ availabilityLabel() }}
+      </span>
+    </div>
+    <h3>
+      <a [routerLink]="['/', i18n.locale(), 'product', product().slug]"
+        >{{ product().name }}</a
+      >
+    </h3>
+    <p>{{ product().shortDescription || product().category.name }}</p>
+    <div class="card-bottom">
+      @if (product().price !== null) {
+      <strong
+        >{{ +product().price! | currency: "AMD" : "symbol-narrow" : "1.0-0"
+        }}</strong
+      >
+      } @else {
+      <strong class="contact-price">{{ i18n.t("contactPrice") }}</strong>
+      }
+      <a
+        class="detail-link"
+        [routerLink]="['/', i18n.locale(), 'product', product().slug]"
+      >
+        {{ i18n.t("details") }} <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+</article>

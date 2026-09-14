@@ -20,7 +20,8 @@ pnpm dev
 ```
 
 The API is available at `http://localhost:3000/api/v1`. Swagger UI is available at
-`http://localhost:3000/api/docs`.
+`http://localhost:3000/api/docs`. The Angular application runs at `http://localhost:4200`
+and proxies browser API requests to the NestJS development server.
 
 To create the initial administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`
 before running the seed. The password must contain at least 12 characters.
@@ -40,6 +41,8 @@ and the production build.
 
 ## Scope
 
-The current backend implements multilingual categories, brands, products, image metadata,
-search, filters, sorting, pagination, site settings, and secure administrator sessions.
-Cart, orders, and payments are intentionally excluded from this phase.
+The backend implements multilingual categories, brands, products, image metadata, search,
+filters, sorting, pagination, site settings, and secure administrator sessions. The public
+Angular SSR application provides localized home, catalog, search, and product-detail routes
+with responsive loading, empty, and error states. Cart, orders, and payments are intentionally
+excluded from this phase.
