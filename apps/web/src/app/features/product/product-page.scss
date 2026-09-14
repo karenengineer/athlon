@@ -127,17 +127,49 @@ h1 {
   font-weight: 900;
 }
 
+.availability-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 15px 18px;
+  border-radius: 5px;
+  color: #fff;
+  background: #e5001b;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
 .characteristics h2 {
   font-size: 1rem;
 }
 
-pre {
-  padding: 12px;
-  overflow: auto;
-  border-radius: 5px;
-  background: #f2f2f4;
-  font: inherit;
-  font-size: 0.8rem;
+.characteristics dl {
+  margin: 0;
+  border-top: 1px solid #e1e1e4;
+}
+
+.characteristics dl div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e1e1e4;
+  font-size: 0.84rem;
+}
+
+.characteristics dt {
+  color: #77777d;
+  text-transform: capitalize;
+}
+
+.characteristics dd {
+  margin: 0;
+  color: #202024;
+  font-weight: 800;
 }
 
 .back {
@@ -147,8 +179,88 @@ pre {
   font-weight: 900;
 }
 
+.related {
+  padding-bottom: 80px;
+}
+
+.related header {
+  margin-bottom: 18px;
+}
+
+.related header p {
+  margin: 0 0 6px;
+  color: #e5001b;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.related h2 {
+  margin: 0;
+  color: #171719;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-style: italic;
+  text-transform: uppercase;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.related-grid a {
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #dddde1;
+  border-radius: 7px;
+  color: #202024;
+  background: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.related-grid img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #f1f1f3;
+}
+
+.related-grid b {
+  color: #e5001b;
+}
+
 @media (max-width: 760px) {
   .product-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .related-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .related-grid a {
+    grid-template-columns: 54px 1fr;
+  }
+
+  .related-grid img {
+    width: 54px;
+    height: 54px;
+  }
+
+  .related-grid b {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .related-grid {
     grid-template-columns: 1fr;
   }
 }

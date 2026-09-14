@@ -1,9 +1,40 @@
 <section class="catalog-page page-width">
+  <nav
+    class="breadcrumbs"
+    data-testid="catalog-breadcrumbs"
+    aria-label="Breadcrumb"
+  >
+    <a [routerLink]="['/', i18n.locale()]">{{ i18n.t("home") }}</a>
+    <span>/</span>
+    @if (activeCategorySlug() || heading() !== i18n.t("catalog")) {
+    <a [routerLink]="['/', i18n.locale(), 'catalog']"
+      >{{ i18n.t("catalog") }}</a
+    >
+    <span>/</span>
+    }
+    <b>{{ heading() }}</b>
+  </nav>
   <header class="catalog-heading">
     <p>ATHLON CATALOG</p>
-    <h1>{{ i18n.t("catalog") }}</h1>
-    <span>{{ meta().total }} products</span>
+    <h1>{{ heading() }}</h1>
+    <span>{{ meta().total }} {{ i18n.t("productsFound") }}</span>
   </header>
+
+  <nav class="category-links" aria-label="Categories">
+    <a
+      [routerLink]="['/', i18n.locale(), 'catalog']"
+      [class.active]="!activeCategorySlug()"
+      >{{ i18n.t("allCategories") }}</a
+    >
+    @for (category of categories(); track category.id) {
+    <a
+      [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+      [queryParamsHandling]="'preserve'"
+      [class.active]="activeCategorySlug() === category.slug"
+      >{{ category.name }}</a
+    >
+    }
+  </nav>
 
   <form class="filters" (ngSubmit)="applyFilters()">
     <strong>{{ i18n.t("filters") }}</strong>
@@ -34,6 +65,28 @@
         <option value="priceAsc">{{ i18n.t("priceAsc") }}</option>
         <option value="priceDesc">{{ i18n.t("priceDesc") }}</option>
       </select>
+    </label>
+    <label>
+      <span class="sr-only">{{ i18n.t("priceFrom") }}</span>
+      <input
+        name="minPrice"
+        type="number"
+        min="0"
+        step="100"
+        [placeholder]="i18n.t('priceFrom')"
+        [(ngModel)]="minPrice"
+      />
+    </label>
+    <label>
+      <span class="sr-only">{{ i18n.t("priceTo") }}</span>
+      <input
+        name="maxPrice"
+        type="number"
+        min="0"
+        step="100"
+        [placeholder]="i18n.t('priceTo')"
+        [(ngModel)]="maxPrice"
+      />
     </label>
     <button type="submit">{{ i18n.t("apply") }}</button>
   </form>

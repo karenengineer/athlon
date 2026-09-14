@@ -59,8 +59,18 @@ export interface ProductQuery {
   category?: string;
   brand?: string;
   availability?: Availability;
+  minPrice?: number;
+  maxPrice?: number;
   sort?: "displayOrder" | "priceAsc" | "priceDesc" | "newest";
   page?: number;
   pageSize?: number;
   q?: string;
+}
+
+export interface PublicSettings {
+  phone?: string;
+  email?: string;
+  instagram?: string;
+  facebook?: string;
+  whatsapp?: string;
 }

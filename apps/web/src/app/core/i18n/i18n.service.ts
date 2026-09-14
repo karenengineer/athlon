@@ -30,6 +30,9 @@ type Copy = {
   filters: string;
   allBrands: string;
   allAvailability: string;
+  allCategories: string;
+  priceFrom: string;
+  priceTo: string;
   available: string;
   preorder: string;
   onRequest: string;
@@ -42,6 +45,10 @@ type Copy = {
   previous: string;
   next: string;
   characteristics: string;
+  searchResults: string;
+  productsFound: string;
+  checkAvailability: string;
+  relatedProducts: string;
   backToCatalog: string;
   footerText: string;
 };
@@ -74,6 +81,9 @@ const copy: Record<Locale, Copy> = {
     filters: "Фильтры",
     allBrands: "Все бренды",
     allAvailability: "Любая доступность",
+    allCategories: "Все категории",
+    priceFrom: "Цена от",
+    priceTo: "Цена до",
     available: "В наличии",
     preorder: "Предзаказ",
     onRequest: "Под заказ",
@@ -86,6 +96,10 @@ const copy: Record<Locale, Copy> = {
     previous: "Назад",
     next: "Далее",
     characteristics: "Характеристики",
+    searchResults: "Результаты поиска",
+    productsFound: "товаров",
+    checkAvailability: "Уточнить наличие",
+    relatedProducts: "Похожие товары",
     backToCatalog: "Вернуться в каталог",
     footerText: "Спортивное питание и аксессуары в Армении.",
   },
@@ -116,6 +130,9 @@ const copy: Record<Locale, Copy> = {
     filters: "Զտիչներ",
     allBrands: "Բոլոր ապրանքանիշերը",
     allAvailability: "Ցանկացած հասանելիություն",
+    allCategories: "Բոլոր կատեգորիաները",
+    priceFrom: "Գինը՝ սկսած",
+    priceTo: "Գինը՝ մինչև",
     available: "Առկա է",
     preorder: "Նախնական պատվեր",
     onRequest: "Պատվերով",
@@ -128,6 +145,10 @@ const copy: Record<Locale, Copy> = {
     previous: "Հետ",
     next: "Առաջ",
     characteristics: "Բնութագրեր",
+    searchResults: "Որոնման արդյունքներ",
+    productsFound: "ապրանք",
+    checkAvailability: "Ճշտել առկայությունը",
+    relatedProducts: "Նմանատիպ ապրանքներ",
     backToCatalog: "Վերադառնալ կատալոգ",
     footerText: "Սպորտային սնունդ և աքսեսուարներ Հայաստանում։",
   },
@@ -158,6 +179,9 @@ const copy: Record<Locale, Copy> = {
     filters: "Filters",
     allBrands: "All brands",
     allAvailability: "Any availability",
+    allCategories: "All categories",
+    priceFrom: "Price from",
+    priceTo: "Price to",
     available: "In stock",
     preorder: "Preorder",
     onRequest: "On request",
@@ -170,6 +194,10 @@ const copy: Record<Locale, Copy> = {
     previous: "Previous",
     next: "Next",
     characteristics: "Characteristics",
+    searchResults: "Search results",
+    productsFound: "products",
+    checkAvailability: "Check availability",
+    relatedProducts: "Related products",
     backToCatalog: "Back to catalog",
     footerText: "Sports nutrition and accessories in Armenia.",
   },

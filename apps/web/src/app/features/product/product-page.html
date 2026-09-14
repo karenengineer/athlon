@@ -21,6 +21,8 @@
           [alt]="item.images[selectedImage()]?.alt || item.name"
           width="900"
           height="900"
+          loading="eager"
+          fetchpriority="high"
         />
       </div>
       @if (item.images.length > 1) {
@@ -48,14 +50,35 @@
       <p class="sku">SKU {{ item.sku }}</p>
       <p class="description">{{ item.description || item.shortDescription }}</p>
       <div class="price">
-        @if (item.price !== null) { <strong>{{ item.price }} AMD</strong> }
-        @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
-        <span>{{ item.availability }}</span>
+        @if (item.price !== null) {
+        <strong
+          >{{ +item.price | currency: "AMD" : "symbol-narrow" : "1.0-0"
+          }}</strong
+        >
+        } @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
+        <span>{{ availabilityLabel() }}</span>
       </div>
-      @if (item.characteristics && (item.characteristics | json) !== "{}") {
+      @if (contactHref(); as href) {
+      <a
+        class="availability-cta"
+        data-testid="availability-cta"
+        [href]="href"
+        [attr.target]="href.startsWith('http') ? '_blank' : null"
+        [attr.rel]="href.startsWith('http') ? 'noopener noreferrer' : null"
+      >
+        {{ i18n.t("checkAvailability") }} <span aria-hidden="true">→</span>
+      </a>
+      } @if (item.characteristics && (item.characteristics | keyvalue).length) {
       <section class="characteristics">
         <h2>{{ i18n.t("characteristics") }}</h2>
-        <pre>{{ item.characteristics | json }}</pre>
+        <dl>
+          @for (feature of item.characteristics | keyvalue; track feature.key) {
+          <div>
+            <dt>{{ feature.key }}</dt>
+            <dd>{{ formatCharacteristic(feature.value) }}</dd>
+          </div>
+          }
+        </dl>
       </section>
       }
       <a class="back" [routerLink]="['/', i18n.locale(), 'catalog']"
@@ -65,3 +88,26 @@
   </div>
   } } }
 </section>
+
+@if (relatedProducts().length) {
+<section class="related page-width" data-testid="related-products">
+  <header>
+    <p>ATHLON SELECT</p>
+    <h2>{{ i18n.t("relatedProducts") }}</h2>
+  </header>
+  <div class="related-grid">
+    @for (related of relatedProducts(); track related.id) {
+    <a [routerLink]="['/', i18n.locale(), 'product', related.slug]">
+      <img
+        [src]="related.images[0]?.thumbnailUrl || '/placeholders/product-placeholder.svg'"
+        [alt]="related.name"
+        width="120"
+        height="120"
+      />
+      <span>{{ related.name }}</span>
+      <b>→</b>
+    </a>
+    }
+  </div>
+</section>
+}

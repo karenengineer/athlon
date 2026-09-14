@@ -161,4 +161,140 @@ describe("ATHLON public application", () => {
     ).map((node) => (node as HTMLElement).textContent?.trim());
     expect(languages).toEqual(["HY", "RU", "EN"]);
   });
+
+  it("keeps catalog filters in URL parameters and renders the category context", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl(
+      "/en/catalog/sports-nutrition?brand=demo-brand&availability=IN_STOCK&minPrice=5000&maxPrice=25000&sort=priceAsc&page=2&q=whey",
+    );
+    fixture.detectChanges();
+
+    http
+      .expectOne((request) => request.url.endsWith("/categories"))
+      .flush([
+        { ...categories[0], name: "Sports nutrition" },
+        { ...categories[1], name: "Accessories" },
+      ]);
+    http
+      .expectOne((request) => request.url.endsWith("/brands"))
+      .flush([{ id: "brand-1", slug: "demo-brand", name: "Demo Brand" }]);
+    const productsRequest = http.expectOne((request) =>
+      request.url.endsWith("/products"),
+    );
+    expect(productsRequest.request.params.get("category")).toBe(
+      "sports-nutrition",
+    );
+    expect(productsRequest.request.params.get("brand")).toBe("demo-brand");
+    expect(productsRequest.request.params.get("availability")).toBe("IN_STOCK");
+    expect(productsRequest.request.params.get("minPrice")).toBe("5000");
+    expect(productsRequest.request.params.get("maxPrice")).toBe("25000");
+    expect(productsRequest.request.params.get("sort")).toBe("priceAsc");
+    expect(productsRequest.request.params.get("page")).toBe("2");
+    expect(productsRequest.request.params.get("q")).toBe("whey");
+    productsRequest.flush({
+      items: [product],
+      meta: { page: 2, pageSize: 24, total: 30, totalPages: 2 },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Sports nutrition");
+    expect(
+      fixture.nativeElement.querySelector("[data-testid=catalog-breadcrumbs]"),
+    ).toBeTruthy();
+  });
+
+  it("renders product facts, localized availability, contact CTA and related products", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/ru/product/demo-whey");
+    fixture.detectChanges();
+
+    http
+      .expectOne((request) => request.url.endsWith("/products/demo-whey"))
+      .flush({
+        ...product,
+        description: "Полное описание продукта",
+        characteristics: { weight: "900 г", servings: 30 },
+        images: [
+          {
+            id: "image-1",
+            thumbnailUrl: "/media/thumb.webp",
+            cardUrl: "/media/card.webp",
+            detailUrl: "/media/detail.webp",
+            alt: "Whey Protein",
+            primary: true,
+          },
+        ],
+      });
+    http
+      .expectOne((request) => request.url.endsWith("/public/settings"))
+      .flush({ whatsapp: "+37499111222" });
+    http
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products") &&
+          request.params.get("category") === "sports-nutrition",
+      )
+      .flush({
+        items: [{ ...product, id: "related-1", slug: "related-whey" }],
+        meta: { page: 1, pageSize: 4, total: 1, totalPages: 1 },
+      });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("900 г");
+    expect(fixture.nativeElement.textContent).toContain("В наличии");
+    expect(
+      fixture.nativeElement.querySelector("[data-testid=availability-cta]")
+        ?.textContent,
+    ).toContain("Уточнить наличие");
+    expect(
+      fixture.nativeElement.querySelector("[data-testid=related-products]"),
+    ).toBeTruthy();
+  });
+
+  it("reloads product data when the locale changes without leaving the SPA", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/ru/product/demo-whey");
+    fixture.detectChanges();
+
+    http
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products/demo-whey") &&
+          request.params.get("locale") === "ru",
+      )
+      .flush(product);
+    http
+      .expectOne((request) => request.url.endsWith("/public/settings"))
+      .flush({});
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 5, total: 0, totalPages: 0 },
+      });
+    fixture.detectChanges();
+
+    await router.navigateByUrl("/en/product/demo-whey");
+    fixture.detectChanges();
+
+    http
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products/demo-whey") &&
+          request.params.get("locale") === "en",
+      )
+      .flush({ ...product, name: "Demo whey" });
+    http
+      .expectOne((request) => request.url.endsWith("/public/settings"))
+      .flush({});
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 5, total: 0, totalPages: 0 },
+      });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Demo whey");
+  });
 });

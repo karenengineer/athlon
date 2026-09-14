@@ -1,8 +1,8 @@
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, Router } from "@angular/router";
-import { forkJoin } from "rxjs";
+import { ActivatedRoute, ParamMap, Router, RouterLink } from "@angular/router";
+import { combineLatest, distinctUntilChanged, forkJoin, map } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import {
   Availability,
@@ -19,7 +19,7 @@ type CatalogState = "loading" | "ready" | "empty" | "error";
 
 @Component({
   selector: "app-catalog-page",
-  imports: [FormsModule, ProductGrid, StatusPanel],
+  imports: [FormsModule, RouterLink, ProductGrid, StatusPanel],
   templateUrl: "./catalog-page.html",
   styleUrl: "./catalog-page.scss",
 })
@@ -37,6 +37,8 @@ export class CatalogPage {
   });
   brand = "";
   availability: "" | Availability = "";
+  minPrice: number | null = null;
+  maxPrice: number | null = null;
   sort: "displayOrder" | "priceAsc" | "priceDesc" | "newest" = "displayOrder";
 
   private readonly api = inject(CatalogApiService);
@@ -45,12 +47,29 @@ export class CatalogPage {
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
-    this.route.url
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.loadFromRoute());
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.loadFromRoute());
+    combineLatest([
+      this.route.paramMap,
+      this.route.queryParamMap,
+      this.route.parent!.paramMap,
+    ])
+      .pipe(
+        map(([routeParams, queryParams, parentParams]) => ({
+          routeParams,
+          queryParams,
+          locale: parentParams.get("locale") ?? "ru",
+          key: `${parentParams.get("locale")}|${routeParams.get("categorySlug")}|${queryParams.keys
+            .sort()
+            .map((key) => `${key}=${queryParams.get(key)}`)
+            .join("&")}`,
+        })),
+        distinctUntilChanged(
+          (previous, current) => previous.key === current.key,
+        ),
+        takeUntilDestroyed(),
+      )
+      .subscribe(({ routeParams, queryParams, locale }) =>
+        this.load(locale, routeParams, queryParams),
+      );
   }
 
   applyFilters(): void {
@@ -61,6 +80,8 @@ export class CatalogPage {
         q: query,
         brand: this.brand || undefined,
         availability: this.availability || undefined,
+        minPrice: this.minPrice ?? undefined,
+        maxPrice: this.maxPrice ?? undefined,
         sort: this.sort === "displayOrder" ? undefined : this.sort,
         page: undefined,
       },
@@ -77,20 +98,37 @@ export class CatalogPage {
   }
 
   retry(): void {
-    this.loadFromRoute();
+    this.load(
+      this.route.parent?.snapshot.paramMap.get("locale") ?? "ru",
+      this.route.snapshot.paramMap,
+      this.route.snapshot.queryParamMap,
+    );
   }
 
-  private loadFromRoute(): void {
-    const locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "ru";
-    const params = this.route.snapshot.queryParamMap;
-    const category =
-      this.route.snapshot.paramMap.get("categorySlug") || undefined;
+  heading(): string {
+    const query = this.route.snapshot.queryParamMap.get("q");
+    if (query) return `${this.i18n.t("searchResults")}: “${query}”`;
+    const category = this.route.snapshot.paramMap.get("categorySlug");
+    return (
+      this.categories().find((item) => item.slug === category)?.name ??
+      this.i18n.t("catalog")
+    );
+  }
+
+  activeCategorySlug(): string | null {
+    return this.route.snapshot.paramMap.get("categorySlug");
+  }
+
+  private load(locale: string, routeParams: ParamMap, params: ParamMap): void {
+    const category = routeParams.get("categorySlug") || undefined;
     const q = params.get("q") || undefined;
     const parsedPage = Number(params.get("page") ?? "1");
     const page =
       Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
     const availability = params.get("availability");
     this.brand = params.get("brand") ?? "";
+    this.minPrice = this.parsePrice(params.get("minPrice"));
+    this.maxPrice = this.parsePrice(params.get("maxPrice"));
     this.availability = [
       "IN_STOCK",
       "OUT_OF_STOCK",
@@ -113,6 +151,8 @@ export class CatalogPage {
         category,
         brand: this.brand || undefined,
         availability: this.availability || undefined,
+        minPrice: this.minPrice ?? undefined,
+        maxPrice: this.maxPrice ?? undefined,
         sort: this.sort,
         page,
         pageSize: 24,
@@ -130,5 +170,11 @@ export class CatalogPage {
         },
         error: () => this.state.set("error"),
       });
+  }
+
+  private parsePrice(value: string | null): number | null {
+    if (value === null || value.trim() === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
   }
 }

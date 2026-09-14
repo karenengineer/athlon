@@ -8,6 +8,7 @@ import {
   Product,
   ProductPageResponse,
   ProductQuery,
+  PublicSettings,
 } from "./catalog.models";
 
 @Injectable({ providedIn: "root" })
@@ -45,5 +46,9 @@ export class CatalogApiService {
     return this.http.get<Product>(`${this.baseUrl}/products/${slug}`, {
       params: { locale },
     });
+  }
+
+  settings(): Observable<PublicSettings> {
+    return this.http.get<PublicSettings>(`${this.baseUrl}/public/settings`);
   }
 }

@@ -3,6 +3,26 @@
   padding-block: 46px 80px;
 }
 
+.breadcrumbs {
+  display: flex;
+  gap: 8px;
+  overflow: hidden;
+  margin-bottom: 25px;
+  color: #77777d;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.breadcrumbs a {
+  color: inherit;
+}
+
+.breadcrumbs b {
+  overflow: hidden;
+  color: #202024;
+  text-overflow: ellipsis;
+}
+
 .catalog-heading {
   position: relative;
   display: flex;
@@ -39,9 +59,37 @@ h1 {
   font-size: 0.78rem;
 }
 
+.category-links {
+  display: flex;
+  gap: 8px;
+  margin: -8px 0 18px;
+  overflow-x: auto;
+  padding-block: 8px;
+}
+
+.category-links a {
+  flex: 0 0 auto;
+  padding: 9px 13px;
+  border: 1px solid #cfcfd4;
+  border-radius: 4px;
+  color: #35353a;
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.category-links a.active,
+.category-links a:hover {
+  border-color: #171719;
+  color: #fff;
+  background: #171719;
+}
+
 .filters {
   display: grid;
-  grid-template-columns: auto repeat(3, minmax(150px, 1fr)) auto;
+  grid-template-columns: auto repeat(5, minmax(120px, 1fr)) auto;
   align-items: center;
   gap: 10px;
   margin-bottom: 24px;
@@ -59,6 +107,7 @@ h1 {
 }
 
 select,
+.filters input,
 .filters button {
   width: 100%;
   min-height: 42px;
