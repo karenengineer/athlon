@@ -29,15 +29,17 @@ export function configureApplication(app: INestApplication): INestApplication {
   );
   app.useGlobalInterceptors(new RequestIdInterceptor());
   app.useGlobalFilters(new ApiExceptionFilter());
-  const document = SwaggerModule.createDocument(
-    app,
-    new DocumentBuilder()
-      .setTitle("ATHLON API")
-      .setVersion("1")
-      .addCookieAuth()
-      .build(),
-  );
-  SwaggerModule.setup("api/docs", app, document);
+  if (config.get<boolean>("SWAGGER_ENABLED", false)) {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .setTitle("ATHLON API")
+        .setVersion("1")
+        .addCookieAuth()
+        .build(),
+    );
+    SwaggerModule.setup("api/docs", app, document);
+  }
   return app;
 }
 
