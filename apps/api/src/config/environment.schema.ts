@@ -4,9 +4,7 @@ export const environmentSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid("development", "test", "production")
     .default("development"),
-  SWAGGER_ENABLED: Joi.boolean().default(
-    process.env.NODE_ENV !== "production",
-  ),
+  SWAGGER_ENABLED: Joi.boolean().default(process.env.NODE_ENV !== "production"),
   PORT: Joi.number().port().default(3000),
   DATABASE_URL: Joi.string()
     .uri({ scheme: ["postgresql", "postgres"] })

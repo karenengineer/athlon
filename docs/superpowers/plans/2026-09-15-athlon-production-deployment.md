@@ -47,12 +47,14 @@
 ### Task 1: Make the Angular SSR API origin environment-aware
 
 **Files:**
+
 - Create: `apps/web/src/app/core/api/api-base-url.ts`
 - Create: `apps/web/src/app/core/api/api-base-url.spec.ts`
 - Modify: `apps/web/src/app/core/api/catalog-api.service.ts`
 - Modify: `apps/web/src/app/app.config.server.ts`
 
 **Interfaces:**
+
 - Produces: `API_BASE_URL: InjectionToken<string>` with browser default `/api/v1`.
 - Consumes: `SSR_API_BASE_URL`, set to `http://api:3000/api/v1` in Docker Compose.
 
@@ -70,7 +72,9 @@ describe("API_BASE_URL", () => {
 
   it("can be overridden by the server configuration", () => {
     TestBed.configureTestingModule({
-      providers: [{ provide: API_BASE_URL, useValue: "http://api:3000/api/v1" }],
+      providers: [
+        { provide: API_BASE_URL, useValue: "http://api:3000/api/v1" },
+      ],
     });
     expect(TestBed.inject(API_BASE_URL)).toBe("http://api:3000/api/v1");
   });
@@ -145,11 +149,13 @@ git commit -m "fix(web): configure API origin for production SSR"
 ### Task 2: Disable Swagger by default in production
 
 **Files:**
+
 - Modify: `apps/api/src/config/environment.schema.ts`
 - Modify: `apps/api/src/bootstrap.ts`
 - Modify: `apps/api/test/platform.e2e-spec.ts`
 
 **Interfaces:**
+
 - Produces: `SWAGGER_ENABLED: boolean`, defaulting to `false` when `NODE_ENV=production` and `true` otherwise.
 - Consumes: Nest `ConfigService` in `configureApplication()`.
 
@@ -220,11 +226,13 @@ git commit -m "fix(api): disable Swagger by default in production"
 ### Task 3: Add production container images
 
 **Files:**
+
 - Create: `.dockerignore`
 - Create: `apps/api/Dockerfile`
 - Create: `apps/web/Dockerfile`
 
 **Interfaces:**
+
 - Produces: images `athlon-api` and `athlon-web` with commands `node dist/main.js` and `node dist/web/server/server.mjs`.
 - Consumes: root `pnpm-lock.yaml`, `pnpm-workspace.yaml`, package manifests, and Node.js 22.
 
@@ -301,11 +309,13 @@ git commit -m "feat(infra): add production application images"
 ### Task 4: Define the private production stack and TLS proxy
 
 **Files:**
+
 - Create: `infrastructure/docker-compose.production.yml`
 - Create: `infrastructure/Caddyfile`
 - Create: `infrastructure/production.env.example`
 
 **Interfaces:**
+
 - Produces: Compose services `postgres`, `migrate`, `seed`, `api`, `web`, and `caddy`.
 - Consumes: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `DATABASE_URL`, token secrets, admin seed values, and `SITE_DOMAIN`.
 
@@ -397,11 +407,13 @@ git commit -m "feat(infra): add production Compose stack"
 ### Task 5: Add idempotent bootstrap, deployment, and backup scripts
 
 **Files:**
+
 - Create: `scripts/bootstrap-production-server.sh`
 - Create: `scripts/deploy-production.sh`
 - Create: `scripts/backup-production.sh`
 
 **Interfaces:**
+
 - Produces: commands invoked from the local repository with `ATHLON_SSH_KEY` and fixed host `ubuntu@18.158.105.59`.
 - Consumes: production Compose file and protected `/opt/athlon/.env`.
 
@@ -480,9 +492,11 @@ git commit -m "feat(infra): automate Lightsail deployment and backup"
 ### Task 6: Document production operations and run local verification
 
 **Files:**
+
 - Modify: `README.md`
 
 **Interfaces:**
+
 - Consumes: scripts and Compose interfaces from Tasks 3-5.
 - Produces: operator instructions for first deploy, update, DNS, backup, restore, and rollback.
 
@@ -534,10 +548,12 @@ git commit -m "docs: add ATHLON production operations guide"
 ### Task 7: Deploy to Lightsail and verify the pre-DNS stack
 
 **Files:**
+
 - Server-only: `/opt/athlon/.env`
 - Server-only: `/opt/athlon/backups/`
 
 **Interfaces:**
+
 - Consumes: `/Users/karenengineer/Downloads/LightsailDefaultKey-eu-central-1.pem` and Tasks 1-6.
 - Produces: running production containers on `18.158.105.59`.
 
@@ -595,9 +611,11 @@ name and size.
 ### Task 8: Point the domain and complete HTTPS smoke testing
 
 **Files:**
+
 - No repository changes unless verification reveals a defect.
 
 **Interfaces:**
+
 - Consumes: Name.am DNS access and the Lightsail static IP.
 - Produces: public `https://athlon.am` and `https://www.athlon.am`.
 

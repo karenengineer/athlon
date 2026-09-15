@@ -9,7 +9,9 @@ describe("API_BASE_URL", () => {
 
   it("can be overridden by the server configuration", () => {
     TestBed.configureTestingModule({
-      providers: [{ provide: API_BASE_URL, useValue: "http://api:3000/api/v1" }],
+      providers: [
+        { provide: API_BASE_URL, useValue: "http://api:3000/api/v1" },
+      ],
     });
     expect(TestBed.inject(API_BASE_URL)).toBe("http://api:3000/api/v1");
   });
