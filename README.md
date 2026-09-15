@@ -47,3 +47,4 @@ Angular SSR application provides localized home, catalog, search, and product-de
 with responsive loading, empty, and error states. Cart, orders, and payments are intentionally
 excluded from this phase.
 # athlon
+# athlon
