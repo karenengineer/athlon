@@ -1,0 +1,14 @@
+.git
+.idea
+.worktrees
+node_modules
+**/node_modules
+**/dist
+**/.angular
+coverage
+.env
+.env.*
+!.env.example
+!infrastructure/production.env.example
+uploads
+*.pem
