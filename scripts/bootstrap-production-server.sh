@@ -26,11 +26,13 @@ sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y \
   docker-compose-v2 \
   rsync \
   curl \
-  openssl
+  openssl \
+  util-linux
 sudo systemctl enable --now docker
 sudo usermod -aG docker ubuntu
 sudo install -d -o ubuntu -g ubuntu /opt/athlon /opt/athlon/backups
 
 if [[ -e /opt/athlon/.env ]]; then
+  sudo chown ubuntu:ubuntu /opt/athlon/.env
   sudo chmod 600 /opt/athlon/.env
 fi
