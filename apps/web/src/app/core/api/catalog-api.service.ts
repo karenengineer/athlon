@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { inject, Injectable, PLATFORM_ID } from "@angular/core";
-import { isPlatformServer } from "@angular/common";
+import { inject, Injectable } from "@angular/core";
 import { Observable } from "rxjs";
+import { API_BASE_URL } from "./api-base-url";
 import {
   Brand,
   Category,
@@ -14,9 +14,7 @@ import {
 @Injectable({ providedIn: "root" })
 export class CatalogApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = isPlatformServer(inject(PLATFORM_ID))
-    ? "http://localhost:3000/api/v1"
-    : "/api/v1";
+  private readonly baseUrl = inject(API_BASE_URL);
 
   categories(locale: string): Observable<Category[]> {
     return this.http.get<Category[]>(`${this.baseUrl}/categories`, {
