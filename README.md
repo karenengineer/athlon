@@ -46,3 +46,4 @@ filters, sorting, pagination, site settings, and secure administrator sessions. 
 Angular SSR application provides localized home, catalog, search, and product-detail routes
 with responsive loading, empty, and error states. Cart, orders, and payments are intentionally
 excluded from this phase.
+# athlon
