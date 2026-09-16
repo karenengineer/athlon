@@ -484,6 +484,44 @@ describe("Admin catalog", () => {
     },
   );
 
+  it.each(["products", "categories", "brands"])(
+    "omits disappeared %s rows from the selected name page without changing total",
+    async (resource) => {
+      const delegate =
+        resource === "products"
+          ? prisma.product
+          : resource === "categories"
+            ? prisma.category
+            : prisma.brand;
+      const rows = [
+        { id: "b", translations: [{ locale: "HY", name: "B" }] },
+        { id: "a", translations: [{ locale: "HY", name: "A" }] },
+      ];
+      delegate.count.mockResolvedValue(2);
+      delegate.findMany.mockImplementation((query) =>
+        Promise.resolve(
+          fixtureList(
+            query.select ? rows : rows.filter((row) => row.id !== "a"),
+            query,
+          ),
+        ),
+      );
+      const response = await request(app.getHttpServer())
+        .get(`/api/v1/admin/${resource}?sort=name&pageSize=2`)
+        .set("Cookie", cookies())
+        .expect(200);
+      expect((response.body as ListBody).items.map((item) => item.id)).toEqual([
+        "b",
+      ]);
+      expect(response.body.meta).toEqual({
+        page: 1,
+        pageSize: 2,
+        total: 2,
+        totalPages: 1,
+      });
+    },
+  );
+
   it("returns controlled conflict on brand transaction serialization failure", async () => {
     prisma.$transaction.mockRejectedValueOnce({ code: "P2034" });
     await request(app.getHttpServer())

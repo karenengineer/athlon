@@ -17,6 +17,20 @@ export function adminListEnvelope<T>(
   };
 }
 
+export function adminOrderedListEnvelope<T extends { id: string }>(
+  ids: readonly string[],
+  items: readonly T[],
+  total: number,
+  query: AdminListQueryDto,
+) {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const orderedItems = ids.flatMap((id) => {
+    const item = byId.get(id);
+    return item === undefined ? [] : [item];
+  });
+  return adminListEnvelope(orderedItems, total, query);
+}
+
 export function adminListOffset(query: AdminListQueryDto): number {
   const offset = (query.page - 1) * query.pageSize;
   if (!Number.isSafeInteger(offset) || offset > 2_147_483_647)

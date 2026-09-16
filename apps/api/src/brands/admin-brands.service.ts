@@ -12,6 +12,7 @@ import {
   adminListEnvelope,
   adminListOffset,
   adminNamePage,
+  adminOrderedListEnvelope,
   rethrowCatalogConflict,
 } from "../common/admin-list";
 
@@ -55,12 +56,7 @@ export class AdminBrandsService {
             include: { translations: true },
           })
         : [];
-      const byId = new Map(items.map((item) => [item.id, item]));
-      return adminListEnvelope(
-        ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : [])),
-        total,
-        query,
-      );
+      return adminOrderedListEnvelope(ids, items, total, query);
     }
     const orderBy: Prisma.BrandOrderByWithRelationInput[] =
       query.sort === "updated"
