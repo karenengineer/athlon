@@ -4,7 +4,7 @@
 
 Deploy the existing ATHLON Angular SSR application, NestJS API, PostgreSQL database,
 and uploaded product media to the `athlon-production` AWS Lightsail instance. The
-public site must be available at `https://athlon.am` and `https://www.athlon.am`
+public site must be available at `https://athlonsport.am` and `https://www.athlonsport.am`
 without adding paid managed AWS services.
 
 ## Constraints
@@ -59,7 +59,7 @@ credentials on the server. The administrator email is configured separately
 before the first seed.
 
 The API receives a production `DATABASE_URL`, exact CORS origins for
-`https://athlon.am` and `https://www.athlon.am`, upload limits, cookie settings,
+`https://athlonsport.am` and `https://www.athlonsport.am`, upload limits, cookie settings,
 and the public site origin. Swagger is disabled in production unless explicitly
 enabled for a maintenance session.
 
@@ -89,7 +89,7 @@ remain out of scope for the initial deployment.
 4. Build images, start PostgreSQL, apply Prisma migrations, run the first seed, and
    start API, Angular SSR, and Caddy.
 5. Verify container health and API health over the static IP.
-6. Point the root and `www` DNS records for `athlon.am` to the static IP.
+6. Point the root and `www` DNS records for `athlonsport.am` to the static IP.
 7. After DNS propagation, verify certificate issuance, redirects, localized pages,
    catalog API responses, images, and administrator authentication over HTTPS.
 
@@ -159,5 +159,5 @@ deployment, verify:
 
 The design is complete when the four-service stack runs on the Lightsail instance,
 the database and uploads survive restarts, only intended ports are public, the
-catalog passes production smoke checks, and `athlon.am` serves valid HTTPS for all
+catalog passes production smoke checks, and `athlonsport.am` serves valid HTTPS for all
 three locales.

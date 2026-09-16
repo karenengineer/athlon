@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build, deploy, and verify the existing ATHLON Angular SSR catalog and NestJS API on the approved AWS Lightsail instance at `https://athlon.am`.
+**Goal:** Build, deploy, and verify the existing ATHLON Angular SSR catalog and NestJS API on the approved AWS Lightsail instance at `https://athlonsport.am`.
 
 **Architecture:** A single production Docker Compose stack runs Caddy, Angular SSR, NestJS, and PostgreSQL on the `athlon-production` Lightsail host. Caddy is the only public application service; database, API, and SSR ports stay on a private Docker network, while named volumes preserve PostgreSQL data, uploads, and TLS state.
 
@@ -332,12 +332,12 @@ Expected: FAIL because the production Compose and environment files do not exist
 
 ```dotenv
 NODE_ENV=production
-SITE_DOMAIN=athlon.am
+SITE_DOMAIN=athlonsport.am
 POSTGRES_DB=athlon
 POSTGRES_USER=athlon
 POSTGRES_PASSWORD=replace-with-random-value
 DATABASE_URL=postgresql://athlon:replace-with-random-value@postgres:5432/athlon?schema=public
-CORS_ORIGINS=https://athlon.am,https://www.athlon.am
+CORS_ORIGINS=https://athlonsport.am,https://www.athlonsport.am
 ACCESS_TOKEN_SECRET=replace-with-at-least-32-random-characters
 REFRESH_TOKEN_SECRET=replace-with-at-least-32-other-random-characters
 ACCESS_TOKEN_TTL_SECONDS=900
@@ -617,7 +617,7 @@ name and size.
 **Interfaces:**
 
 - Consumes: Name.am DNS access and the Lightsail static IP.
-- Produces: public `https://athlon.am` and `https://www.athlon.am`.
+- Produces: public `https://athlonsport.am` and `https://www.athlonsport.am`.
 
 - [ ] **Step 1: Update registrar DNS**
 
@@ -629,8 +629,8 @@ safety policy.
 - [ ] **Step 2: Verify authoritative DNS**
 
 ```bash
-dig +short A athlon.am
-dig +short A www.athlon.am
+dig +short A athlonsport.am
+dig +short A www.athlonsport.am
 ```
 
 Expected: both return `18.158.105.59`.
@@ -638,9 +638,9 @@ Expected: both return `18.158.105.59`.
 - [ ] **Step 3: Verify TLS and redirects**
 
 ```bash
-curl -fsSI http://athlon.am | rg '^HTTP/|^location:'
-curl -fsSI https://athlon.am | rg '^HTTP/|^strict-transport-security:'
-curl -fsSI https://www.athlon.am | rg '^HTTP/|^strict-transport-security:'
+curl -fsSI http://athlonsport.am | rg '^HTTP/|^location:'
+curl -fsSI https://athlonsport.am | rg '^HTTP/|^strict-transport-security:'
+curl -fsSI https://www.athlonsport.am | rg '^HTTP/|^strict-transport-security:'
 ```
 
 Expected: HTTP redirects to HTTPS and both HTTPS names return a successful response
@@ -649,11 +649,11 @@ with HSTS.
 - [ ] **Step 4: Run localized catalog smoke tests**
 
 ```bash
-curl -fsS https://athlon.am/api/v1/health/live
-curl -fsS https://athlon.am/hy >/dev/null
-curl -fsS https://athlon.am/ru >/dev/null
-curl -fsS https://athlon.am/en >/dev/null
-curl -fsS 'https://athlon.am/api/v1/products?locale=ru&page=1&pageSize=8' >/dev/null
+curl -fsS https://athlonsport.am/api/v1/health/live
+curl -fsS https://athlonsport.am/hy >/dev/null
+curl -fsS https://athlonsport.am/ru >/dev/null
+curl -fsS https://athlonsport.am/en >/dev/null
+curl -fsS 'https://athlonsport.am/api/v1/products?locale=ru&page=1&pageSize=8' >/dev/null
 ```
 
 Expected: health returns `{"status":"ok"}` and every request exits `0`.
