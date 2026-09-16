@@ -14,6 +14,7 @@ import {
   adminNamePage,
   adminOrderedListEnvelope,
   rethrowCatalogConflict,
+  rethrowCategoryBrandWriteConflict,
 } from "../common/admin-list";
 
 @Injectable()
@@ -82,41 +83,49 @@ export class AdminBrandsService {
     if (!brand) throw new NotFoundException("Brand not found");
     return brand;
   }
-  create(input: CreateBrandDto): Promise<unknown> {
-    return this.prisma.brand.create({
-      data: {
-        slug: input.slug,
-        name: input.name,
-        logoKey: input.logoKey ?? null,
-        published: input.published,
-        translations: { create: input.translations },
-      },
-      include: { translations: true },
-    });
+  async create(input: CreateBrandDto): Promise<unknown> {
+    try {
+      return await this.prisma.brand.create({
+        data: {
+          slug: input.slug,
+          name: input.name,
+          logoKey: input.logoKey ?? null,
+          published: input.published,
+          translations: { create: input.translations },
+        },
+        include: { translations: true },
+      });
+    } catch (error) {
+      rethrowCategoryBrandWriteConflict(error);
+    }
   }
   async update(id: string, input: UpdateBrandDto): Promise<unknown> {
     await this.ensureExists(id);
     const { translations, ...fields } = input;
-    return this.prisma.brand.update({
-      where: { id },
-      data: {
-        ...fields,
-        ...(translations
-          ? {
-              translations: {
-                upsert: translations.map((item) => ({
-                  where: {
-                    brandId_locale: { brandId: id, locale: item.locale },
-                  },
-                  create: item,
-                  update: item,
-                })),
-              },
-            }
-          : {}),
-      },
-      include: { translations: true },
-    });
+    try {
+      return await this.prisma.brand.update({
+        where: { id },
+        data: {
+          ...fields,
+          ...(translations
+            ? {
+                translations: {
+                  upsert: translations.map((item) => ({
+                    where: {
+                      brandId_locale: { brandId: id, locale: item.locale },
+                    },
+                    create: item,
+                    update: item,
+                  })),
+                },
+              }
+            : {}),
+        },
+        include: { translations: true },
+      });
+    } catch (error) {
+      rethrowCategoryBrandWriteConflict(error);
+    }
   }
   async delete(id: string): Promise<void> {
     try {

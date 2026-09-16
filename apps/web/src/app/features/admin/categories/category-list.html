@@ -1,0 +1,125 @@
+<div class="heading">
+  <h1>{{ i18n.translate(resource) }}</h1>
+  <a [routerLink]="['/admin', resource, 'new']" queryParamsHandling="preserve"
+    >{{ i18n.translate('create') }}</a
+  >
+</div>
+<form class="filters" [formGroup]="filters" (ngSubmit)="search()">
+  <div>
+    <label for="q">{{ i18n.translate('search') }}</label
+    ><input id="q" formControlName="q" maxlength="120" />
+  </div>
+  <div>
+    <label for="published">{{ i18n.translate('published') }}</label
+    ><select id="published" formControlName="published">
+      <option value="">{{ i18n.translate('all') }}</option>
+      <option value="true">{{ i18n.translate('published') }}</option>
+      <option value="false">{{ i18n.translate('draft') }}</option>
+    </select>
+  </div>
+  <div>
+    <label for="sort">{{ i18n.translate('sort') }}</label
+    ><select id="sort" formControlName="sort">
+      <option value="order">{{ i18n.translate('sortOrder') }}</option>
+      <option value="updated">{{ i18n.translate('sortUpdated') }}</option>
+      <option value="name">{{ i18n.translate('sortName') }}</option>
+    </select>
+  </div>
+  <div>
+    <label for="pageSize">{{ i18n.translate('pageSize') }}</label
+    ><select id="pageSize" formControlName="pageSize">
+      <option [ngValue]="10">10</option>
+      <option [ngValue]="24">24</option>
+      <option [ngValue]="50">50</option>
+      <option [ngValue]="100">100</option>
+      @if (![10, 24, 50, 100].includes(filters.controls.pageSize.value)) {
+      <option [ngValue]="filters.controls.pageSize.value">
+        {{ filters.controls.pageSize.value }}
+      </option>
+      }
+    </select>
+  </div>
+  <button type="submit" data-search>{{ i18n.translate('search') }}</button
+  ><button type="button" data-clear (click)="clear()">
+    {{ i18n.translate('clear') }}
+  </button>
+</form>
+@if (error(); as key) {
+<p role="alert">
+  {{ i18n.translate(key) }} @if (key === 'error') {<button
+    type="button"
+    data-retry
+    (click)="load()"
+  >
+    {{ i18n.translate('retry') }}</button
+  >}
+</p>
+} @if (loading()) {
+<p role="status">{{ i18n.translate('loading') }}</p>
+} @if (!loading() && list(); as result) { @if (result.items.length === 0) {
+<p>{{ i18n.translate('noMatches') }}</p>
+} @else {
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>{{ i18n.translate('name') }}</th>
+        <th>{{ i18n.translate('slug') }}</th>
+        <th>{{ i18n.translate('code') }}</th>
+        <th>{{ i18n.translate('displayOrder') }}</th>
+        <th>{{ i18n.translate('published') }}</th>
+        <th>{{ i18n.translate('edit') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of result.items; track item.id) {
+      <tr>
+        <td>{{ name(item) }}</td>
+        <td>{{ item.slug }}</td>
+        <td>{{ item.code }}</td>
+        <td>{{ item.displayOrder }}</td>
+        <td>{{ i18n.translate(item.published ? 'published' : 'draft') }}</td>
+        <td class="actions">
+          <a
+            [routerLink]="['/admin', resource, item.id]"
+            queryParamsHandling="preserve"
+            [attr.aria-label]="i18n.translate('edit') + ': ' + name(item)"
+            >{{ i18n.translate('edit') }}</a
+          ><button
+            type="button"
+            data-delete
+            [disabled]="deleting()"
+            [attr.aria-label]="i18n.translate('delete') + ': ' + name(item)"
+            (click)="pendingDelete.set(item)"
+          >
+            {{ i18n.translate('delete') }}
+          </button>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>
+}
+<nav class="pagination" [attr.aria-label]="i18n.translate('page')">
+  <button
+    type="button"
+    [disabled]="result.meta.page <= 1"
+    (click)="page(result.meta.page - 1)"
+  >
+    {{ i18n.translate('previous') }}</button
+  ><span
+    >{{ i18n.translate('page') }} {{ result.meta.page }} / {{
+    result.meta.totalPages || 1 }} ({{ result.meta.total }})</span
+  ><button
+    type="button"
+    [disabled]="result.meta.page >= result.meta.totalPages"
+    (click)="page(result.meta.page + 1)"
+  >
+    {{ i18n.translate('next') }}
+  </button>
+</nav>
+} @if (pendingDelete(); as item) {<app-admin-delete-confirmation
+  [name]="name(item)"
+  (decision)="confirmDelete($event)"
+/>}

@@ -114,6 +114,48 @@ describe("Admin catalog", () => {
 
   const cookies = () => [`athlon_access=${accessToken}`, `athlon_csrf=${csrf}`];
 
+  it.each([
+    ["categories", "post"],
+    ["categories", "patch"],
+    ["brands", "post"],
+    ["brands", "patch"],
+  ] as const)(
+    "returns safe 409 for duplicate %s %s",
+    async (resource, method) => {
+      const delegate =
+        resource === "categories" ? prisma.category : prisma.brand;
+      const id = resource === "categories" ? categoryId : brandId;
+      const operation = method === "post" ? delegate.create : delegate.update;
+      operation.mockRejectedValueOnce({
+        code: "P2002",
+        meta: { target: ["slug"] },
+        message: "private database identifier",
+      });
+      const path = `/api/v1/admin/${resource}${method === "patch" ? `/${id}` : ""}`;
+      const response = await request(app.getHttpServer())
+        [method](path)
+        .set("Cookie", cookies())
+        .set("x-csrf-token", csrf)
+        .send({
+          slug: "duplicate",
+          ...(resource === "categories"
+            ? {
+                code: "duplicate",
+                ...(method === "post" ? { parentId: categoryId } : {}),
+              }
+            : { name: "Duplicate" }),
+          translations: [{ locale: "HY", name: "Duplicate" }],
+        })
+        .expect(409);
+      expect(response.body.message).toBe(
+        "A category or brand with this slug or code already exists",
+      );
+      expect(JSON.stringify(response.body)).not.toContain(
+        "private database identifier",
+      );
+    },
+  );
+
   describe.each(["products", "categories", "brands"])(
     "%s list contract",
     (resource) => {

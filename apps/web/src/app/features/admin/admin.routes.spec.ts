@@ -257,6 +257,67 @@ describe("admin route boundaries and UI", () => {
     ).toBe(false);
   });
 
+  it("registers guarded CRUD routes and prevents abandoning a dirty editor", async () => {
+    const session = TestBed.inject(AdminSessionService);
+    const user = { id: "admin-id", email: "admin@athlon.test", role: "ADMIN" };
+    const login = firstValueFrom(session.login(user.email, "password"));
+    http
+      .expectOne("/api/v1/admin/auth/config")
+      .flush({ csrfCookieName: "athlon_csrf" });
+    http.expectOne("/api/v1/admin/auth/login").flush({ user });
+    await login;
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl("/admin/brands/new");
+    expect(harness.routeNativeElement?.querySelector("#slug")).not.toBeNull();
+    const field =
+      harness.routeNativeElement!.querySelector<HTMLInputElement>("#name")!;
+    field.value = "Unsaved";
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    try {
+      await harness.navigateByUrl("/admin/categories");
+      expect(TestBed.inject(Router).url).toBe("/admin/brands/new");
+      expect(confirm).toHaveBeenCalledTimes(1);
+      confirm.mockReturnValue(true);
+      await harness.navigateByUrl("/admin/categories");
+      const request = http.expectOne(
+        (request) => request.url === "/api/v1/admin/categories",
+      );
+      request.flush({
+        items: [],
+        meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+      });
+      expect(TestBed.inject(Router).url).toBe("/admin/categories");
+      const firstId = "24d3f1a3-8413-4bc6-b32d-437871a22b54";
+      await harness.navigateByUrl(`/admin/brands/${firstId}`);
+      http.expectOne(`/api/v1/admin/brands/${firstId}`).flush({
+        id: firstId,
+        slug: "brand",
+        name: "Brand",
+        logoKey: null,
+        published: true,
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+        translations: [{ locale: "HY", name: "Brand" }],
+      });
+      harness.detectChanges();
+      const name =
+        harness.routeNativeElement!.querySelector<HTMLInputElement>("#name")!;
+      name.value = "Unsaved ID change";
+      name.dispatchEvent(new Event("input", { bubbles: true }));
+      confirm.mockReturnValue(false);
+      await harness.navigateByUrl(
+        "/admin/brands/34d3f1a3-8413-4bc6-b32d-437871a22b54",
+      );
+      expect(TestBed.inject(Router).url).toBe(`/admin/brands/${firstId}`);
+      http.expectNone(
+        "/api/v1/admin/brands/34d3f1a3-8413-4bc6-b32d-437871a22b54",
+      );
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
   it("uses client rendering for admin while preserving public server rendering", () => {
     expect(
       serverRoutes.find((route) => route.path === "admin/**")?.renderMode,

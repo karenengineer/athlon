@@ -1,0 +1,27 @@
+<div class="dialog-backdrop">
+  <section
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="delete-title"
+    aria-describedby="delete-description"
+    (keydown)="keydown($event)"
+    tabindex="-1"
+  >
+    <h2 id="delete-title">{{ i18n.translate('delete') }}: {{ name }}</h2>
+    <p id="delete-description">{{ i18n.translate('deleteWarning') }}</p>
+    <div class="form-actions">
+      <button #cancel type="button" data-cancel (click)="decision.emit(false)">
+        {{ i18n.translate('cancel') }}
+      </button>
+      <button
+        #confirm
+        type="button"
+        data-confirm
+        class="danger"
+        (click)="decision.emit(true)"
+      >
+        {{ i18n.translate('delete') }}
+      </button>
+    </div>
+  </section>
+</div>

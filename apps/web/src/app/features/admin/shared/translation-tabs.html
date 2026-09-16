@@ -1,0 +1,78 @@
+<h2>{{ i18n.translate('translations') }}</h2>
+<div role="tablist" [attr.aria-label]="i18n.translate('translations')">
+  @for (group of forms.controls; track group.controls.locale.value; let index =
+  $index) {
+  <button
+    type="button"
+    role="tab"
+    [id]="'translation-tab-' + group.controls.locale.value"
+    [attr.aria-controls]="'translation-panel-' + group.controls.locale.value"
+    [attr.aria-selected]="active() === group.controls.locale.value"
+    [attr.tabindex]="active() === group.controls.locale.value ? 0 : -1"
+    (click)="select(group.controls.locale.value)"
+    (keydown)="keydown($event, index)"
+  >
+    {{ group.controls.locale.value }} @if (group.invalid) {
+    <span [attr.aria-label]="i18n.translate('invalid')">!</span> }
+  </button>
+  }
+</div>
+@for (group of forms.controls; track group.controls.locale.value) {
+<section
+  role="tabpanel"
+  [id]="'translation-panel-' + group.controls.locale.value"
+  [attr.aria-labelledby]="'translation-tab-' + group.controls.locale.value"
+  [hidden]="active() !== group.controls.locale.value"
+  [formGroup]="group"
+>
+  <label [for]="'translation-name-' + group.controls.locale.value"
+    >{{ i18n.translate('name') }} ({{ group.controls.locale.value }})</label
+  >
+  <input
+    [id]="'translation-name-' + group.controls.locale.value"
+    formControlName="name"
+    maxlength="180"
+    [attr.aria-invalid]="group.hasError('nameRequired') || group.controls.name.invalid"
+    [attr.aria-describedby]="'translation-error-' + group.controls.locale.value"
+  />
+  @if (group.invalid) {
+  <p
+    class="field-error"
+    [id]="'translation-error-' + group.controls.locale.value"
+  >
+    {{ i18n.translate('translationValidation') }}
+  </p>
+  }
+  <label [for]="'translation-description-' + group.controls.locale.value"
+    >{{ i18n.translate('description') }}</label
+  >
+  <textarea
+    [id]="'translation-description-' + group.controls.locale.value"
+    formControlName="description"
+  ></textarea>
+  @if (seo) {
+  <label [for]="'translation-seoTitle-' + group.controls.locale.value"
+    >{{ i18n.translate('seoTitle') }}</label
+  >
+  <input
+    [id]="'translation-seoTitle-' + group.controls.locale.value"
+    formControlName="seoTitle"
+    maxlength="180"
+    [attr.aria-invalid]="group.controls.seoTitle.invalid"
+    [attr.aria-describedby]="'translation-error-' + group.controls.locale.value"
+  />
+  <label [for]="'translation-seoDescription-' + group.controls.locale.value"
+    >{{ i18n.translate('seoDescription') }}</label
+  >
+  <textarea
+    [id]="'translation-seoDescription-' + group.controls.locale.value"
+    formControlName="seoDescription"
+    maxlength="320"
+    [attr.aria-invalid]="group.controls.seoDescription.invalid"
+    [attr.aria-describedby]="'translation-error-' + group.controls.locale.value"
+  ></textarea>
+  }
+</section>
+} @if (forms.hasError('translationRequired')) {
+<p class="field-error">{{ i18n.translate('oneTranslation') }}</p>
+}

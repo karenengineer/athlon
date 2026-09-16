@@ -1,0 +1,163 @@
+:host {
+  display: block;
+}
+h1,
+h2 {
+  margin: 0 0 1rem;
+}
+.heading,
+.filters,
+.form-actions,
+.pagination {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.heading {
+  justify-content: space-between;
+}
+form,
+.panel {
+  background: white;
+  padding: 1.3rem;
+  border: 1px solid #ddd;
+  border-radius: 0.4rem;
+}
+label {
+  display: block;
+  margin: 1rem 0 0.3rem;
+  font-weight: 600;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  padding: 0.65rem;
+  border: 1px solid #999;
+  border-radius: 0.25rem;
+}
+input:not([type="checkbox"]),
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+textarea {
+  min-height: 6rem;
+}
+button {
+  cursor: pointer;
+  background: white;
+  color: #222;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+button[type="submit"],
+.danger {
+  background: #bc1424;
+  color: white;
+  border-color: #bc1424;
+}
+a {
+  color: #a81021;
+}
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #ec3346;
+  outline-offset: 3px;
+}
+[role="tablist"] {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+[role="tab"][aria-selected="true"] {
+  background: #222;
+  color: white;
+}
+.field-error,
+[role="alert"] {
+  color: #a81021;
+}
+.form-actions {
+  margin-top: 1.5rem;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background: white;
+}
+th,
+td {
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  padding: 0.8rem;
+}
+td.actions {
+  white-space: nowrap;
+}
+td.actions button {
+  margin-left: 0.8rem;
+}
+.filters label {
+  margin: 0;
+}
+.filters input {
+  min-width: 10rem;
+}
+.pagination {
+  margin-top: 1rem;
+}
+.preview {
+  border: 2px dashed #bbb;
+  margin-top: 1rem;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0009;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+[role="dialog"] {
+  max-width: 30rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 0.4rem;
+  overflow-wrap: anywhere;
+}
+.check {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+@media (max-width: 600px) {
+  form,
+  .panel {
+    padding: 1rem;
+  }
+  .filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

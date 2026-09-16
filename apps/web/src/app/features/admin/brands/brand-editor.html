@@ -1,0 +1,95 @@
+<div class="heading">
+  <h1>
+    {{ i18n.translate('brands') }} — {{ i18n.translate(id ? 'edit' : 'create')
+    }}
+  </h1>
+  <a routerLink="/admin/brands" queryParamsHandling="preserve"
+    >{{ i18n.translate('back') }}</a
+  >
+</div>
+@if (loading()) {
+<p role="status">{{ i18n.translate('loading') }}</p>
+} @if (error(); as key) {
+<p role="alert">
+  {{ i18n.translate(key) }} @if (key === 'error') {<button
+    type="button"
+    data-retry
+    (click)="load()"
+  >
+    {{ i18n.translate('retry') }}</button
+  >}
+</p>
+} @if (saved()) {
+<p role="status">{{ i18n.translate('saved') }}</p>
+} @if (!loading() && error() !== 'error') {
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <fieldset [disabled]="saving()">
+    <label for="name">{{ i18n.translate('name') }}</label
+    ><input
+      id="name"
+      formControlName="name"
+      maxlength="180"
+      [attr.aria-invalid]="form.controls.name.invalid"
+      aria-describedby="name-error"
+    />
+    @if (form.controls.name.invalid && (form.controls.name.dirty ||
+    form.controls.name.touched)) {
+    <p id="name-error" class="field-error">
+      {{ i18n.translate('nameValidation') }}
+    </p>
+    } <label for="slug">{{ i18n.translate('slug') }}</label
+    ><input
+      id="slug"
+      formControlName="slug"
+      maxlength="160"
+      [attr.aria-invalid]="form.controls.slug.invalid"
+      aria-describedby="slug-error"
+    />
+    @if (form.controls.slug.invalid && (form.controls.slug.dirty ||
+    form.controls.slug.touched)) {
+    <p id="slug-error" class="field-error">
+      {{ i18n.translate('slugValidation') }}
+    </p>
+    } <label for="logoKey">{{ i18n.translate('logoKey') }}</label
+    ><input
+      id="logoKey"
+      formControlName="logoKey"
+      maxlength="500"
+      [attr.aria-invalid]="form.controls.logoKey.invalid"
+      aria-describedby="logo-hint logo-error"
+    />
+    <p id="logo-hint">{{ i18n.translate('logoHint') }}</p>
+    @if (form.controls.logoKey.invalid) {
+    <p id="logo-error" class="field-error">
+      {{ i18n.translate('logoValidation') }}
+    </p>
+    }
+    <label class="check" for="published"
+      ><input id="published" type="checkbox" formControlName="published" />{{
+      i18n.translate('published') }}</label
+    >
+    <app-admin-translation-tabs [forms]="form.controls.translations" />
+    <div class="form-actions">
+      <button type="submit" [disabled]="form.invalid || saving()">
+        {{ i18n.translate(saving() ? 'loading' : 'save') }}</button
+      ><button type="button" data-preview (click)="preview.set(!preview())">
+        {{ i18n.translate('preview') }}</button
+      ><a routerLink="/admin/brands" queryParamsHandling="preserve"
+        >{{ i18n.translate('cancel') }}</a
+      >
+    </div>
+  </fieldset>
+</form>
+@if (preview()) {
+<section class="preview" data-draft-preview>
+  <h2>{{ i18n.translate('localPreview') }}</h2>
+  <p>{{ form.controls.name.value }} / {{ form.controls.slug.value }}</p>
+  <p>{{ form.controls.logoKey.value }}</p>
+  @for (translation of draftTranslations(); track translation.locale) {
+  <article>
+    <h3>{{ translation.locale }} — {{ translation.name }}</h3>
+    <p>{{ translation.description }}</p>
+  </article>
+  }
+</section>
+} }

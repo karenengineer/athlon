@@ -14,6 +14,7 @@ import {
   adminNamePage,
   adminOrderedListEnvelope,
   rethrowCatalogConflict,
+  rethrowCategoryBrandWriteConflict,
 } from "../common/admin-list";
 
 @Injectable()
@@ -109,7 +110,7 @@ export class AdminCategoriesService {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
     } catch (error) {
-      rethrowCatalogConflict(error);
+      rethrowCategoryBrandWriteConflict(error);
     }
   }
   async update(id: string, input: UpdateCategoryDto): Promise<unknown> {
@@ -169,7 +170,7 @@ export class AdminCategoriesService {
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
     } catch (error) {
-      rethrowCatalogConflict(error);
+      rethrowCategoryBrandWriteConflict(error);
     }
   }
   async delete(id: string): Promise<void> {

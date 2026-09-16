@@ -82,3 +82,18 @@ export function rethrowCatalogConflict(error: unknown): never {
   }
   throw error;
 }
+
+// Used only by category/brand create and update, not by global ORM handling.
+export function rethrowCategoryBrandWriteConflict(error: unknown): never {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "P2002"
+  ) {
+    throw new ConflictException(
+      "A category or brand with this slug or code already exists",
+    );
+  }
+  rethrowCatalogConflict(error);
+}
