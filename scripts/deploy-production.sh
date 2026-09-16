@@ -179,10 +179,10 @@ COMPOSE=(docker compose --env-file .env -f infrastructure/docker-compose.product
 "${COMPOSE[@]}" config --quiet
 "${COMPOSE[@]}" build api web
 "${COMPOSE[@]}" up -d --wait --wait-timeout 120 postgres
-"${COMPOSE[@]}" run --rm migrate
+"${COMPOSE[@]}" run --rm --interactive=false migrate
 
 if [[ "$seed_mode" == 1 ]]; then
-  "${COMPOSE[@]}" run --rm --no-deps seed
+  "${COMPOSE[@]}" run --rm --no-deps --interactive=false seed
 fi
 
 "${COMPOSE[@]}" up -d --no-deps --wait --wait-timeout 120 api
