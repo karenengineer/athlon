@@ -1,5 +1,6 @@
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
+import { ConfigService } from "@nestjs/config";
 import argon2 from "argon2";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
@@ -45,6 +46,27 @@ describe("Admin authentication", () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it("exposes only the non-secret CSRF cookie name without requiring a session", async () => {
+    const response = await request(app.getHttpServer())
+      .get("/api/v1/admin/auth/config")
+      .expect(200);
+    expect(response.body).toEqual({ csrfCookieName: "athlon_csrf" });
+  });
+
+  it("reports the configured cookie name rather than inventing a second protocol", async () => {
+    const config = app.get(ConfigService);
+    const previous = config.get("CSRF_COOKIE_NAME");
+    config.set("CSRF_COOKIE_NAME", "custom_csrf");
+    try {
+      const response = await request(app.getHttpServer())
+        .get("/api/v1/admin/auth/config")
+        .expect(200);
+      expect(response.body).toEqual({ csrfCookieName: "custom_csrf" });
+    } finally {
+      config.set("CSRF_COOKIE_NAME", previous);
+    }
   });
 
   it("sets secure httpOnly session cookies and never returns tokens in JSON", async () => {

@@ -1,0 +1,28 @@
+.counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+a {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 0.6rem;
+  color: #222;
+  text-decoration: none;
+}
+strong {
+  font-size: 2.5rem;
+  color: #bd1020;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid #bd1020;
+  outline-offset: 4px;
+}
+button {
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+}

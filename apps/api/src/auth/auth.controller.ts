@@ -26,6 +26,11 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
 
+  @Get("config")
+  authConfig(): { csrfCookieName: string } {
+    return { csrfCookieName: this.csrfCookieName() };
+  }
+
   @Post("login")
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

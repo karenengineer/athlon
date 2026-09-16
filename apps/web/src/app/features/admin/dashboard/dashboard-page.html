@@ -1,0 +1,19 @@
+<h1>{{ i18n.translate('dashboard') }}</h1>
+@if (error()) {
+<p role="alert">{{ i18n.translate('error') }}</p>
+<button type="button" (click)="load()">{{ i18n.translate('retry') }}</button> }
+@else if (counts(); as totals) {
+<div class="counts">
+  @for (resource of resources; track resource) {
+  <a [routerLink]="['/admin', resource]"
+    ><span>{{ i18n.translate(resource) }}</span
+    ><strong>{{ totals[resource] }}</strong></a
+  >
+  }
+</div>
+@if (totals['products'] === 0 && totals['categories'] === 0 && totals['brands']
+=== 0) {
+<p>{{ i18n.translate('empty') }}</p>
+} } @else {
+<p role="status">{{ i18n.translate('loading') }}</p>
+}

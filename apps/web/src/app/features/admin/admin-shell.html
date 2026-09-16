@@ -1,0 +1,42 @@
+<div class="shell" [attr.lang]="i18n.locale()">
+  <header>
+    <a routerLink="/admin" class="brand"
+      >ATHLON <span>{{ i18n.translate('admin') }}</span></a
+    >
+    <div class="actions">
+      <label for="admin-language">{{ i18n.translate('language') }}</label>
+      <select
+        id="admin-language"
+        [value]="i18n.locale()"
+        (change)="i18n.setLocale($any($event.target).value)"
+      >
+        @for (locale of i18n.locales; track locale) {
+        <option [value]="locale">{{ locale.toUpperCase() }}</option>
+        }</select
+      ><button type="button" (click)="logout()" [disabled]="leaving()">
+        {{ i18n.translate('logout') }}
+      </button>
+    </div>
+  </header>
+  <nav [attr.aria-label]="i18n.translate('admin')">
+    @for (link of links; track link) {<a
+      [routerLink]="link === 'dashboard' ? '/admin' : '/admin/' + link"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{exact:link === 'dashboard'}"
+      ariaCurrentWhenActive="page"
+      >{{ i18n.translate(link) }}</a
+    >}
+    <a [routerLink]="'/' + i18n.locale()">{{ i18n.translate('publicSite') }}</a>
+  </nav>
+  <main>
+    @if (logoutFailed()) {
+    <div role="alert">
+      <p>{{ i18n.translate('logoutError') }}</p>
+      <button type="button" (click)="logout()" [disabled]="leaving()">
+        {{ i18n.translate('retry') }}
+      </button>
+    </div>
+    }
+    <router-outlet />
+  </main>
+</div>

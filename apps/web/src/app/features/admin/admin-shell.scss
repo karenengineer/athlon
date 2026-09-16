@@ -1,0 +1,83 @@
+:host {
+  display: block;
+  color: #222;
+}
+.shell {
+  min-height: 100dvh;
+  background: #f4f4f5;
+}
+header {
+  background: #161616;
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.brand {
+  color: white;
+  text-decoration: none;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+.brand span {
+  display: block;
+  font-size: 0.8rem;
+  letter-spacing: normal;
+}
+.actions {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+nav {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  flex-wrap: wrap;
+  background: white;
+  border-bottom: 1px solid #ddd;
+}
+nav a {
+  color: #222;
+  text-decoration: none;
+  padding: 0.7rem;
+}
+nav a.active {
+  background: #bc1424;
+  color: white;
+}
+main {
+  padding: 2rem;
+  max-width: 90rem;
+  margin: auto;
+}
+button,
+select {
+  padding: 0.6rem;
+  font: inherit;
+  border-radius: 0.3rem;
+  border: 1px solid #aaa;
+}
+button {
+  cursor: pointer;
+}
+a:focus-visible,
+button:focus-visible,
+select:focus-visible {
+  outline: 3px solid #ec3346;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  header,
+  nav,
+  main {
+    padding: 1rem;
+  }
+  .actions {
+    width: 100%;
+  }
+}

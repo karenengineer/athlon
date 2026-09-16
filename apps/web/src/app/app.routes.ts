@@ -5,6 +5,13 @@ import { PublicShell } from "./layout/public-shell/public-shell";
 export const routes: Routes = [
   { path: "", pathMatch: "full", redirectTo: "hy" },
   {
+    path: "admin",
+    loadChildren: () =>
+      import("./features/admin/admin.routes").then(
+        (module) => module.adminRoutes,
+      ),
+  },
+  {
     path: ":locale",
     component: PublicShell,
     canActivate: [localeGuard],
