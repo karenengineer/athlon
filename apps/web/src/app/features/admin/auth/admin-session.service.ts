@@ -5,7 +5,9 @@ import { Router } from "@angular/router";
 import {
   Observable,
   catchError,
+  defer,
   finalize,
+  forkJoin,
   from,
   map,
   of,
@@ -27,25 +29,51 @@ export class AdminSessionService {
   private configRequest?: Observable<void>;
   private sessionRequest?: Observable<boolean>;
   private refreshRequest?: Observable<void>;
+  private logoutRequest?: Observable<void>;
+  private readonly cookieOperations = new Set<Observable<void>>();
+  private generation = 0;
+  private loggingOut = false;
+  private loggedOut = false;
+
+  get sessionEpoch(): number {
+    return this.generation;
+  }
+  canRetry(epoch: number): boolean {
+    return epoch === this.generation && !this.loggingOut && !this.loggedOut;
+  }
 
   ensureSession(): Observable<boolean> {
-    if (!this.isBrowser) return of(false);
+    const epoch = this.generation;
+    return defer(() =>
+      this.canRetry(epoch) ? this.checkSession(epoch) : of(false),
+    );
+  }
+
+  private checkSession(epoch: number): Observable<boolean> {
+    if (!this.isBrowser || this.loggingOut || this.loggedOut) return of(false);
     if (this.user()) return of(true);
     if (!this.sessionRequest) {
       this.sessionRequest = this.http
         .get<{ user: AdminUser }>("/api/v1/admin/auth/me")
         .pipe(
           switchMap((response) =>
-            this.configureCsrf().pipe(
-              tap(() => this.user.set(response.user)),
-              map(() => true),
-            ),
+            this.canRetry(epoch)
+              ? this.configureCsrf().pipe(
+                  map(() => {
+                    if (!this.canRetry(epoch)) return false;
+                    this.user.set(response.user);
+                    return true;
+                  }),
+                )
+              : of(false),
           ),
           catchError(() => {
-            this.user.set(null);
+            if (this.canRetry(epoch)) this.user.set(null);
             return of(false);
           }),
-          finalize(() => (this.sessionRequest = undefined)),
+          finalize(() => {
+            if (epoch === this.generation) this.sessionRequest = undefined;
+          }),
           shareReplay({ bufferSize: 1, refCount: false }),
         );
     }
@@ -53,30 +81,57 @@ export class AdminSessionService {
   }
 
   login(email: string, password: string): Observable<void> {
-    return this.configureCsrf().pipe(
-      switchMap(() =>
-        this.http.post<{ user: AdminUser }>("/api/v1/admin/auth/login", {
-          email,
-          password,
-        }),
-      ),
-      tap((response) => this.user.set(response.user)),
-      map(() => undefined),
-    );
+    const epoch = this.generation;
+    return defer(() => {
+      if (this.loggingOut || epoch !== this.generation)
+        return this.interrupted();
+      return this.trackCookieOperation(
+        this.configureCsrf().pipe(
+          switchMap(() =>
+            this.http.post<{ user: AdminUser }>("/api/v1/admin/auth/login", {
+              email,
+              password,
+            }),
+          ),
+          tap((response) => {
+            if (epoch !== this.generation || this.loggingOut)
+              throw new Error("Session transition interrupted login");
+            this.loggedOut = false;
+            this.user.set(response.user);
+          }),
+          map(() => undefined),
+        ),
+      );
+    });
   }
 
   refresh(): Observable<void> {
+    if (this.loggingOut || this.loggedOut) return this.interrupted();
     if (!this.refreshRequest) {
-      this.refreshRequest = this.configureCsrf().pipe(
-        switchMap(() =>
-          this.http.post<{ user: AdminUser }>("/api/v1/admin/auth/refresh", {}),
-        ),
-        tap((response) => this.user.set(response.user)),
-        map(() => undefined),
-        catchError((error) => {
-          this.user.set(null);
-          return throwError(() => error);
-        }),
+      const epoch = this.generation;
+      this.refreshRequest = defer(() => {
+        if (!this.canRetry(epoch)) return this.interrupted();
+        return this.trackCookieOperation(
+          this.configureCsrf().pipe(
+            switchMap(() =>
+              this.http.post<{ user: AdminUser }>(
+                "/api/v1/admin/auth/refresh",
+                {},
+              ),
+            ),
+            tap((response) => {
+              if (!this.canRetry(epoch))
+                throw new Error("Session transition interrupted refresh");
+              this.user.set(response.user);
+            }),
+            map(() => undefined),
+            catchError((error) => {
+              if (this.canRetry(epoch)) this.user.set(null);
+              return throwError(() => error);
+            }),
+          ),
+        );
+      }).pipe(
         finalize(() => (this.refreshRequest = undefined)),
         shareReplay({ bufferSize: 1, refCount: false }),
       );
@@ -85,14 +140,59 @@ export class AdminSessionService {
   }
 
   logout(): Observable<void> {
-    return this.configureCsrf().pipe(
-      switchMap(() => this.http.post<void>("/api/v1/admin/auth/logout", {})),
-      tap(() => this.user.set(null)),
-      switchMap(() =>
-        from(this.router.navigateByUrl("/admin/login", { replaceUrl: true })),
-      ),
-      map(() => undefined),
+    if (!this.logoutRequest)
+      this.logoutRequest = defer(() => {
+        this.loggingOut = true;
+        this.generation++;
+        this.sessionRequest = undefined;
+        // Wait for real responses (including Set-Cookie), not only frontend taps.
+        // refCount:false keeps started operations alive after caller cancellation.
+        const pending = [...this.cookieOperations].map((operation) =>
+          operation.pipe(catchError(() => of(undefined))),
+        );
+        return (
+          pending.length
+            ? forkJoin(pending).pipe(map(() => undefined))
+            : of(undefined)
+        ).pipe(
+          switchMap(() => this.configureCsrf()),
+          switchMap(() =>
+            this.http.post<void>("/api/v1/admin/auth/logout", {}),
+          ),
+          tap(() => {
+            this.loggedOut = true;
+            this.user.set(null);
+          }),
+          switchMap(() =>
+            from(
+              this.router.navigateByUrl("/admin/login", { replaceUrl: true }),
+            ),
+          ),
+          map(() => undefined),
+        );
+      }).pipe(
+        finalize(() => {
+          this.loggingOut = false;
+          this.logoutRequest = undefined;
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    return this.logoutRequest;
+  }
+
+  private interrupted(): Observable<never> {
+    return throwError(
+      () => new Error("Session transition prevents authentication work"),
     );
+  }
+
+  private trackCookieOperation(source: Observable<void>): Observable<void> {
+    const operation = source.pipe(
+      finalize(() => this.cookieOperations.delete(operation)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.cookieOperations.add(operation);
+    return operation;
   }
 
   csrfToken(): string | null {
@@ -110,6 +210,7 @@ export class AdminSessionService {
   }
 
   expireSession(): void {
+    if (this.loggingOut || this.loggedOut) return;
     this.user.set(null);
     if (
       this.isBrowser &&

@@ -6,6 +6,7 @@ import { AdminSessionService } from "./admin-session.service";
 
 export const adminHttpInterceptor: HttpInterceptorFn = (request, next) => {
   const session = inject(AdminSessionService);
+  const epoch = session.sessionEpoch;
   const document = inject(DOCUMENT);
   if (!session.isBrowser) return next(request);
   let url: URL;
@@ -33,25 +34,29 @@ export const adminHttpInterceptor: HttpInterceptorFn = (request, next) => {
       if (
         !(error instanceof HttpErrorResponse) ||
         error.status !== 401 ||
-        authAction
+        authAction ||
+        !session.canRetry(epoch)
       )
         return throwError(() => error);
       return session.refresh().pipe(
         catchError((retryError) => {
-          session.expireSession();
+          if (session.canRetry(epoch)) session.expireSession();
           return throwError(() => retryError);
         }),
         switchMap(() =>
-          next(withCsrf()).pipe(
-            catchError((retryError) => {
-              if (
-                retryError instanceof HttpErrorResponse &&
-                retryError.status === 401
-              )
-                session.expireSession();
-              return throwError(() => retryError);
-            }),
-          ),
+          !session.canRetry(epoch)
+            ? throwError(() => error)
+            : next(withCsrf()).pipe(
+                catchError((retryError) => {
+                  if (
+                    retryError instanceof HttpErrorResponse &&
+                    retryError.status === 401 &&
+                    session.canRetry(epoch)
+                  )
+                    session.expireSession();
+                  return throwError(() => retryError);
+                }),
+              ),
         ),
       );
     }),

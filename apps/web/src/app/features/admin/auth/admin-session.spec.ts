@@ -269,6 +269,187 @@ describe("admin cookie sessions", () => {
     http.expectNone(() => true);
   });
 
+  it("waits for a pending refresh response before issuing logout and never retries the old request", async () => {
+    const catalog = firstValueFrom(client.get("/api/v1/admin/products")).catch(
+      () => "interrupted",
+    );
+    http
+      .expectOne("/api/v1/admin/products")
+      .flush({}, { status: 401, statusText: "Unauthorized" });
+    config();
+    const refresh = http.expectOne("/api/v1/admin/auth/refresh");
+    const logout = firstValueFrom(session.logout());
+    http.expectNone("/api/v1/admin/auth/logout");
+    refresh.flush({ user });
+    expect(session.user()).toBeNull();
+    const last = http.expectOne("/api/v1/admin/auth/logout");
+    last.flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+    expect(await catalog).toBe("interrupted");
+    expect(session.user()).toBeNull();
+    expect(TestBed.inject(Router).url).toBe("/admin/login");
+    http.expectNone("/api/v1/admin/products");
+  });
+
+  it("waits for pending login configuration and login cookies before issuing logout", async () => {
+    const login = firstValueFrom(session.login(user.email, "password")).catch(
+      () => "interrupted",
+    );
+    const logout = firstValueFrom(session.logout());
+    config();
+    http.expectNone("/api/v1/admin/auth/logout");
+    http.expectOne("/api/v1/admin/auth/login").flush({ user });
+    expect(session.user()).toBeNull();
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+    expect(await login).toBe("interrupted");
+    expect(session.user()).toBeNull();
+  });
+
+  it("drains cookie-issuing work even after its original subscriber unsubscribes", async () => {
+    const login = session
+      .login(user.email, "password")
+      .subscribe({ error: () => undefined });
+    config();
+    const pending = http.expectOne("/api/v1/admin/auth/login");
+    login.unsubscribe();
+    const logout = firstValueFrom(session.logout());
+    http.expectNone("/api/v1/admin/auth/logout");
+    expect(pending.cancelled).toBe(false);
+    pending.flush({ user });
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+    expect(session.user()).toBeNull();
+  });
+
+  it("ignores a stale ensureSession response arriving after confirmed logout", async () => {
+    const ensure = firstValueFrom(session.ensureSession());
+    const me = http.expectOne("/api/v1/admin/auth/me");
+    const logout = firstValueFrom(session.logout());
+    config();
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+    me.flush({ user });
+    expect(await ensure).toBe(false);
+    expect(session.user()).toBeNull();
+  });
+
+  it("prevents new login refresh and guarded session work during logout", async () => {
+    const logout = firstValueFrom(session.logout());
+    config();
+    const login = firstValueFrom(session.login(user.email, "password")).catch(
+      () => "blocked",
+    );
+    const refresh = firstValueFrom(session.refresh()).catch(() => "blocked");
+    expect(await firstValueFrom(session.ensureSession())).toBe(false);
+    expect(await login).toBe("blocked");
+    expect(await refresh).toBe("blocked");
+    http.expectNone("/api/v1/admin/auth/login");
+    http.expectNone("/api/v1/admin/auth/refresh");
+    http.expectNone("/api/v1/admin/auth/me");
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+  });
+
+  it("does not refresh or retry stale protected requests after logout but allows explicit login", async () => {
+    const catalog = firstValueFrom(client.get("/api/v1/admin/products")).catch(
+      (error) => error.status,
+    );
+    const old = http.expectOne("/api/v1/admin/products");
+    const logout = firstValueFrom(session.logout());
+    config();
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+    old.flush({}, { status: 401, statusText: "Unauthorized" });
+    expect(await catalog).toBe(401);
+    http.expectNone("/api/v1/admin/auth/refresh");
+    expect(await firstValueFrom(session.ensureSession())).toBe(false);
+    http.expectNone("/api/v1/admin/auth/me");
+    const login = firstValueFrom(session.login(user.email, "password"));
+    http.expectOne("/api/v1/admin/auth/login").flush({ user });
+    await login;
+    expect(session.user()?.email).toBe(user.email);
+  });
+
+  it("preserves an existing user on failed logout after draining refresh and allows retry", async () => {
+    const login = firstValueFrom(session.login(user.email, "password"));
+    config();
+    http.expectOne("/api/v1/admin/auth/login").flush({ user });
+    await login;
+    const refresh = firstValueFrom(session.refresh()).catch(
+      () => "interrupted",
+    );
+    const pending = http.expectOne("/api/v1/admin/auth/refresh");
+    const logout = firstValueFrom(session.logout()).catch(
+      (error) => error.status,
+    );
+    http.expectNone("/api/v1/admin/auth/logout");
+    pending.flush({ user });
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush({}, { status: 503, statusText: "Unavailable" });
+    expect(await logout).toBe(503);
+    expect(await refresh).toBe("interrupted");
+    expect(session.user()?.email).toBe(user.email);
+    const retry = firstValueFrom(session.logout());
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await retry;
+    expect(session.user()).toBeNull();
+  });
+
+  it("does not start auth observables prepared before logout when subscribed after it completes", async () => {
+    const staleLogin = session.login(user.email, "password");
+    const staleEnsure = session.ensureSession();
+    const logout = firstValueFrom(session.logout());
+    config();
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+    expect(await firstValueFrom(staleLogin).catch(() => "blocked")).toBe(
+      "blocked",
+    );
+    expect(await firstValueFrom(staleEnsure)).toBe(false);
+    http.expectNone("/api/v1/admin/auth/login");
+    http.expectNone("/api/v1/admin/auth/me");
+  });
+
+  it("does not refresh or expire an existing user for a protected401 arriving during logout", async () => {
+    const login = firstValueFrom(session.login(user.email, "password"));
+    config();
+    http.expectOne("/api/v1/admin/auth/login").flush({ user });
+    await login;
+    const catalog = firstValueFrom(client.get("/api/v1/admin/products")).catch(
+      (error) => error.status,
+    );
+    const pending = http.expectOne("/api/v1/admin/products");
+    const logout = firstValueFrom(session.logout()).catch(
+      (error) => error.status,
+    );
+    pending.flush({}, { status: 401, statusText: "Unauthorized" });
+    expect(await catalog).toBe(401);
+    expect(session.user()?.email).toBe(user.email);
+    expect(TestBed.inject(Router).url).toBe("/");
+    http.expectNone("/api/v1/admin/auth/refresh");
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush({}, { status: 503, statusText: "Unavailable" });
+    expect(await logout).toBe(503);
+    expect(session.user()?.email).toBe(user.email);
+  });
+
   it.each([
     ["/admin/products?page=2", "/admin/products?page=2"],
     ["/admin", "/admin"],
