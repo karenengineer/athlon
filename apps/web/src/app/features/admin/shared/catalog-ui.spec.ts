@@ -11,6 +11,7 @@ import { CategoryList } from "../categories/category-list";
 import { BrandEditor } from "../brands/brand-editor";
 import { BrandList } from "../brands/brand-list";
 import { AdminI18nService } from "./admin-i18n.service";
+import { adminDirtyFormGuard } from "./admin-dirty-form.guard";
 
 const id = "24d3f1a3-8413-4bc6-b32d-437871a22b54";
 const child = "34d3f1a3-8413-4bc6-b32d-437871a22b54";
@@ -63,11 +64,27 @@ describe("admin catalog DOM / HTTP contracts", () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([
-          { path: "admin/categories/new", component: CategoryEditor },
-          { path: "admin/categories/:id", component: CategoryEditor },
+          {
+            path: "admin/categories/new",
+            component: CategoryEditor,
+            canDeactivate: [adminDirtyFormGuard],
+          },
+          {
+            path: "admin/categories/:id",
+            component: CategoryEditor,
+            canDeactivate: [adminDirtyFormGuard],
+          },
           { path: "admin/categories", component: CategoryList },
-          { path: "admin/brands/new", component: BrandEditor },
-          { path: "admin/brands/:id", component: BrandEditor },
+          {
+            path: "admin/brands/new",
+            component: BrandEditor,
+            canDeactivate: [adminDirtyFormGuard],
+          },
+          {
+            path: "admin/brands/:id",
+            component: BrandEditor,
+            canDeactivate: [adminDirtyFormGuard],
+          },
           { path: "admin/brands", component: BrandList },
         ]),
       ],
@@ -658,4 +675,177 @@ describe("admin catalog DOM / HTTP contracts", () => {
     expect(restored.request.params.get("page")).toBe("2");
     restored.flush(envelope([brand], 2, 2));
   });
+
+  it.each(["categories", "brands"])(
+    "isolates delayed successful %s PATCH from the next editor ID and save payload",
+    async (resource) => {
+      const first = resource === "categories" ? category : brand;
+      const second =
+        resource === "categories"
+          ? {
+              ...category,
+              id: other,
+              code: "category-b",
+              slug: "entity-b",
+              published: true,
+              displayOrder: 9,
+              translations: [
+                {
+                  locale: "HY",
+                  name: "Category B",
+                  description: null,
+                  seoTitle: "B SEO",
+                  seoDescription: null,
+                },
+                {
+                  locale: "EN",
+                  name: "Category B EN",
+                  description: "B description",
+                },
+              ],
+            }
+          : {
+              ...brand,
+              id: other,
+              name: "Brand B",
+              slug: "entity-b",
+              logoKey: "brands/b.png",
+              published: false,
+              translations: [
+                { locale: "HY", name: "Brand B", description: null },
+                {
+                  locale: "EN",
+                  name: "Brand B EN",
+                  description: "B description",
+                },
+              ],
+            };
+      await harness.navigateByUrl(`/admin/${resource}/${id}`);
+      http.expectOne(`/api/v1/admin/${resource}/${id}`).flush(first);
+      if (resource === "categories") listRequest(resource).flush(envelope([]));
+      harness.detectChanges();
+      input("#slug", "entity-a-edit");
+      click("button[type=submit]");
+      const oldPatch = http.expectOne(`/api/v1/admin/${resource}/${id}`);
+      expect(oldPatch.request.method).toBe("PATCH");
+      const discard = vi.spyOn(window, "confirm").mockReturnValue(true);
+      try {
+        await harness.navigateByUrl(`/admin/${resource}/${other}`);
+        expect(discard).toHaveBeenCalledTimes(1);
+        http.expectOne(`/api/v1/admin/${resource}/${other}`).flush(second);
+        if (resource === "categories")
+          listRequest(resource).flush(envelope([]));
+        harness.detectChanges();
+        // The old server mutation may still finish: cancellation is not an undo.
+        expect(oldPatch.cancelled).toBe(false);
+        oldPatch.flush({ ...first, slug: "entity-a-edit" });
+        harness.detectChanges();
+        expect(TestBed.inject(Router).url).toBe(`/admin/${resource}/${other}`);
+        expect(dom().querySelector<HTMLInputElement>("#slug")!.value).toBe(
+          "entity-b",
+        );
+        expect(
+          dom().querySelector<HTMLInputElement>("#translation-name-HY")!.value,
+        ).toBe(resource === "categories" ? "Category B" : "Brand B");
+        expect(dom().textContent).not.toContain("Saved");
+        expect(dom().querySelector("[role=alert]")).toBeNull();
+        const cleanUnload = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(cleanUnload);
+        expect(cleanUnload.defaultPrevented).toBe(false);
+        input("#slug", "entity-b-edit");
+        click("button[type=submit]");
+        const nextPatch = http.expectOne(`/api/v1/admin/${resource}/${other}`);
+        expect(nextPatch.request.method).toBe("PATCH");
+        expect(nextPatch.request.body.slug).toBe("entity-b-edit");
+        expect(nextPatch.request.body.translations).toEqual(
+          second.translations,
+        );
+        expect(nextPatch.request.body.published).toBe(
+          resource === "categories",
+        );
+        if (resource === "categories") {
+          expect(nextPatch.request.body.code).toBe("category-b");
+          expect(nextPatch.request.body.displayOrder).toBe(9);
+        } else {
+          expect(nextPatch.request.body.name).toBe("Brand B");
+          expect(nextPatch.request.body.logoKey).toBe("brands/b.png");
+        }
+        nextPatch.flush({ ...second, slug: "entity-b-edit" });
+        harness.detectChanges();
+        expect(dom().textContent).toContain("Saved");
+      } finally {
+        discard.mockRestore();
+      }
+    },
+  );
+
+  it.each(["categories", "brands"])(
+    "ignores a retired %s PATCH error without clearing the current editor's pending save",
+    async (resource) => {
+      const first = resource === "categories" ? category : brand;
+      const second = {
+        ...first,
+        id: other,
+        slug: "entity-b",
+        translations: [{ locale: "HY", name: "Entity B", description: null }],
+      };
+      await harness.navigateByUrl(`/admin/${resource}/${id}`);
+      http.expectOne(`/api/v1/admin/${resource}/${id}`).flush(first);
+      if (resource === "categories") listRequest(resource).flush(envelope([]));
+      harness.detectChanges();
+      input("#slug", "entity-a-edit");
+      click("button[type=submit]");
+      const oldPatch = http.expectOne(`/api/v1/admin/${resource}/${id}`);
+      const discard = vi.spyOn(window, "confirm").mockReturnValue(true);
+      try {
+        await harness.navigateByUrl(`/admin/${resource}/${other}`);
+        expect(discard).toHaveBeenCalledTimes(1);
+        http.expectOne(`/api/v1/admin/${resource}/${other}`).flush(second);
+        if (resource === "categories")
+          listRequest(resource).flush(envelope([]));
+        harness.detectChanges();
+        expect(
+          dom().querySelector<HTMLButtonElement>("button[type=submit]")!
+            .disabled,
+        ).toBe(false);
+        input("#slug", "entity-b-edit");
+        click("button[type=submit]");
+        const currentPatch = http.expectOne(
+          `/api/v1/admin/${resource}/${other}`,
+        );
+        expect(currentPatch.request.method).toBe("PATCH");
+        expect(currentPatch.request.body.translations).toEqual([
+          { locale: "HY", name: "Entity B", description: null },
+        ]);
+        oldPatch.flush(
+          { message: "Retired A conflict" },
+          { status: 409, statusText: "Conflict" },
+        );
+        harness.detectChanges();
+        expect(dom().querySelector("[role=alert]")).toBeNull();
+        expect(
+          dom().querySelector<HTMLButtonElement>("button[type=submit]")!
+            .disabled,
+        ).toBe(true);
+        expect(
+          dom().querySelector<HTMLFieldSetElement>("fieldset")!.disabled,
+        ).toBe(true);
+        expect(dom().querySelector<HTMLInputElement>("#slug")!.value).toBe(
+          "entity-b-edit",
+        );
+        const dirtyUnload = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(dirtyUnload);
+        expect(dirtyUnload.defaultPrevented).toBe(true);
+        currentPatch.flush({ ...second, slug: "entity-b-edit" });
+        harness.detectChanges();
+        expect(
+          dom().querySelector<HTMLButtonElement>("button[type=submit]")!
+            .disabled,
+        ).toBe(false);
+        expect(dom().textContent).toContain("Saved");
+      } finally {
+        discard.mockRestore();
+      }
+    },
+  );
 });

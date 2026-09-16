@@ -45,6 +45,7 @@ export class BrandEditor implements AdminDirtyForm {
   id: string | null = null;
   private original: AdminBrand | null = null;
   private baseline = "";
+  private editorGeneration = 0;
   private detailRequest?: Subscription;
   readonly form = new FormGroup({
     name: new FormControl("", {
@@ -70,6 +71,11 @@ export class BrandEditor implements AdminDirtyForm {
     this.route.paramMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
+        this.editorGeneration++;
+        this.original = null;
+        this.baseline = "";
+        this.saving.set(false);
+        this.preview.set(false);
         this.id = params.get("id");
         this.load();
       });
@@ -124,12 +130,17 @@ export class BrandEditor implements AdminDirtyForm {
     this.saving.set(true);
     this.error.set(null);
     this.saved.set(false);
-    const create = !this.id;
-    const request = this.id
-      ? this.api.updateBrand(this.id, input)
+    const generation = this.editorGeneration;
+    const editingId = this.id;
+    const create = !editingId;
+    const request = editingId
+      ? this.api.updateBrand(editingId, input)
       : this.api.createBrand(input);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (brand) => {
+        // A server write can finish after accepted navigation; it belongs only
+        // to the editor generation that submitted it, not the reused component.
+        if (generation !== this.editorGeneration) return;
         this.accept(brand);
         this.saving.set(false);
         this.saved.set(true);
@@ -140,6 +151,7 @@ export class BrandEditor implements AdminDirtyForm {
           });
       },
       error: (error) => {
+        if (generation !== this.editorGeneration) return;
         this.saving.set(false);
         this.error.set(
           error.status === 400

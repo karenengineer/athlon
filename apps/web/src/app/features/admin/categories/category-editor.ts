@@ -49,6 +49,7 @@ export class CategoryEditor implements AdminDirtyForm {
   id: string | null = null;
   private original: AdminCategory | null = null;
   private baseline = "";
+  private editorGeneration = 0;
   private detailRequest?: Subscription;
   private parentRequest?: Subscription;
   readonly form = new FormGroup({
@@ -77,6 +78,11 @@ export class CategoryEditor implements AdminDirtyForm {
     this.route.paramMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
+        this.editorGeneration++;
+        this.original = null;
+        this.baseline = "";
+        this.saving.set(false);
+        this.preview.set(false);
         this.id = params.get("id");
         this.load();
         this.loadParents();
@@ -153,12 +159,17 @@ export class CategoryEditor implements AdminDirtyForm {
     this.saving.set(true);
     this.error.set(null);
     this.saved.set(false);
-    const create = !this.id;
-    const request = this.id
-      ? this.api.updateCategory(this.id, input)
+    const generation = this.editorGeneration;
+    const editingId = this.id;
+    const create = !editingId;
+    const request = editingId
+      ? this.api.updateCategory(editingId, input)
       : this.api.createCategory(input);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (category) => {
+        // A server write can finish after accepted navigation; it belongs only
+        // to the editor generation that submitted it, not the reused component.
+        if (generation !== this.editorGeneration) return;
         this.accept(category);
         this.saving.set(false);
         this.saved.set(true);
@@ -169,6 +180,7 @@ export class CategoryEditor implements AdminDirtyForm {
           });
       },
       error: (error) => {
+        if (generation !== this.editorGeneration) return;
         this.saving.set(false);
         this.error.set(
           error.status === 400
