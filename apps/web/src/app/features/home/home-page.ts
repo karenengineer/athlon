@@ -30,7 +30,7 @@ export class HomePage {
   }
 
   load(): void {
-    const locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "ru";
+    const locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "hy";
     this.i18n.setLocale(locale);
     this.state.set("loading");
     forkJoin({

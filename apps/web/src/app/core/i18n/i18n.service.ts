@@ -204,12 +204,12 @@ const copy: Record<Locale, Copy> = {
 };
 
 export function parseLocale(value: string | null | undefined): Locale {
-  return supportedLocales.includes(value as Locale) ? (value as Locale) : "ru";
+  return supportedLocales.includes(value as Locale) ? (value as Locale) : "hy";
 }
 
 @Injectable({ providedIn: "root" })
 export class I18nService {
-  readonly locale = signal<Locale>("ru");
+  readonly locale = signal<Locale>("hy");
 
   setLocale(value: string | null | undefined): void {
     this.locale.set(parseLocale(value));

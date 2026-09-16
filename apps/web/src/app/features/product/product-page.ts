@@ -39,7 +39,7 @@ export class ProductPage {
     combineLatest([this.route.paramMap, this.route.parent!.paramMap])
       .pipe(
         map(([routeParams, parentParams]) => ({
-          locale: parentParams.get("locale") ?? "ru",
+          locale: parentParams.get("locale") ?? "hy",
           slug: routeParams.get("slug") ?? "",
         })),
         distinctUntilChanged(
@@ -53,7 +53,7 @@ export class ProductPage {
   }
 
   load(
-    locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "ru",
+    locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "hy",
     slug = this.route.snapshot.paramMap.get("slug") ?? "",
   ): void {
     this.loadSubscription?.unsubscribe();

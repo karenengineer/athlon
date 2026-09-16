@@ -63,7 +63,7 @@ export class CatalogPage {
         map(([routeParams, queryParams, parentParams]) => ({
           routeParams,
           queryParams,
-          locale: parentParams.get("locale") ?? "ru",
+          locale: parentParams.get("locale") ?? "hy",
           key: `${parentParams.get("locale")}|${routeParams.get("categorySlug")}|${queryParams.keys
             .sort()
             .map((key) => `${key}=${queryParams.get(key)}`)
@@ -106,7 +106,7 @@ export class CatalogPage {
 
   retry(): void {
     this.load(
-      this.route.parent?.snapshot.paramMap.get("locale") ?? "ru",
+      this.route.parent?.snapshot.paramMap.get("locale") ?? "hy",
       this.route.snapshot.paramMap,
       this.route.snapshot.queryParamMap,
     );

@@ -3,7 +3,7 @@ import { localeGuard } from "./core/i18n/locale.guard";
 import { PublicShell } from "./layout/public-shell/public-shell";
 
 export const routes: Routes = [
-  { path: "", pathMatch: "full", redirectTo: "ru" },
+  { path: "", pathMatch: "full", redirectTo: "hy" },
   {
     path: ":locale",
     component: PublicShell,
@@ -51,5 +51,5 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: "**", redirectTo: "ru" },
+  { path: "**", redirectTo: "hy" },
 ];

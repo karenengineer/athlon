@@ -8,5 +8,5 @@ export const localeGuard: CanActivateFn = (route, state) => {
     return true;
   }
   const safePath = state.url.split("?")[0].split("/").slice(2).join("/");
-  return inject(Router).parseUrl(`/ru${safePath ? `/${safePath}` : ""}`);
+  return inject(Router).parseUrl(`/hy${safePath ? `/${safePath}` : ""}`);
 };
