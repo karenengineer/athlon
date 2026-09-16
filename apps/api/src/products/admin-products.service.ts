@@ -3,37 +3,91 @@ import { PrismaService } from "../database/prisma.service";
 import { Prisma } from "../generated/prisma/client";
 import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
+import { AdminProductQueryDto } from "./dto/admin-product-query.dto";
+import {
+  adminListEnvelope,
+  adminListOffset,
+  adminNamePage,
+  rethrowCatalogConflict,
+} from "../common/admin-list";
 
 @Injectable()
 export class AdminProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(page = 1, pageSize = 24): Promise<unknown> {
-    const take = Math.min(Math.max(pageSize, 1), 100);
-    const currentPage = Math.max(page, 1);
+  async list(query: AdminProductQueryDto): Promise<unknown> {
+    const skip = adminListOffset(query);
+    const where: Prisma.ProductWhereInput = {
+      ...(query.published !== undefined ? { published: query.published } : {}),
+      ...(query.featured !== undefined ? { featured: query.featured } : {}),
+      ...(query.isNew !== undefined ? { isNew: query.isNew } : {}),
+      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.brandId ? { brandId: query.brandId } : {}),
+      ...(query.availability ? { availability: query.availability } : {}),
+      ...(query.q
+        ? {
+            OR: [
+              { sku: { contains: query.q, mode: "insensitive" } },
+              { slug: { contains: query.q, mode: "insensitive" } },
+              {
+                translations: {
+                  some: { name: { contains: query.q, mode: "insensitive" } },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+    const include = {
+      translations: true,
+      category: true,
+      brand: true,
+      images: true,
+    } as const;
+    if (query.sort === "name") {
+      const [total, keys] = await Promise.all([
+        this.prisma.product.count({ where }),
+        this.prisma.product.findMany({
+          where,
+          select: {
+            id: true,
+            translations: { select: { locale: true, name: true } },
+          },
+        }),
+      ]);
+      const ids = adminNamePage(keys, query);
+      const items = ids.length
+        ? await this.prisma.product.findMany({
+            where: { ...where, id: { in: ids } },
+            include,
+          })
+        : [];
+      const byId = new Map(items.map((item) => [item.id, item]));
+      return adminListEnvelope(
+        ids.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : [])),
+        total,
+        query,
+      );
+    }
+    const orderBy: Prisma.ProductOrderByWithRelationInput[] =
+      query.sort === "priceAsc"
+        ? [{ price: "asc" }, { id: "asc" }]
+        : query.sort === "priceDesc"
+          ? [{ price: "desc" }, { id: "asc" }]
+          : query.sort === "updated"
+            ? [{ updatedAt: "desc" }, { id: "asc" }]
+            : [{ displayOrder: "asc" }, { updatedAt: "desc" }, { id: "asc" }];
     const [total, items] = await Promise.all([
-      this.prisma.product.count(),
+      this.prisma.product.count({ where }),
       this.prisma.product.findMany({
-        skip: (currentPage - 1) * take,
-        take,
-        orderBy: [{ displayOrder: "asc" }, { updatedAt: "desc" }],
-        include: {
-          translations: true,
-          category: true,
-          brand: true,
-          images: true,
-        },
+        where,
+        skip,
+        take: query.pageSize,
+        orderBy,
+        include,
       }),
     ]);
-    return {
-      items,
-      meta: {
-        page: currentPage,
-        pageSize: take,
-        total,
-        totalPages: Math.ceil(total / take),
-      },
-    };
+    return adminListEnvelope(items, total, query);
   }
 
   async get(id: string): Promise<unknown> {
@@ -127,7 +181,11 @@ export class AdminProductsService {
 
   async delete(id: string): Promise<void> {
     await this.ensureExists(id);
-    await this.prisma.product.delete({ where: { id } });
+    try {
+      await this.prisma.product.delete({ where: { id } });
+    } catch (error) {
+      rethrowCatalogConflict(error);
+    }
   }
 
   private async ensureExists(id: string): Promise<void> {

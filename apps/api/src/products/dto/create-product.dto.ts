@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   ArrayMinSize,
+  ArrayUnique,
   IsBoolean,
   IsIn,
   IsInt,
@@ -19,6 +20,7 @@ import { ProductTranslationDto } from "./product-translation.dto";
 export class CreateProductDto {
   @IsString()
   @MaxLength(100)
+  @Matches(/\S/)
   sku!: string;
 
   @IsString()
@@ -57,6 +59,7 @@ export class CreateProductDto {
   displayOrder!: number;
 
   @ArrayMinSize(1)
+  @ArrayUnique((item: { locale: string }) => item.locale)
   @ValidateNested({ each: true })
   @Type(() => ProductTranslationDto)
   translations!: ProductTranslationDto[];

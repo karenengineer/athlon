@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
@@ -15,14 +16,18 @@ import { CsrfGuard } from "../auth/csrf.guard";
 import { AdminBrandsService } from "./admin-brands.service";
 import { CreateBrandDto } from "./dto/create-brand.dto";
 import { UpdateBrandDto } from "./dto/update-brand.dto";
+import { AdminListQueryDto } from "../common/dto/admin-list-query.dto";
 
 @ApiTags("admin-brands")
 @Controller("admin/brands")
 @UseGuards(AdminAuthGuard)
 export class AdminBrandsController {
   constructor(private readonly brands: AdminBrandsService) {}
-  @Get() list(): Promise<unknown[]> {
-    return this.brands.list();
+  @Get() list(@Query() query: AdminListQueryDto): Promise<unknown> {
+    return this.brands.list(query);
+  }
+  @Get(":id") get(@Param("id") id: string): Promise<unknown> {
+    return this.brands.get(id);
   }
   @Post() @UseGuards(CsrfGuard) create(
     @Body() input: CreateBrandDto,

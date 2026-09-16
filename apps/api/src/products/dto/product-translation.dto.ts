@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Matches,
   MinLength,
 } from "class-validator";
 
@@ -12,6 +13,7 @@ export class ProductTranslationDto {
 
   @IsString()
   @MinLength(1)
+  @Matches(/\S/)
   @MaxLength(220)
   name!: string;
 

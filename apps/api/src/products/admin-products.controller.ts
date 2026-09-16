@@ -16,6 +16,7 @@ import { CsrfGuard } from "../auth/csrf.guard";
 import { AdminProductsService } from "./admin-products.service";
 import { CreateProductDto } from "./dto/create-product.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
+import { AdminProductQueryDto } from "./dto/admin-product-query.dto";
 
 @ApiTags("admin-products")
 @Controller("admin/products")
@@ -24,11 +25,8 @@ export class AdminProductsController {
   constructor(private readonly products: AdminProductsService) {}
 
   @Get()
-  list(
-    @Query("page") page?: string,
-    @Query("pageSize") pageSize?: string,
-  ): Promise<unknown> {
-    return this.products.list(Number(page ?? 1), Number(pageSize ?? 24));
+  list(@Query() query: AdminProductQueryDto): Promise<unknown> {
+    return this.products.list(query);
   }
 
   @Get(":id")

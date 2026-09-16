@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
@@ -15,14 +16,18 @@ import { CsrfGuard } from "../auth/csrf.guard";
 import { AdminCategoriesService } from "./admin-categories.service";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
+import { AdminListQueryDto } from "../common/dto/admin-list-query.dto";
 
 @ApiTags("admin-categories")
 @Controller("admin/categories")
 @UseGuards(AdminAuthGuard)
 export class AdminCategoriesController {
   constructor(private readonly categories: AdminCategoriesService) {}
-  @Get() list(): Promise<unknown[]> {
-    return this.categories.list();
+  @Get() list(@Query() query: AdminListQueryDto): Promise<unknown> {
+    return this.categories.list(query);
+  }
+  @Get(":id") get(@Param("id") id: string): Promise<unknown> {
+    return this.categories.get(id);
   }
   @Post() @UseGuards(CsrfGuard) create(
     @Body() input: CreateCategoryDto,

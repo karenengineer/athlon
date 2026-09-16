@@ -1,3 +1,8 @@
 import { PartialType } from "@nestjs/swagger";
 import { CreateCategoryDto } from "./create-category.dto";
-export class UpdateCategoryDto extends PartialType(CreateCategoryDto) {}
+export class UpdateCategoryDto extends PartialType(CreateCategoryDto, {
+  skipNullProperties: false,
+}) {
+  override published?: boolean = undefined;
+  override displayOrder?: number = undefined;
+}

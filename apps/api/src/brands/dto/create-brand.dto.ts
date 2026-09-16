@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   ArrayMinSize,
+  ArrayUnique,
   IsBoolean,
   IsOptional,
   IsString,
@@ -15,10 +16,11 @@ export class CreateBrandDto {
   @MaxLength(160)
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   slug!: string;
-  @IsString() @MaxLength(180) name!: string;
+  @IsString() @MaxLength(180) @Matches(/\S/) name!: string;
   @IsOptional() @IsString() @MaxLength(500) logoKey?: string | null;
   @IsOptional() @IsBoolean() published = true;
   @ArrayMinSize(1)
+  @ArrayUnique((item: { locale: string }) => item.locale)
   @ValidateNested({ each: true })
   @Type(() => BrandTranslationDto)
   translations!: BrandTranslationDto[];

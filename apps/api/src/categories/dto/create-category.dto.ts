@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   ArrayMinSize,
+  ArrayUnique,
   IsBoolean,
   IsInt,
   IsOptional,
@@ -25,6 +26,7 @@ export class CreateCategoryDto {
   @IsOptional() @IsBoolean() published = true;
   @IsOptional() @IsInt() displayOrder = 0;
   @ArrayMinSize(1)
+  @ArrayUnique((item: { locale: string }) => item.locale)
   @ValidateNested({ each: true })
   @Type(() => CategoryTranslationDto)
   translations!: CategoryTranslationDto[];
