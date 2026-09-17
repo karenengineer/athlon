@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'ssh %s\n' "$*" >> "$TEST_FIXTURE/events"
+while [[ "$1" != *@* ]]; do shift; done
+shift
+[[ "$1" == bash && "$2" == -s ]] || exit 91
+shift 2
+[[ "${1:-}" == -- ]] && shift
+program="$(mktemp "$TEST_FIXTURE/remote-script.XXXXXX")"
+sed "s|/opt/athlon|$TEST_FIXTURE/remote|g" > "$program"
+if grep -q 'sudo apt-get' "$program"; then printf 'bootstrap\n' >> "$TEST_FIXTURE/events"; exit 0; fi
+# Old script is deliberately not executed: its legacy environment generation and
+# bootstrap are beyond the fixture contract. The CI seed case must still reject.
+if grep -q 'exec 9>.env.lock' "$program"; then exit 0; fi
+args=()
+for arg in "$@"; do args+=("${arg/\/opt\/athlon/$TEST_FIXTURE/remote}"); done
+if grep -q '^mktemp -d' "$program"; then
+  bash "$program" | sed "s|$TEST_FIXTURE/remote|/opt/athlon|g"
+else
+  # Match SSH bash -s: release source and subprocess fd 0 share a pipe. Executing
+  # a filename instead would conceal accidental consumers of remaining commands.
+  cat "$program" | bash -s -- "${args[@]}"
+fi

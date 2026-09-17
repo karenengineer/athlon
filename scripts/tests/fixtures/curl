@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'curl %s\n' "$*" >> "$TEST_FIXTURE/events"
+url="${!#}"
+if [[ "$*" == *'--dump-header'* && "$url" == https://* ]]; then
+  [[ "${TEST_FAIL:-}" != hsts ]] && printf 'HTTP/2 200\r\nstrict-transport-security: max-age=31536000; includeSubDomains\r\n\r\n' || printf 'HTTP/2 200\r\n\r\n'
+  exit 0
+fi
+case "$url" in
+  *health/live) [[ "${TEST_FAIL:-}" != health ]] && printf '{"status":"ok"}\n' || printf '{"status":"broken"}\n' ;;
+  *products\?*) [[ "${TEST_FAIL:-}" != products ]] && printf '{"items":[],"meta":{"total":0,"page":1,"pageSize":1,"totalPages":0}}\n' || printf '{"error":"broken"}\n' ;;
+  http://*) [[ "${TEST_FAIL:-}" != redirect ]] && printf 'HTTP/1.1 308 Permanent Redirect\r\nLocation: https://athlonsport.am/\r\n\r\n' || printf 'HTTP/1.1 200 OK\r\n\r\n' ;;
+  https://www.*) [[ "${TEST_FAIL:-}" != www ]] || exit 60 ;;
+  */hy|*/ru|*/en) [[ "${TEST_FAIL:-}" != page ]] || exit 22 ;;
+  *) [[ "${TEST_FAIL:-}" != hsts ]] && printf 'HTTP/2 200\r\nstrict-transport-security: max-age=31536000; includeSubDomains\r\n\r\n' || printf 'HTTP/2 200\r\n\r\n' ;;
+esac

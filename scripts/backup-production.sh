@@ -77,7 +77,7 @@ cleanup_failed_backup() {
 trap cleanup_failed_backup EXIT
 
 docker compose --env-file .env -f infrastructure/docker-compose.production.yml \
-  exec -T postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" | gzip -9 > "$backup"
+  exec -T postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" </dev/null | gzip -9 > "$backup"
 test -s "$backup"
 chmod 600 "$backup"
 

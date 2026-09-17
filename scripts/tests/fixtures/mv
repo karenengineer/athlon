@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${!#}" != REVISION ]] || printf 'revision-write\n' >> "$TEST_FIXTURE/events"
+/bin/mv "$@"

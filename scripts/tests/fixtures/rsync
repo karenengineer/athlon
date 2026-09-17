@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'rsync %s\n' "$*" >> "$TEST_FIXTURE/events"
+for arg in "$@"; do
+  [[ "$arg" == --exclude ]] && continue
+  [[ "$arg" == --exclude=* ]] && printf 'exclude=%s\n' "${arg#--exclude=}" >> "$TEST_FIXTURE/events"
+done
+args=("$@")
+last="${args[${#args[@]}-1]}"
+source="${args[${#args[@]}-2]}"
+exclusions=()
+for arg in "$@"; do
+  [[ "$arg" != --exclude=* ]] || exclusions+=("$arg")
+done
+if [[ "$last" == *@*:* ]]; then
+  printf 'stage-upload\n' >> "$TEST_FIXTURE/events"
+  stage="${last#*:}"
+  stage="${stage/\/opt\/athlon/$TEST_FIXTURE/remote}"
+  [[ "$stage" == "$TEST_FIXTURE/remote/.deploy-staging/"* ]] || exit 92
+  PATH=/usr/bin:/bin /usr/bin/rsync -a "${exclusions[@]}" "$source" "$stage"
+  # Test-only adaptation of the separately invoked backup program's fixed path.
+  sed "s|/opt/athlon|$TEST_FIXTURE/remote|g" "$stage/scripts/backup-production.sh" > "$stage/scripts/backup-production.fixture"
+  /bin/mv "$stage/scripts/backup-production.fixture" "$stage/scripts/backup-production.sh"
+else
+  printf 'source-promotion\n' >> "$TEST_FIXTURE/events"
+  [[ "$last" == "$TEST_FIXTURE/remote/" ]] || exit 93
+  PATH=/usr/bin:/bin /usr/bin/rsync -a "${exclusions[@]}" "$source" "$last"
+fi
