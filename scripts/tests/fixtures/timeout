@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'timeout %s\n' "$*" >> "$TEST_FIXTURE/events"
+[[ "$1" == --kill-after=5 && "$2" == 20 ]] || exit 93
+shift 2
+exec "$@"

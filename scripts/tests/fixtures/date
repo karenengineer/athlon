@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+counter=0
+[[ ! -f "$TEST_FIXTURE/date-counter" ]] || counter="$(cat "$TEST_FIXTURE/date-counter")"
+counter=$((counter + 1))
+printf '%s\n' "$counter" > "$TEST_FIXTURE/date-counter"
+printf '20260101-%06d\n' "$counter"

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'release-lock\n' >> "$TEST_FIXTURE/events"
+[[ "${TEST_FAIL:-}" != lock ]]

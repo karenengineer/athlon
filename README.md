@@ -62,11 +62,12 @@ From a clean local checkout, set the PEM path and restrict access to the key:
 
 ```bash
 export ATHLON_SSH_KEY=/Users/karenengineer/Downloads/LightsailDefaultKey-eu-central-1.pem
+export ATHLON_KNOWN_HOSTS=/absolute/path/to/vetted-known_hosts
 chmod 600 "$ATHLON_SSH_KEY"
-./scripts/deploy-production.sh
+./scripts/deploy-production.sh --bootstrap
 ```
 
-On its first run, the script bootstraps the host, generates database and token secrets,
+Only the explicit `--bootstrap` operation bootstraps the host, generates database and token secrets,
 and creates `/opt/athlon/.env` only if it does not already exist. It does not overwrite
 an existing production environment. Before seeding, connect to the host and set
 non-empty `ADMIN_EMAIL` and `ADMIN_PASSWORD` values in that protected file; do not put
@@ -93,7 +94,12 @@ The `--seed` flag is deliberately rejected if either administrator value is empt
 After reviewing and committing a release locally, run the same deployment script
 without `--seed`. It synchronizes the source (while preserving the server `.env`,
 uploads, and backups), builds the API and web images, runs migrations, waits for
-services, and checks the API and Caddy response.
+services, and checks public trusted HTTPS, www HTTPS, HTTP redirect, HSTS, health JSON,
+HY/RU/EN pages and each localized products API. A backup is required before migrations.
+Source uploads use unique private staging directories; one remote release lock protects
+source promotion, image preservation, backup, migration, restart, smoke and REVISION.
+`/opt/athlon/REVISION` records the commit only after all checks succeed. Failures exit
+nonzero and keep the prior successful REVISION; they do not automatically roll back.
 
 ```bash
 ./scripts/deploy-production.sh
@@ -101,6 +107,29 @@ ssh -i "$ATHLON_SSH_KEY" ubuntu@18.158.105.59
 cd /opt/athlon
 docker compose --env-file .env -f infrastructure/docker-compose.production.yml ps
 ```
+
+For CI, explicitly set `ATHLON_SSH_HOST`, `ATHLON_SSH_USER`, `ATHLON_SSH_KEY`,
+`ATHLON_KNOWN_HOSTS`, `ATHLON_DEPLOY_REVISION` (full 40-character hexadecimal SHA),
+and `ATHLON_SKIP_BOOTSTRAP=1`, then run `bash scripts/deploy-production.sh` from the
+verified checkout. The remote application path is fixed at `/opt/athlon` and its
+existing protected `.env` is required. CI always rejects `--seed` and `--bootstrap`.
+Bootstrap is never implicit, including local updates. Both SSH and rsync enforce
+`StrictHostKeyChecking=yes` with the vetted file. `ATHLON_KNOWN_HOSTS` is a file path,
+not inline host-key contents: materialize the trusted secret in a temporary mode-600
+file outside the checkout. Obtain its contents through a trusted connection; do not
+blindly trust network `ssh-keyscan` or disable certificate/host-key checks.
+
+Run `bash scripts/smoke-production.sh` independently for read-only public acceptance.
+It uses Node for JSON validation, or the running API container's Node on the server.
+All network requests have finite timeouts and TLS verification stays enabled.
+Git/ignored scratch, editor state, environments, local builds, uploads, backups,
+release locks/metadata and staging directories are excluded from both synchronization
+phases. Images build from the exact staged checkout; runtime Compose operations
+continue using `/opt/athlon` and its existing environment/volumes. Source synchronization
+does not delete old server files; operators must review obsolete source/configuration
+separately, and a build/runtime configuration error is a failed release. Staging directories under
+`/opt/athlon/.deploy-staging`, backups and uniquely tagged rollback images accumulate;
+retention and removal of individually reviewed obsolete resources are operator-managed.
 
 ### Backups and restore
 
@@ -134,28 +163,43 @@ above do not remove the PostgreSQL, uploads, or Caddy volumes.
 
 ### Rollback without removing volumes
 
-Before deploying an update, preserve the currently running server-local images under
-explicit tags:
+Each deployment records actual running API/web image IDs under unique retained tags
+before the build. `/opt/athlon/.previous-images` lists the real tags for the most
+recent attempt; an initial provision has no prior application images. Inspect the
+file and retain the chosen tags alongside the matching backup/release. Do not guess
+`:previous` tags or source this metadata as shell code:
 
 ```bash
-docker image tag athlon-api:production athlon-api:previous
-docker image tag athlon-web:production athlon-web:previous
+cat /opt/athlon/.previous-images
+# api=athlon-api:rollback-<actual-stage-id>
+# web=athlon-web:rollback-<actual-stage-id>
 ```
 
 If the new release must be rolled back, retag the prior local images as the production
-images and restart the long-running services without building or deleting volumes:
+images and restart the long-running services without building or deleting volumes.
+In an operator SSH session in `/opt/athlon`, acquire the same release lock first,
+replace the placeholders with the exact inspected tags, and check public smoke:
 
 ```bash
-docker image tag athlon-api:previous athlon-api:production
-docker image tag athlon-web:previous athlon-web:production
+set -euo pipefail
+exec 9>/opt/athlon/.release.lock
+flock -w 600 9
+docker image tag 'athlon-api:rollback-<actual-stage-id>' athlon-api:production
+docker image tag 'athlon-web:rollback-<actual-stage-id>' athlon-web:production
 docker compose --env-file .env -f infrastructure/docker-compose.production.yml \
   up -d --no-build --no-deps --wait --wait-timeout 120 api web caddy
 docker compose --env-file .env -f infrastructure/docker-compose.production.yml ps
+bash scripts/smoke-production.sh
+flock -u 9
+exec 9>&-
 ```
 
 Do not use `docker compose down -v`, `docker volume rm`, or any rollback command that
 removes production volumes. If the update included a schema change that cannot work
 with the earlier release, restore the matching database backup before restarting it.
+Image rollback does not undo migrations or restore prior source/Compose/Caddy
+configuration; review those for compatibility. REVISION is not changed automatically
+by manual rollback: record a successful restored revision only after its smoke checks.
 
 ## Catalog administration
 

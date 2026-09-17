@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'docker %s\n' "$*" >> "$TEST_FIXTURE/events"
+case "$*" in
+  *'exec -T api node -e'*)
+    while [[ "$1" != node ]]; do shift; done
+    shift
+    "$TEST_NODE" "$@"
+    ;;
+  *'ps -q api'*) printf 'api-container\n' ;;
+  *'ps -q web'*) printf 'web-container\n' ;;
+  *'inspect --format {{.Image}} api-container'*) printf 'sha256:old-api\n' ;;
+  *'inspect --format {{.Image}} web-container'*) printf 'sha256:old-web\n' ;;
+  *'pg_dump'*) [[ "${TEST_FAIL:-}" != backup ]] || exit 1; printf 'SQL fixture\n' ;;
+  *'interactive=false migrate'*) [[ "${TEST_FAIL:-}" != migrate ]] || exit 1 ;;
+  *'build api web'*) [[ "${TEST_FAIL:-}" != build ]] || exit 1 ;;
+esac
