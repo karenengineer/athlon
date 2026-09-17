@@ -102,6 +102,14 @@ export interface AdminProduct extends Omit<AdminProductInput, "price"> {
   createdAt: string;
   updatedAt: string;
 }
+// Create/PATCH currently return translations, but not the image relation.
+export type AdminProductWrite = Omit<AdminProduct, "images">;
+export interface AdminImageInput {
+  altRu: string;
+  altHy?: string;
+  altEn?: string;
+  primary?: boolean;
+}
 export interface AdminProductListItem extends Omit<AdminProduct, "images"> {
   images: Omit<AdminImage, "translations">[];
   category: Omit<AdminCategory, "translations">;

@@ -1,0 +1,28 @@
+:host {
+  display: block;
+}
+.preview {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border: 2px dashed #bbb;
+  background: white;
+  overflow-wrap: anywhere;
+}
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+img {
+  max-width: 100%;
+  width: 28rem;
+  height: 24rem;
+  object-fit: contain;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.description {
+  white-space: pre-wrap;
+}

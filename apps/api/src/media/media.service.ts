@@ -8,10 +8,18 @@ import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import sharp, { Metadata } from "sharp";
 import { PrismaService } from "../database/prisma.service";
+import { Prisma } from "../generated/prisma/client";
+import { rethrowCatalogConflict } from "../common/admin-list";
 import { STORAGE_ADAPTER, StorageAdapter } from "../storage/storage-adapter";
 import { ReorderImagesDto } from "./dto/reorder-images.dto";
 import { UpdateImageDto } from "./dto/update-image.dto";
 import { UploadImageFieldsDto } from "./dto/upload-image-fields.dto";
+
+// Bound four concurrent raster pipelines on the 2GB host. No animated inputs.
+const rasterOptions = {
+  failOn: "error" as const,
+  limitInputPixels: 16_000_000,
+};
 
 @Injectable()
 export class MediaService {
@@ -44,7 +52,7 @@ export class MediaService {
 
     let metadata: Metadata;
     try {
-      metadata = await sharp(file.buffer, { failOn: "error" }).metadata();
+      metadata = await sharp(file.buffer, rasterOptions).metadata();
     } catch {
       throw new BadRequestException("Invalid image content");
     }
@@ -52,7 +60,12 @@ export class MediaService {
       !metadata.width ||
       !metadata.height ||
       !metadata.format ||
-      !["jpeg", "png", "webp"].includes(metadata.format)
+      !["jpeg", "png", "webp"].includes(metadata.format) ||
+      file.mimetype !== `image/${metadata.format}` ||
+      metadata.width > 8192 ||
+      metadata.height > 8192 ||
+      metadata.width * metadata.height > 16_000_000 ||
+      (metadata.pages ?? 1) > 1
     ) {
       throw new BadRequestException("Invalid image content");
     }
@@ -64,7 +77,7 @@ export class MediaService {
       card: `${id}-card.webp`,
       detail: `${id}-detail.webp`,
     };
-    const base = sharp(file.buffer, { failOn: "error" }).rotate();
+    const base = sharp(file.buffer, rasterOptions).rotate();
     const [original, thumbnail, card, detail] = await Promise.all([
       base
         .clone()
@@ -101,7 +114,9 @@ export class MediaService {
         })
         .webp({ quality: 88 })
         .toBuffer(),
-    ]);
+    ]).catch(() => {
+      throw new BadRequestException("Invalid image content");
+    });
     const entries = [
       [keys.original, original],
       [keys.thumbnail, thumbnail],
@@ -109,52 +124,91 @@ export class MediaService {
       [keys.detail, detail],
     ] as const;
     try {
-      await Promise.all(
+      const writes = await Promise.allSettled(
         entries.map(([key, buffer]) => this.storage.put(key, buffer)),
       );
-      return await this.prisma.productImage.create({
-        data: {
-          productId,
-          originalKey: keys.original,
-          thumbnailKey: keys.thumbnail,
-          cardKey: keys.card,
-          detailKey: keys.detail,
-          mimeType: "image/webp",
-          width: metadata.width,
-          height: metadata.height,
-          sizeBytes: original.length,
-          primary: fields.primary === "true",
-          translations: {
-            create: [
-              { locale: "RU", altText: fields.altRu },
-              ...(fields.altHy
-                ? [{ locale: "HY" as const, altText: fields.altHy }]
-                : []),
-              ...(fields.altEn
-                ? [{ locale: "EN" as const, altText: fields.altEn }]
-                : []),
-            ],
-          },
+      const failedWrite = writes.find((write) => write.status === "rejected");
+      if (failedWrite?.status === "rejected") throw failedWrite.reason;
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const last = await tx.productImage.aggregate({
+            where: { productId },
+            _max: { position: true },
+          });
+          if (fields.primary === "true")
+            await tx.productImage.updateMany({
+              where: { productId },
+              data: { primary: false },
+            });
+          return tx.productImage.create({
+            data: {
+              productId,
+              originalKey: keys.original,
+              thumbnailKey: keys.thumbnail,
+              cardKey: keys.card,
+              detailKey: keys.detail,
+              mimeType: "image/webp",
+              width: metadata.width,
+              height: metadata.height,
+              sizeBytes: original.length,
+              primary: fields.primary === "true",
+              position: (last._max.position ?? -1) + 1,
+              translations: {
+                create: [
+                  { locale: "RU", altText: fields.altRu },
+                  ...(fields.altHy
+                    ? [{ locale: "HY" as const, altText: fields.altHy }]
+                    : []),
+                  ...(fields.altEn
+                    ? [{ locale: "EN" as const, altText: fields.altEn }]
+                    : []),
+                ],
+              },
+            },
+            include: { translations: true },
+          });
         },
-        include: { translations: true },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
     } catch (error) {
       await Promise.allSettled(
         entries.map(([key]) => this.storage.delete(key)),
       );
-      throw error;
+      rethrowCatalogConflict(error);
     }
   }
 
   async reorder(productId: string, input: ReorderImagesDto): Promise<void> {
-    await this.prisma.$transaction(
-      input.images.map((image) =>
-        this.prisma.productImage.update({
-          where: { id: image.id, productId },
-          data: { position: image.position },
-        }),
-      ),
-    );
+    if (
+      new Set(input.images.map((image) => image.id)).size !==
+        input.images.length ||
+      new Set(input.images.map((image) => image.position)).size !==
+        input.images.length
+    )
+      throw new BadRequestException("Duplicate image IDs or positions");
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          const images = await tx.productImage.findMany({
+            where: {
+              productId,
+              id: { in: input.images.map((image) => image.id) },
+            },
+            select: { id: true },
+          });
+          if (images.length !== input.images.length)
+            throw new NotFoundException("Image not found");
+          for (const image of input.images)
+            await tx.productImage.update({
+              where: { id: image.id, productId },
+              data: { position: image.position },
+            });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      rethrowCatalogConflict(error);
+    }
   }
 
   async update(
@@ -162,16 +216,6 @@ export class MediaService {
     imageId: string,
     input: UpdateImageDto,
   ): Promise<unknown> {
-    const image = await this.prisma.productImage.findUnique({
-      where: { id: imageId },
-    });
-    if (!image || image.productId !== productId)
-      throw new NotFoundException("Image not found");
-    if (input.primary)
-      await this.prisma.productImage.updateMany({
-        where: { productId },
-        data: { primary: false },
-      });
     const translations = [
       ...(input.altRu !== undefined
         ? [{ locale: "RU" as const, altText: input.altRu }]
@@ -183,29 +227,50 @@ export class MediaService {
         ? [{ locale: "EN" as const, altText: input.altEn }]
         : []),
     ];
-    return this.prisma.productImage.update({
-      where: { id: imageId },
-      data: {
-        ...(input.primary !== undefined ? { primary: input.primary } : {}),
-        ...(translations.length
-          ? {
-              translations: {
-                upsert: translations.map((item) => ({
-                  where: {
-                    productImageId_locale: {
-                      productImageId: imageId,
-                      locale: item.locale,
+    try {
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const image = await tx.productImage.findUnique({
+            where: { id: imageId },
+          });
+          if (!image || image.productId !== productId)
+            throw new NotFoundException("Image not found");
+          if (input.primary)
+            await tx.productImage.updateMany({
+              where: { productId },
+              data: { primary: false },
+            });
+          return tx.productImage.update({
+            where: { id: imageId },
+            data: {
+              ...(input.primary !== undefined
+                ? { primary: input.primary }
+                : {}),
+              ...(translations.length
+                ? {
+                    translations: {
+                      upsert: translations.map((item) => ({
+                        where: {
+                          productImageId_locale: {
+                            productImageId: imageId,
+                            locale: item.locale,
+                          },
+                        },
+                        create: item,
+                        update: item,
+                      })),
                     },
-                  },
-                  create: item,
-                  update: item,
-                })),
-              },
-            }
-          : {}),
-      },
-      include: { translations: true },
-    });
+                  }
+                : {}),
+            },
+            include: { translations: true },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      rethrowCatalogConflict(error);
+    }
   }
 
   async delete(productId: string, imageId: string): Promise<void> {

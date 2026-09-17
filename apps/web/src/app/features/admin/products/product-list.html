@@ -1,0 +1,167 @@
+<div class="heading">
+  <h1>{{ i18n.translate('products') }}</h1>
+  <a routerLink="/admin/products/new" queryParamsHandling="preserve"
+    >{{ i18n.translate('create') }}</a
+  >
+</div>
+<form class="filters" [formGroup]="filters" (ngSubmit)="search()">
+  <div>
+    <label for="q">{{ i18n.translate('search') }}</label
+    ><input id="q" formControlName="q" maxlength="120" />
+  </div>
+  <div>
+    <label for="categoryId">{{ i18n.translate('category') }}</label
+    ><select id="categoryId" formControlName="categoryId">
+      <option value="">{{ i18n.translate('all') }}</option>
+      @for (item of categories(); track item.id) {
+      <option [value]="item.id">{{ name(item) }}</option>
+      }
+    </select>
+  </div>
+  <div>
+    <label for="brandId">{{ i18n.translate('brand') }}</label
+    ><select id="brandId" formControlName="brandId">
+      <option value="">{{ i18n.translate('all') }}</option>
+      @for (item of brands(); track item.id) {
+      <option [value]="item.id">{{ name(item) }}</option>
+      }
+    </select>
+  </div>
+  <div>
+    <label for="availability">{{ i18n.translate('availability') }}</label
+    ><select id="availability" formControlName="availability">
+      <option value="">{{ i18n.translate('all') }}</option>
+      @for (value of availabilities; track value) {
+      <option [value]="value">{{ i18n.translate(value) }}</option>
+      }
+    </select>
+  </div>
+  @for (key of ['published', 'featured', 'isNew']; track key) {
+  <div>
+    <label [for]="key"
+      >{{ i18n.translate(key === 'published' ? 'published' : key === 'featured'
+      ? 'featured' : 'isNew') }}</label
+    ><select [id]="key" [formControlName]="key">
+      <option value="">{{ i18n.translate('all') }}</option>
+      <option value="true">
+        {{ i18n.translate(key === 'published' ? 'published' : 'yes') }}
+      </option>
+      <option value="false">
+        {{ i18n.translate(key === 'published' ? 'draft' : 'no') }}
+      </option>
+    </select>
+  </div>
+  }
+  <div>
+    <label for="sort">{{ i18n.translate('sort') }}</label
+    ><select id="sort" formControlName="sort">
+      <option value="order">{{ i18n.translate('sortOrder') }}</option>
+      <option value="updated">{{ i18n.translate('sortUpdated') }}</option>
+      <option value="name">{{ i18n.translate('sortName') }}</option>
+      <option value="priceAsc">{{ i18n.translate('sortPriceAsc') }}</option>
+      <option value="priceDesc">{{ i18n.translate('sortPriceDesc') }}</option>
+    </select>
+  </div>
+  <div>
+    <label for="pageSize">{{ i18n.translate('pageSize') }}</label
+    ><select id="pageSize" formControlName="pageSize">
+      @for (size of [10,24,50,100]; track size) {
+      <option [ngValue]="size">{{ size }}</option>
+      } @if (![10,24,50,100].includes(filters.controls.pageSize.value)) {
+      <option [ngValue]="filters.controls.pageSize.value">
+        {{ filters.controls.pageSize.value }}
+      </option>
+      }
+    </select>
+  </div>
+  <button type="submit" data-search>{{ i18n.translate('search') }}</button
+  ><button type="button" data-clear (click)="clear()">
+    {{ i18n.translate('clear') }}
+  </button>
+</form>
+@if (optionsError()) {
+<p role="alert">
+  {{ i18n.translate('optionsError') }}
+  <button type="button" (click)="loadOptions()">
+    {{ i18n.translate('retry') }}
+  </button>
+</p>
+} @if (error(); as key) {
+<p role="alert">
+  {{ i18n.translate(key) }} @if (key === 'error') {<button
+    type="button"
+    data-retry
+    (click)="load()"
+  >
+    {{ i18n.translate('retry') }}</button
+  >}
+</p>
+} @if (loading()) {
+<p role="status">{{ i18n.translate('loading') }}</p>
+} @if (!loading() && list(); as result) { @if (result.items.length === 0) {
+<p>{{ i18n.translate('noMatches') }}</p>
+} @else {
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        <th>{{ i18n.translate('name') }}</th>
+        <th>{{ i18n.translate('sku') }}</th>
+        <th>{{ i18n.translate('price') }}</th>
+        <th>{{ i18n.translate('availability') }}</th>
+        <th>{{ i18n.translate('published') }}</th>
+        <th>{{ i18n.translate('edit') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of result.items; track item.id) {
+      <tr>
+        <td>{{ name(item) }}</td>
+        <td>{{ item.sku }}</td>
+        <td>{{ item.price ?? i18n.translate('requestPrice') }}</td>
+        <td>{{ i18n.translate(item.availability) }}</td>
+        <td>{{ i18n.translate(item.published ? 'published' : 'draft') }}</td>
+        <td class="actions">
+          <a
+            [routerLink]="['/admin/products', item.id, 'edit']"
+            queryParamsHandling="preserve"
+            [attr.aria-label]="i18n.translate('edit') + ': ' + name(item)"
+            >{{ i18n.translate('edit') }}</a
+          ><button
+            type="button"
+            data-delete
+            [disabled]="deleting()"
+            [attr.aria-label]="i18n.translate('delete') + ': ' + name(item)"
+            (click)="pendingDelete.set(item)"
+          >
+            {{ i18n.translate('delete') }}
+          </button>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>
+}
+<nav class="pagination" [attr.aria-label]="i18n.translate('page')">
+  <button
+    type="button"
+    [disabled]="result.meta.page <= 1"
+    (click)="page(result.meta.page - 1)"
+  >
+    {{ i18n.translate('previous') }}</button
+  ><span
+    >{{ i18n.translate('page') }} {{ result.meta.page }} / {{
+    result.meta.totalPages || 1 }} ({{ result.meta.total }})</span
+  ><button
+    type="button"
+    [disabled]="result.meta.page >= result.meta.totalPages"
+    (click)="page(result.meta.page + 1)"
+  >
+    {{ i18n.translate('next') }}
+  </button>
+</nav>
+} @if (pendingDelete(); as item) {<app-admin-delete-confirmation
+  [name]="name(item)"
+  (decision)="confirmDelete($event)"
+/>}

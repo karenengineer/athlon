@@ -14,6 +14,7 @@ export class TranslationTabs {
   readonly i18n = inject(AdminI18nService);
   @Input({ required: true }) forms!: FormArray<TranslationForm>;
   @Input() seo = false;
+  @Input() product = false;
   readonly active = signal<AdminTranslationLocale>("HY");
   select(locale: AdminTranslationLocale): void {
     this.active.set(locale);

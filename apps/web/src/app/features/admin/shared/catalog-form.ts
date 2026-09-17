@@ -8,7 +8,7 @@ import {
 } from "@angular/forms";
 import {
   AdminCategory,
-  AdminCategoryTranslation,
+  AdminProductTranslation,
   AdminTranslationLocale,
 } from "./admin-api.types";
 
@@ -23,6 +23,7 @@ export type TranslationForm = FormGroup<{
   description: FormControl<string>;
   seoTitle: FormControl<string>;
   seoDescription: FormControl<string>;
+  shortDescription: FormControl<string>;
 }>;
 export const slugValidators = [
   Validators.required,
@@ -30,7 +31,8 @@ export const slugValidators = [
   Validators.pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
 ];
 export function translationForms(
-  existing: readonly AdminCategoryTranslation[] = [],
+  existing: readonly AdminProductTranslation[] = [],
+  product = false,
 ): FormArray<TranslationForm> {
   return new FormArray(
     translationLocales.map((locale) => {
@@ -40,10 +42,14 @@ export function translationForms(
           locale: new FormControl(locale, { nonNullable: true }),
           name: new FormControl(original?.name ?? "", {
             nonNullable: true,
-            validators: Validators.maxLength(180),
+            validators: Validators.maxLength(product ? 220 : 180),
           }),
           description: new FormControl(original?.description ?? "", {
             nonNullable: true,
+          }),
+          shortDescription: new FormControl(original?.shortDescription ?? "", {
+            nonNullable: true,
+            validators: Validators.maxLength(500),
           }),
           seoTitle: new FormControl(original?.seoTitle ?? "", {
             nonNullable: true,
@@ -64,6 +70,7 @@ export function translationForms(
                 value.description,
                 value.seoTitle,
                 value.seoDescription,
+                ...(product ? [value.shortDescription] : []),
               ].some(Boolean);
             return active && !/\S/.test(value.name)
               ? { nameRequired: true }
@@ -82,9 +89,10 @@ export function translationForms(
 }
 export function translationPayload(
   forms: FormArray<TranslationForm>,
-  existing: readonly AdminCategoryTranslation[] = [],
+  existing: readonly AdminProductTranslation[] = [],
   seo = false,
-): AdminCategoryTranslation[] {
+  product = false,
+): AdminProductTranslation[] {
   return forms.controls.flatMap((group) => {
     const value = group.getRawValue();
     const original = existing.find((item) => item.locale === value.locale);
@@ -95,16 +103,22 @@ export function translationPayload(
         value.description,
         value.seoTitle,
         value.seoDescription,
+        ...(product ? [value.shortDescription] : []),
       ].some(Boolean)
     )
       return [];
-    const result: AdminCategoryTranslation = {
+    const result: AdminProductTranslation = {
       locale: value.locale,
       name: value.name,
     };
-    for (const key of seo
-      ? (["description", "seoTitle", "seoDescription"] as const)
-      : (["description"] as const)) {
+    const keys: (keyof Pick<
+      AdminProductTranslation,
+      "description" | "seoTitle" | "seoDescription" | "shortDescription"
+    >)[] = seo
+      ? ["description", "seoTitle", "seoDescription"]
+      : ["description"];
+    if (product) keys.push("shortDescription");
+    for (const key of keys) {
       if (original && value[key] === (original[key] ?? "")) {
         if (original[key] !== undefined) result[key] = original[key];
       } else if (value[key] !== "" || original?.[key] !== undefined)

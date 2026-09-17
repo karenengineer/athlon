@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service";
 import { Prisma } from "../generated/prisma/client";
 import { CreateProductDto } from "./dto/create-product.dto";
@@ -98,25 +102,29 @@ export class AdminProductsService {
     return product;
   }
 
-  create(input: CreateProductDto): Promise<unknown> {
-    return this.prisma.product.create({
-      data: {
-        sku: input.sku,
-        slug: input.slug,
-        categoryId: input.categoryId,
-        ...(input.brandId !== undefined ? { brandId: input.brandId } : {}),
-        price: input.price ?? null,
-        currency: "AMD",
-        availability: input.availability,
-        characteristics: input.characteristics as Prisma.InputJsonValue,
-        featured: input.featured,
-        isNew: input.isNew,
-        published: input.published,
-        displayOrder: input.displayOrder,
-        translations: { create: input.translations },
-      },
-      include: { translations: true },
-    });
+  async create(input: CreateProductDto): Promise<unknown> {
+    try {
+      return await this.prisma.product.create({
+        data: {
+          sku: input.sku,
+          slug: input.slug,
+          categoryId: input.categoryId,
+          ...(input.brandId !== undefined ? { brandId: input.brandId } : {}),
+          price: input.price ?? null,
+          currency: "AMD",
+          availability: input.availability,
+          characteristics: input.characteristics as Prisma.InputJsonValue,
+          featured: input.featured,
+          isNew: input.isNew,
+          published: input.published,
+          displayOrder: input.displayOrder,
+          translations: { create: input.translations },
+        },
+        include: { translations: true },
+      });
+    } catch (error) {
+      rethrowProductWriteConflict(error);
+    }
   }
 
   async update(id: string, input: UpdateProductDto): Promise<unknown> {
@@ -163,11 +171,15 @@ export class AdminProductsService {
           }
         : {}),
     };
-    return this.prisma.product.update({
-      where: { id },
-      data,
-      include: { translations: true },
-    });
+    try {
+      return await this.prisma.product.update({
+        where: { id },
+        data,
+        include: { translations: true },
+      });
+    } catch (error) {
+      rethrowProductWriteConflict(error);
+    }
   }
 
   async setPublished(id: string, published: boolean): Promise<unknown> {
@@ -191,4 +203,27 @@ export class AdminProductsService {
     });
     if (!product) throw new NotFoundException("Product not found");
   }
+}
+
+// Product create/PATCH only: do not expose ORM constraint names or identifiers.
+function rethrowProductWriteConflict(error: unknown): never {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "P2002"
+  )
+    throw new ConflictException(
+      "A product with this SKU or slug already exists",
+    );
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "P2025"
+  )
+    throw new ConflictException(
+      "Product or category/brand link changed; reload before saving",
+    );
+  rethrowCatalogConflict(error);
 }

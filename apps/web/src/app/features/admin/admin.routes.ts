@@ -20,6 +20,29 @@ export const adminRoutes: Routes = [
           import("./admin-shell").then((module) => module.AdminShell),
         children: [
           {
+            path: "products/new",
+            canDeactivate: [adminDirtyFormGuard],
+            loadComponent: () =>
+              import("./products/product-editor").then(
+                (module) => module.ProductEditor,
+              ),
+          },
+          {
+            path: "products/:id/edit",
+            canDeactivate: [adminDirtyFormGuard],
+            loadComponent: () =>
+              import("./products/product-editor").then(
+                (module) => module.ProductEditor,
+              ),
+          },
+          {
+            path: "products",
+            loadComponent: () =>
+              import("./products/product-list").then(
+                (module) => module.ProductList,
+              ),
+          },
+          {
             path: "categories/new",
             canDeactivate: [adminDirtyFormGuard],
             loadComponent: () =>

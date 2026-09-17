@@ -31,7 +31,7 @@
   <input
     [id]="'translation-name-' + group.controls.locale.value"
     formControlName="name"
-    maxlength="180"
+    [attr.maxlength]="product ? 220 : 180"
     [attr.aria-invalid]="group.hasError('nameRequired') || group.controls.name.invalid"
     [attr.aria-describedby]="'translation-error-' + group.controls.locale.value"
   />
@@ -40,8 +40,20 @@
     class="field-error"
     [id]="'translation-error-' + group.controls.locale.value"
   >
-    {{ i18n.translate('translationValidation') }}
+    {{ i18n.translate(product ? 'productTranslationValidation' :
+    'translationValidation') }}
   </p>
+  } @if (product) {
+  <label [for]="'translation-shortDescription-' + group.controls.locale.value"
+    >{{ i18n.translate('shortDescription') }}</label
+  >
+  <textarea
+    [id]="'translation-shortDescription-' + group.controls.locale.value"
+    formControlName="shortDescription"
+    maxlength="500"
+    [attr.aria-invalid]="group.controls.shortDescription.invalid"
+    [attr.aria-describedby]="'translation-error-' + group.controls.locale.value"
+  ></textarea>
   }
   <label [for]="'translation-description-' + group.controls.locale.value"
     >{{ i18n.translate('description') }}</label

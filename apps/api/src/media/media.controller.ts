@@ -6,6 +6,7 @@ import {
   Header,
   HttpCode,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   StreamableFile,
@@ -41,7 +42,7 @@ export class MediaController {
   )
   @ApiConsumes("multipart/form-data")
   upload(
-    @Param("productId") productId: string,
+    @Param("productId", ParseUUIDPipe) productId: string,
     @UploadedFile() file: Express.Multer.File | undefined,
     @Body() fields: UploadImageFieldsDto,
   ): Promise<unknown> {
@@ -52,7 +53,7 @@ export class MediaController {
   @UseGuards(AdminAuthGuard, CsrfGuard)
   @HttpCode(204)
   reorder(
-    @Param("productId") productId: string,
+    @Param("productId", ParseUUIDPipe) productId: string,
     @Body() input: ReorderImagesDto,
   ): Promise<void> {
     return this.media.reorder(productId, input);
@@ -61,8 +62,8 @@ export class MediaController {
   @Patch("admin/products/:productId/images/:imageId")
   @UseGuards(AdminAuthGuard, CsrfGuard)
   update(
-    @Param("productId") productId: string,
-    @Param("imageId") imageId: string,
+    @Param("productId", ParseUUIDPipe) productId: string,
+    @Param("imageId", ParseUUIDPipe) imageId: string,
     @Body() input: UpdateImageDto,
   ): Promise<unknown> {
     return this.media.update(productId, imageId, input);
@@ -72,8 +73,8 @@ export class MediaController {
   @UseGuards(AdminAuthGuard, CsrfGuard)
   @HttpCode(204)
   delete(
-    @Param("productId") productId: string,
-    @Param("imageId") imageId: string,
+    @Param("productId", ParseUUIDPipe) productId: string,
+    @Param("imageId", ParseUUIDPipe) imageId: string,
   ): Promise<void> {
     return this.media.delete(productId, imageId);
   }

@@ -157,6 +157,53 @@ Do not use `docker compose down -v`, `docker volume rm`, or any rollback command
 removes production volumes. If the update included a schema change that cannot work
 with the earlier release, restore the matching database backup before restarting it.
 
+## Catalog administration
+
+Open `/admin/login`, then `/admin/products`, `/admin/categories`, or `/admin/brands`.
+Product create/edit URLs are `/admin/products/new` and `/admin/products/:id/edit`.
+Administration is lazy-loaded, client-rendered and marked `noindex, nofollow`; private
+catalog/session data is not rendered into shared SSR HTML. Use existing administrator
+accounts: this UI does not create accounts or change passwords.
+
+The browser reuses HttpOnly access/refresh cookies and the configured readable CSRF
+cookie. Administrative mutations attach that cookie value only to same-origin API
+requests; tokens are never stored in localStorage. HY is the interface default, with
+RU/EN switching and independent HY/RU/EN translation tabs. Editing a translation
+preserves other languages and untouched nullable optional fields. Lists use server
+filters, sorting and URL pagination. Dirty product/alt forms warn before navigation.
+The local preview displays unsaved text/JSON without publishing a draft; the public
+link is offered only for a persisted published product.
+
+Save a new product before uploading images. JPEG, PNG and WebP uploads have a
+5,242,880-byte client/API maximum; the server verifies declared type against decoded
+raster content, rejects animation, limits each axis to 8192 and total pixels to
+16,000,000 (bounded for the 2GB host), and writes randomized WebP variants. Uploads
+require RU alternative text; HY/EN are optional, each limited to 250 characters.
+Images support localized alt editing, a single primary flag, ordering and named
+deletion. Ownership/duplicates are checked before transactional order/primary writes.
+Individual image deletion attempts removal of its exact named variants. Whole-product
+deletion currently cascades image metadata only: orphaned variant-file cleanup is
+deferred to an explicitly reviewed maintenance operation. Never delete the upload
+directory wholesale.
+
+Verification commands:
+
+```bash
+pnpm verify
+ATHLON_PG_INTEGRATION=1 pnpm --filter @athlon/api test:e2e --testPathPatterns=catalog-postgres.e2e-spec
+```
+
+The opt-in acceptance test creates/migrates a uniquely named PostgreSQL 17 Docker
+container with a dedicated database and a loopback-only random port; it never accepts
+an existing/production connection or runs seeds. It stops only its own container and
+removes only its own temporary upload directory. Separate fixture E2E tests decode real
+image bytes and cover authorization/CSRF, corrupt/mismatched/oversized content and
+foreign image IDs. Local headless Chrome acceptance at 375px and 1440px covers login,
+authenticated product list/editor, preview and media layout using temporary profiles
+and in-memory fixtures, not production credentials. SSR checks require an explicit
+allowed-host configuration; use localhost only for local QA and exact trusted domain
+names for deployment, never a wildcard.
+
 ## Scope
 
 The backend implements multilingual categories, brands, products, image metadata, search,
