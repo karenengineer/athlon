@@ -67,6 +67,7 @@ export class BrandEditor implements AdminDirtyForm {
     published: new FormControl(true, { nonNullable: true }),
     translations: translationForms(),
   });
+
   constructor() {
     this.route.paramMap
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -80,6 +81,7 @@ export class BrandEditor implements AdminDirtyForm {
         this.load();
       });
   }
+
   load(): void {
     this.detailRequest?.unsubscribe();
     this.error.set(null);
@@ -184,6 +186,7 @@ export class BrandEditor implements AdminDirtyForm {
   confirmDiscard(): boolean {
     return window.confirm(this.i18n.translate("discard"));
   }
+
   @HostListener("window:beforeunload", ["$event"])
   beforeUnload(event: BeforeUnloadEvent): void {
     if (this.hasUnsavedChanges()) {
