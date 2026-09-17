@@ -289,7 +289,7 @@ describe("admin route boundaries and UI", () => {
       });
       expect(TestBed.inject(Router).url).toBe("/admin/categories");
       const firstId = "24d3f1a3-8413-4bc6-b32d-437871a22b54";
-      await harness.navigateByUrl(`/admin/brands/${firstId}`);
+      await harness.navigateByUrl(`/admin/brands/${firstId}/edit`);
       http.expectOne(`/api/v1/admin/brands/${firstId}`).flush({
         id: firstId,
         slug: "brand",
@@ -307,9 +307,9 @@ describe("admin route boundaries and UI", () => {
       name.dispatchEvent(new Event("input", { bubbles: true }));
       confirm.mockReturnValue(false);
       await harness.navigateByUrl(
-        "/admin/brands/34d3f1a3-8413-4bc6-b32d-437871a22b54",
+        "/admin/brands/34d3f1a3-8413-4bc6-b32d-437871a22b54/edit",
       );
-      expect(TestBed.inject(Router).url).toBe(`/admin/brands/${firstId}`);
+      expect(TestBed.inject(Router).url).toBe(`/admin/brands/${firstId}/edit`);
       http.expectNone(
         "/api/v1/admin/brands/34d3f1a3-8413-4bc6-b32d-437871a22b54",
       );

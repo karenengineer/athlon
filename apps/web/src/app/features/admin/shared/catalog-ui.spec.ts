@@ -6,12 +6,9 @@ import {
 import { TestBed } from "@angular/core/testing";
 import { provideRouter, Router } from "@angular/router";
 import { RouterTestingHarness } from "@angular/router/testing";
-import { CategoryEditor } from "../categories/category-editor";
-import { CategoryList } from "../categories/category-list";
-import { BrandEditor } from "../brands/brand-editor";
-import { BrandList } from "../brands/brand-list";
 import { AdminI18nService } from "./admin-i18n.service";
-import { adminDirtyFormGuard } from "./admin-dirty-form.guard";
+import { routes } from "../../../app.routes";
+import { AdminSessionService } from "../auth/admin-session.service";
 
 const id = "24d3f1a3-8413-4bc6-b32d-437871a22b54";
 const child = "34d3f1a3-8413-4bc6-b32d-437871a22b54";
@@ -63,33 +60,15 @@ describe("admin catalog DOM / HTTP contracts", () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideRouter([
-          {
-            path: "admin/categories/new",
-            component: CategoryEditor,
-            canDeactivate: [adminDirtyFormGuard],
-          },
-          {
-            path: "admin/categories/:id",
-            component: CategoryEditor,
-            canDeactivate: [adminDirtyFormGuard],
-          },
-          { path: "admin/categories", component: CategoryList },
-          {
-            path: "admin/brands/new",
-            component: BrandEditor,
-            canDeactivate: [adminDirtyFormGuard],
-          },
-          {
-            path: "admin/brands/:id",
-            component: BrandEditor,
-            canDeactivate: [adminDirtyFormGuard],
-          },
-          { path: "admin/brands", component: BrandList },
-        ]),
+        provideRouter(routes),
       ],
     });
     http = TestBed.inject(HttpTestingController);
+    TestBed.inject(AdminSessionService).user.set({
+      id: "admin-fixture",
+      email: "fixture@athlon.test",
+      role: "ADMIN",
+    });
     TestBed.inject(AdminI18nService).setLocale("en");
     harness = await RouterTestingHarness.create();
   });
@@ -118,6 +97,53 @@ describe("admin catalog DOM / HTTP contracts", () => {
   const listRequest = (resource: string) =>
     http.expectOne((request) => request.url === `/api/v1/admin/${resource}`);
 
+  it.each(["categories", "brands"])(
+    "opens the approved %s deep link and blocks dirty navigation until confirmed",
+    async (resource) => {
+      await harness.navigateByUrl(`/admin/${resource}/${id}/edit`);
+      http
+        .expectOne(`/api/v1/admin/${resource}/${id}`)
+        .flush(resource === "categories" ? category : brand);
+      if (resource === "categories") listRequest(resource).flush(envelope([]));
+      harness.detectChanges();
+      expect(dom().querySelector<HTMLInputElement>("#slug")!.value).toBe(
+        resource === "categories" ? "nutrition" : "acme",
+      );
+      input("#slug", "dirty-slug");
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      try {
+        await harness.navigateByUrl(`/admin/${resource}`);
+        expect(TestBed.inject(Router).url).toBe(
+          `/admin/${resource}/${id}/edit`,
+        );
+        http.expectNone(`/api/v1/admin/${resource}`);
+        confirm.mockReturnValue(true);
+        await harness.navigateByUrl(`/admin/${resource}`);
+        listRequest(resource).flush(
+          envelope([resource === "categories" ? category : brand]),
+        );
+        harness.detectChanges();
+        const edit = dom().querySelector<HTMLAnchorElement>(
+          `a[href="/admin/${resource}/${id}/edit"]`,
+        )!;
+        expect(edit).not.toBeNull();
+        edit.click();
+        await vi.waitFor(() =>
+          expect(TestBed.inject(Router).url).toBe(
+            `/admin/${resource}/${id}/edit`,
+          ),
+        );
+        http
+          .expectOne(`/api/v1/admin/${resource}/${id}`)
+          .flush(resource === "categories" ? category : brand);
+        if (resource === "categories")
+          listRequest(resource).flush(envelope([]));
+      } finally {
+        confirm.mockRestore();
+      }
+    },
+  );
+
   it("creates a category with validated DOM inputs and uppercase independent translation tabs", async () => {
     await harness.navigateByUrl("/admin/categories/new");
     listRequest("categories").flush(envelope([]));
@@ -143,7 +169,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
     expect(request.request.body.code).toBe("new-category");
     request.flush({ ...category, code: "new-category" });
     await vi.waitFor(() =>
-      expect(TestBed.inject(Router).url).toBe(`/admin/categories/${id}`),
+      expect(TestBed.inject(Router).url).toBe(`/admin/categories/${id}/edit`),
     );
     http
       .match((request) => request.url.startsWith("/api/v1/admin/categories"))
@@ -155,7 +181,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("preserves unseen existing category translation optional/null fields on PATCH", async () => {
-    await harness.navigateByUrl(`/admin/categories/${id}`);
+    await harness.navigateByUrl(`/admin/categories/${id}/edit`);
     http.expectOne(`/api/v1/admin/categories/${id}`).flush(category);
     listRequest("categories").flush(envelope([]));
     harness.detectChanges();
@@ -171,7 +197,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("loads all administrative parent pages including drafts and excludes self/descendants", async () => {
-    await harness.navigateByUrl(`/admin/categories/${id}`);
+    await harness.navigateByUrl(`/admin/categories/${id}/edit`);
     http.expectOne(`/api/v1/admin/categories/${id}`).flush(category);
     const page1 = listRequest("categories");
     expect(page1.request.params.has("published")).toBe(false);
@@ -203,7 +229,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("requires existing names and shows errors on their own translation tabs", async () => {
-    await harness.navigateByUrl(`/admin/categories/${id}`);
+    await harness.navigateByUrl(`/admin/categories/${id}/edit`);
     http.expectOne(`/api/v1/admin/categories/${id}`).flush(category);
     listRequest("categories").flush(envelope([]));
     harness.detectChanges();
@@ -238,13 +264,13 @@ describe("admin catalog DOM / HTTP contracts", () => {
     });
     request.flush(brand);
     await vi.waitFor(() =>
-      expect(TestBed.inject(Router).url).toBe(`/admin/brands/${id}`),
+      expect(TestBed.inject(Router).url).toBe(`/admin/brands/${id}/edit`),
     );
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
   });
 
   it("updates brand metadata without changing unseen locales or null logo", async () => {
-    await harness.navigateByUrl(`/admin/brands/${id}`);
+    await harness.navigateByUrl(`/admin/brands/${id}/edit`);
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
     harness.detectChanges();
     input("#name", "New brand");
@@ -257,7 +283,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("previews only local unsaved data and prevents unload while dirty", async () => {
-    await harness.navigateByUrl(`/admin/brands/${id}`);
+    await harness.navigateByUrl(`/admin/brands/${id}/edit`);
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
     harness.detectChanges();
     input("#translation-name-HY", "Local draft");
@@ -279,7 +305,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   ])(
     "shows safe actionable save errors for HTTP %s",
     async (status, message) => {
-      await harness.navigateByUrl(`/admin/brands/${id}`);
+      await harness.navigateByUrl(`/admin/brands/${id}/edit`);
       http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
       harness.detectChanges();
       input("#name", "Changed");
@@ -433,10 +459,10 @@ describe("admin catalog DOM / HTTP contracts", () => {
   it.each(["categories", "brands"])(
     "cancels stale %s details on reused editor route",
     async (resource) => {
-      await harness.navigateByUrl(`/admin/${resource}/${id}`);
+      await harness.navigateByUrl(`/admin/${resource}/${id}/edit`);
       const stale = http.expectOne(`/api/v1/admin/${resource}/${id}`);
       if (resource === "categories") listRequest(resource).flush(envelope([]));
-      await harness.navigateByUrl(`/admin/${resource}/${other}`);
+      await harness.navigateByUrl(`/admin/${resource}/${other}/edit`);
       expect(stale.cancelled).toBe(true);
       const current = http.expectOne(`/api/v1/admin/${resource}/${other}`);
       current.flush(
@@ -455,7 +481,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   it.each(["categories", "brands"])(
     "retries %s editor load and stops saves until persisted detail is loaded",
     async (resource) => {
-      await harness.navigateByUrl(`/admin/${resource}/${id}`);
+      await harness.navigateByUrl(`/admin/${resource}/${id}/edit`);
       http
         .expectOne(`/api/v1/admin/${resource}/${id}`)
         .flush({}, { status: 404, statusText: "Not Found" });
@@ -474,7 +500,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   );
 
   it("blocks category saving until all parent options load and offers a parent retry", async () => {
-    await harness.navigateByUrl(`/admin/categories/${id}`);
+    await harness.navigateByUrl(`/admin/categories/${id}/edit`);
     http.expectOne(`/api/v1/admin/categories/${id}`).flush(category);
     listRequest("categories").flush({}, { status: 500, statusText: "Error" });
     harness.detectChanges();
@@ -491,7 +517,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("validates category slug/code/order and translation SEO limits before transport", async () => {
-    await harness.navigateByUrl(`/admin/categories/${id}`);
+    await harness.navigateByUrl(`/admin/categories/${id}/edit`);
     http.expectOne(`/api/v1/admin/categories/${id}`).flush(category);
     listRequest("categories").flush(envelope([]));
     harness.detectChanges();
@@ -519,7 +545,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("rejects nonblank optional translation content without a required name", async () => {
-    await harness.navigateByUrl(`/admin/brands/${id}`);
+    await harness.navigateByUrl(`/admin/brands/${id}/edit`);
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
     harness.detectChanges();
     click("#translation-tab-RU");
@@ -531,7 +557,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("uses keyboard translation selection and traps deletion focus until cancellation", async () => {
-    await harness.navigateByUrl(`/admin/brands/${id}`);
+    await harness.navigateByUrl(`/admin/brands/${id}/edit`);
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
     harness.detectChanges();
     const tab = dom().querySelector<HTMLButtonElement>("#translation-tab-HY")!;
@@ -598,7 +624,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("keeps logo keys as text without injecting remote URLs or HTML in draft previews", async () => {
-    await harness.navigateByUrl(`/admin/brands/${id}`);
+    await harness.navigateByUrl(`/admin/brands/${id}/edit`);
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
     harness.detectChanges();
     input("#logoKey", "https://unsafe.example/logo.svg");
@@ -634,7 +660,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
   });
 
   it("provides associated inline feedback for an overlong logo key", async () => {
-    await harness.navigateByUrl(`/admin/brands/${id}`);
+    await harness.navigateByUrl(`/admin/brands/${id}/edit`);
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
     harness.detectChanges();
     input("#logoKey", "a".repeat(501));
@@ -656,11 +682,11 @@ describe("admin catalog DOM / HTTP contracts", () => {
     expect(size.selectedOptions[0].textContent?.trim()).toBe("7");
     const edit = dom().querySelector<HTMLAnchorElement>("td.actions a")!;
     expect(edit.getAttribute("href")).toBe(
-      `/admin/brands/${id}?q=acme&page=2&pageSize=7`,
+      `/admin/brands/${id}/edit?q=acme&page=2&pageSize=7`,
     );
     edit.click();
     await vi.waitFor(() =>
-      expect(TestBed.inject(Router).url).toContain(`/admin/brands/${id}`),
+      expect(TestBed.inject(Router).url).toContain(`/admin/brands/${id}/edit`),
     );
     http.expectOne(`/api/v1/admin/brands/${id}`).flush(brand);
     harness.detectChanges();
@@ -720,7 +746,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
                 },
               ],
             };
-      await harness.navigateByUrl(`/admin/${resource}/${id}`);
+      await harness.navigateByUrl(`/admin/${resource}/${id}/edit`);
       http.expectOne(`/api/v1/admin/${resource}/${id}`).flush(first);
       if (resource === "categories") listRequest(resource).flush(envelope([]));
       harness.detectChanges();
@@ -730,7 +756,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
       expect(oldPatch.request.method).toBe("PATCH");
       const discard = vi.spyOn(window, "confirm").mockReturnValue(true);
       try {
-        await harness.navigateByUrl(`/admin/${resource}/${other}`);
+        await harness.navigateByUrl(`/admin/${resource}/${other}/edit`);
         expect(discard).toHaveBeenCalledTimes(1);
         http.expectOne(`/api/v1/admin/${resource}/${other}`).flush(second);
         if (resource === "categories")
@@ -740,7 +766,9 @@ describe("admin catalog DOM / HTTP contracts", () => {
         expect(oldPatch.cancelled).toBe(false);
         oldPatch.flush({ ...first, slug: "entity-a-edit" });
         harness.detectChanges();
-        expect(TestBed.inject(Router).url).toBe(`/admin/${resource}/${other}`);
+        expect(TestBed.inject(Router).url).toBe(
+          `/admin/${resource}/${other}/edit`,
+        );
         expect(dom().querySelector<HTMLInputElement>("#slug")!.value).toBe(
           "entity-b",
         );
@@ -789,7 +817,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
         slug: "entity-b",
         translations: [{ locale: "HY", name: "Entity B", description: null }],
       };
-      await harness.navigateByUrl(`/admin/${resource}/${id}`);
+      await harness.navigateByUrl(`/admin/${resource}/${id}/edit`);
       http.expectOne(`/api/v1/admin/${resource}/${id}`).flush(first);
       if (resource === "categories") listRequest(resource).flush(envelope([]));
       harness.detectChanges();
@@ -798,7 +826,7 @@ describe("admin catalog DOM / HTTP contracts", () => {
       const oldPatch = http.expectOne(`/api/v1/admin/${resource}/${id}`);
       const discard = vi.spyOn(window, "confirm").mockReturnValue(true);
       try {
-        await harness.navigateByUrl(`/admin/${resource}/${other}`);
+        await harness.navigateByUrl(`/admin/${resource}/${other}/edit`);
         expect(discard).toHaveBeenCalledTimes(1);
         http.expectOne(`/api/v1/admin/${resource}/${other}`).flush(second);
         if (resource === "categories")

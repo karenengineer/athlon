@@ -174,10 +174,13 @@ export class CategoryEditor implements AdminDirtyForm {
         this.saving.set(false);
         this.saved.set(true);
         if (create)
-          void this.router.navigate(["/admin/categories", category.id], {
-            replaceUrl: true,
-            queryParamsHandling: "preserve",
-          });
+          void this.router.navigate(
+            ["/admin/categories", category.id, "edit"],
+            {
+              replaceUrl: true,
+              queryParamsHandling: "preserve",
+            },
+          );
       },
       error: (error) => {
         if (generation !== this.editorGeneration) return;

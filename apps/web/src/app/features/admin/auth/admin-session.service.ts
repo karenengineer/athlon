@@ -109,7 +109,7 @@ export class AdminSessionService {
     if (this.loggingOut || this.loggedOut) return this.interrupted();
     if (!this.refreshRequest) {
       const epoch = this.generation;
-      this.refreshRequest = defer(() => {
+      const request = defer(() => {
         if (!this.canRetry(epoch)) return this.interrupted();
         return this.trackCookieOperation(
           this.configureCsrf().pipe(
@@ -132,9 +132,12 @@ export class AdminSessionService {
           ),
         );
       }).pipe(
-        finalize(() => (this.refreshRequest = undefined)),
+        finalize(() => {
+          if (this.refreshRequest === request) this.refreshRequest = undefined;
+        }),
         shareReplay({ bufferSize: 1, refCount: false }),
       );
+      this.refreshRequest = request;
     }
     return this.refreshRequest;
   }
@@ -145,6 +148,7 @@ export class AdminSessionService {
         this.loggingOut = true;
         this.generation++;
         this.sessionRequest = undefined;
+        this.refreshRequest = undefined;
         // Wait for real responses (including Set-Cookie), not only frontend taps.
         // refCount:false keeps started operations alive after caller cancellation.
         const pending = [...this.cookieOperations].map((operation) =>

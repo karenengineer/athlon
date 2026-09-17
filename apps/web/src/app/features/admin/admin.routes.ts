@@ -51,7 +51,7 @@ export const adminRoutes: Routes = [
               ),
           },
           {
-            path: "categories/:id",
+            path: "categories/:id/edit",
             canDeactivate: [adminDirtyFormGuard],
             loadComponent: () =>
               import("./categories/category-editor").then(
@@ -74,7 +74,7 @@ export const adminRoutes: Routes = [
               ),
           },
           {
-            path: "brands/:id",
+            path: "brands/:id/edit",
             canDeactivate: [adminDirtyFormGuard],
             loadComponent: () =>
               import("./brands/brand-editor").then(

@@ -160,7 +160,9 @@ with the earlier release, restore the matching database backup before restarting
 ## Catalog administration
 
 Open `/admin/login`, then `/admin/products`, `/admin/categories`, or `/admin/brands`.
-Product create/edit URLs are `/admin/products/new` and `/admin/products/:id/edit`.
+Create/edit URLs use `/admin/products/new` and `/admin/products/:id/edit`,
+`/admin/categories/new` and `/admin/categories/:id/edit`, and `/admin/brands/new`
+and `/admin/brands/:id/edit`.
 Administration is lazy-loaded, client-rendered and marked `noindex, nofollow`; private
 catalog/session data is not rendered into shared SSR HTML. Use existing administrator
 accounts: this UI does not create accounts or change passwords.
@@ -183,13 +185,16 @@ Images support localized alt editing, a single primary flag, ordering and named
 deletion. Ownership/duplicates are checked before transactional order/primary writes.
 Individual image deletion attempts removal of its exact named variants. Whole-product
 deletion currently cascades image metadata only: orphaned variant-file cleanup is
-deferred to an explicitly reviewed maintenance operation. Never delete the upload
-directory wholesale.
+deferred to a separate operational follow-up: review exact-key cleanup/outbox or
+orphan reconciliation with dry-run evidence and live-reference safeguards before
+authorizing any cleanup. No production cleanup is part of this implementation.
+Never delete the upload directory wholesale.
 
 Verification commands:
 
 ```bash
-pnpm verify
+pnpm verify # includes built production-shaped SSR requests after the build
+pnpm test:ssr # requires a current web production build; loopback fixtures only
 ATHLON_PG_INTEGRATION=1 pnpm --filter @athlon/api test:e2e --testPathPatterns=catalog-postgres.e2e-spec
 ```
 
@@ -200,9 +205,19 @@ removes only its own temporary upload directory. Separate fixture E2E tests deco
 image bytes and cover authorization/CSRF, corrupt/mismatched/oversized content and
 foreign image IDs. Local headless Chrome acceptance at 375px and 1440px covers login,
 authenticated product list/editor, preview and media layout using temporary profiles
-and in-memory fixtures, not production credentials. SSR checks require an explicit
-allowed-host configuration; use localhost only for local QA and exact trusted domain
-names for deployment, never a wildcard.
+and in-memory fixtures, not production credentials. Production SSR allows exactly
+`athlonsport.am`, `www.athlonsport.am`, and `127.0.0.1` (the internal Compose
+healthcheck only); there are no wildcard hosts. The web port is not published:
+Caddy is the public request boundary and replaces incoming forwarded host/proto/for
+values. Angular trusts only those three headers, not forwarded ports/prefixes.
+The web healthcheck requests HY and requires actual SSR/home markers, so HTTP 200
+CSR fallback is unhealthy; it is not proof of API/catalog content or public TLS.
+`pnpm test:ssr` independently verifies visible localized product content using the
+production manifest, Caddy-style headers, untrusted-host/protocol rejection and
+admin client/noindex/zero-API behavior. No production environment overrides are
+needed. `pnpm dev` continues to use Angular's local dev-server host handling; for
+a standalone built-server localhost QA session, explicitly use
+`NG_ALLOWED_HOSTS=localhost pnpm --filter @athlon/web serve:ssr:web` (QA only).
 
 ## Scope
 

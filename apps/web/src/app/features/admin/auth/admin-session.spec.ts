@@ -409,6 +409,31 @@ describe("admin cookie sessions", () => {
     expect(session.user()).toBeNull();
   });
 
+  it("retires never-subscribed refresh without poisoning or clearing fresh singleflight work", async () => {
+    const retired = session.refresh();
+    const logout = firstValueFrom(session.logout());
+    config();
+    http
+      .expectOne("/api/v1/admin/auth/logout")
+      .flush(null, { status: 204, statusText: "No Content" });
+    await logout;
+    const login = firstValueFrom(session.login(user.email, "password"));
+    http.expectOne("/api/v1/admin/auth/login").flush({ user });
+    await login;
+    const fresh = firstValueFrom(session.refresh()).catch(() => "blocked");
+    const pending = http.match("/api/v1/admin/auth/refresh");
+    expect(pending).toHaveLength(1);
+    expect(await firstValueFrom(retired).catch(() => "retired")).toBe(
+      "retired",
+    );
+    const concurrent = firstValueFrom(session.refresh());
+    http.expectNone("/api/v1/admin/auth/refresh");
+    pending[0].flush({ user });
+    expect(await fresh).toBeUndefined();
+    await concurrent;
+    expect(session.user()).toEqual(user);
+  });
+
   it("does not start auth observables prepared before logout when subscribed after it completes", async () => {
     const staleLogin = session.login(user.email, "password");
     const staleEnsure = session.ensureSession();
