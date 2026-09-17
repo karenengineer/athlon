@@ -22,7 +22,7 @@
     "typecheck": "pnpm --filter @athlon/api exec tsc -p tsconfig.json --noEmit && pnpm --filter @athlon/web exec tsc -p tsconfig.app.json --noEmit",
     "test:ssr": "node scripts/test-production-ssr.mjs",
     "test:workflows": "node --test scripts/tests/workflows.test.mjs",
-    "test:ops": "bash -n scripts/*.sh scripts/tests/*.sh scripts/tests/fixtures/* && bash scripts/tests/deploy-ci.test.sh && bash scripts/tests/notify-telegram.test.sh && pnpm test:workflows",
+    "test:ops": "for file in scripts/*.sh scripts/tests/*.sh scripts/tests/fixtures/*; do bash -n \"$file\" || exit $?; done && bash scripts/tests/deploy-ci.test.sh && bash scripts/tests/notify-telegram.test.sh && pnpm test:workflows",
     "verify": "pnpm format:check && pnpm prisma:validate && pnpm prisma:generate && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build && pnpm test:ssr"
   },
   "devDependencies": {

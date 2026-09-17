@@ -7,6 +7,7 @@ import {
   statSync,
   readdirSync,
   writeFileSync,
+  mkdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -31,8 +32,11 @@ const actionPins = new Set([
 
 // These boundary tests catch privilege/trigger drift, bypassed gates, wrong
 // revision and notification masking. They parse real YAML, not a custom grammar.
-test("PR checks are secret-free and the reusable checks run every release gate", () => {
-  const ci = workflow("ci");
+function assertCiContract(ci) {
+  assert.equal(
+    ci.on.workflow_call.outputs.revision.value,
+    "${{ jobs.verify.outputs.revision }}",
+  );
   assert.deepEqual(Object.keys(ci.on).sort(), [
     "pull_request",
     "workflow_call",
@@ -45,9 +49,29 @@ test("PR checks are secret-free and the reusable checks run every release gate",
   assert(job["timeout-minutes"] > 0 && job["timeout-minutes"] <= 30);
   const steps = job.steps;
   const run = steps.filter((step) => step.run).map((step) => step.run);
-  assert(run.includes("pnpm install --frozen-lockfile"));
-  assert(run.includes("pnpm verify"));
-  assert(run.includes("pnpm test:ops"));
+  const requiredCommands = [
+    "pnpm install --frozen-lockfile",
+    "pnpm verify",
+    "pnpm test:ops",
+    "bash scripts/tests/native-flock.test.sh",
+    "pnpm --filter @athlon/api test:e2e --testPathPatterns=catalog-postgres.e2e-spec",
+  ];
+  assert.deepEqual(
+    run.filter((command) => requiredCommands.includes(command)),
+    requiredCommands,
+  );
+  for (const step of steps.filter((step) =>
+    requiredCommands.includes(step.run),
+  )) {
+    assert(
+      !Object.hasOwn(step, "if"),
+      `required gate is conditional: ${step.run}`,
+    );
+    assert(
+      !step["continue-on-error"],
+      `required gate allows failure: ${step.run}`,
+    );
+  }
   const postgres = steps.find(
     (step) => step.env?.ATHLON_PG_INTEGRATION === "1",
   );
@@ -66,6 +90,70 @@ test("PR checks are secret-free and the reusable checks run every release gate",
     "${{ github.sha }}",
   );
   assert.equal(job.outputs.revision, "${{ steps.revision.outputs.sha }}");
+}
+
+test("PR checks are secret-free and the reusable checks run every release gate", () => {
+  assertCiContract(workflow("ci"));
+});
+
+test("CI contract rejects broken reusable output, reordered gates and conditional bypasses", () => {
+  const ci = workflow("ci");
+  const changedOutput = structuredClone(ci);
+  changedOutput.on.workflow_call.outputs.revision.value =
+    "${{ jobs.other.outputs.revision }}";
+  assert.throws(
+    () => assertCiContract(changedOutput),
+    "broken reusable output accepted",
+  );
+
+  const reordered = structuredClone(ci);
+  [reordered.jobs.verify.steps[5], reordered.jobs.verify.steps[8]] = [
+    reordered.jobs.verify.steps[8],
+    reordered.jobs.verify.steps[5],
+  ];
+  assert.throws(() => assertCiContract(reordered), "reordered gates accepted");
+
+  for (const index of [4, 5, 6, 7, 8]) {
+    const bypassed = structuredClone(ci);
+    bypassed.jobs.verify.steps[index].if = "false";
+    assert.throws(
+      () => assertCiContract(bypassed),
+      `conditional gate ${index} accepted`,
+    );
+  }
+});
+
+test("operations syntax gate rejects malformed later files in every matched group", () => {
+  const command = JSON.parse(
+    readFileSync(new URL("package.json", root), "utf8"),
+  ).scripts["test:ops"].split(" && ")[0];
+  const fixture = mkdtempSync(join(tmpdir(), "athlon-syntax-test-"));
+  const paths = [
+    "scripts/a.sh",
+    "scripts/z.sh",
+    "scripts/tests/z.sh",
+    "scripts/tests/fixtures/z",
+  ];
+  try {
+    mkdirSync(join(fixture, "scripts/tests/fixtures"), { recursive: true });
+    const execute = () =>
+      spawnSync("bash", ["-c", command], {
+        cwd: fixture,
+        encoding: "utf8",
+        timeout: 5000,
+      });
+    for (const path of paths) writeFileSync(join(fixture, path), "true\n");
+    assert.equal(execute().status, 0);
+    for (const path of paths.slice(1)) {
+      writeFileSync(join(fixture, path), "if\n");
+      const result = execute();
+      assert.equal(result.status, 2, `later malformed file accepted: ${path}`);
+      assert(result.stderr.includes(path));
+      writeFileSync(join(fixture, path), "true\n");
+    }
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
 
 test("main-only checked release uses the production environment and serialization", () => {
