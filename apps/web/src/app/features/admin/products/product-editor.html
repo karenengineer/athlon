@@ -1,0 +1,164 @@
+<div class="heading">
+  <h1>
+    {{ i18n.translate('products') }} — {{ i18n.translate(id ? 'edit' : 'create')
+    }}
+  </h1>
+  <a routerLink="/admin/products" queryParamsHandling="preserve"
+    >{{ i18n.translate('back') }}</a
+  >
+</div>
+@if (loading()) {
+<p role="status">{{ i18n.translate('loading') }}</p>
+} @if (error(); as key) {
+<p role="alert">
+  {{ i18n.translate(key) }} @if (key === 'error') {<button
+    type="button"
+    data-retry
+    (click)="load()"
+  >
+    {{ i18n.translate('retry') }}</button
+  >}
+</p>
+} @if (saved()) {
+<p role="status">{{ i18n.translate('saved') }}</p>
+} @if (!loading() && error() !== 'error') {
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <fieldset [disabled]="saving()">
+    <label for="sku">{{ i18n.translate('sku') }}</label
+    ><input
+      id="sku"
+      formControlName="sku"
+      maxlength="100"
+      [attr.aria-invalid]="form.controls.sku.invalid"
+      aria-describedby="product-errors"
+    />
+    <label for="slug">{{ i18n.translate('slug') }}</label
+    ><input
+      id="slug"
+      formControlName="slug"
+      maxlength="180"
+      [attr.aria-invalid]="form.controls.slug.invalid"
+      aria-describedby="product-errors"
+    />
+    <label for="categoryId">{{ i18n.translate('category') }}</label
+    ><select
+      id="categoryId"
+      formControlName="categoryId"
+      [attr.aria-invalid]="form.controls.categoryId.invalid"
+      aria-describedby="product-errors"
+    >
+      <option value="">{{ i18n.translate('none') }}</option>
+      @for (category of categories(); track category.id) {
+      <option [value]="category.id">{{ optionName(category) }}</option>
+      }
+    </select>
+    <label for="brandId">{{ i18n.translate('brand') }}</label
+    ><select id="brandId" formControlName="brandId">
+      <option value="">{{ i18n.translate('none') }}</option>
+      @for (brand of brands(); track brand.id) {
+      <option [value]="brand.id">{{ optionName(brand) }}</option>
+      }
+    </select>
+    @if (optionsLoading()) {
+    <p role="status">{{ i18n.translate('loading') }}</p>
+    } @if (optionsError()) {
+    <p role="alert">
+      {{ i18n.translate('optionsError') }}
+      <button type="button" (click)="loadOptions()">
+        {{ i18n.translate('retry') }}
+      </button>
+    </p>
+    } <label for="price">{{ i18n.translate('price') }}</label
+    ><input
+      id="price"
+      type="number"
+      min="0"
+      max="9999999999.99"
+      step="0.01"
+      formControlName="price"
+      [attr.aria-invalid]="form.controls.price.invalid"
+      aria-describedby="product-errors"
+    />
+    <label for="availability">{{ i18n.translate('availability') }}</label
+    ><select id="availability" formControlName="availability">
+      @for (value of availabilities; track value) {
+      <option [value]="value">{{ i18n.translate(value) }}</option>
+      }
+    </select>
+    <label for="characteristics">{{ i18n.translate('characteristics') }}</label
+    ><textarea
+      id="characteristics"
+      formControlName="characteristics"
+      [attr.aria-invalid]="form.controls.characteristics.invalid"
+      aria-describedby="product-errors"
+    ></textarea>
+    <label for="displayOrder">{{ i18n.translate('displayOrder') }}</label
+    ><input
+      id="displayOrder"
+      type="number"
+      step="1"
+      formControlName="displayOrder"
+      [attr.aria-invalid]="form.controls.displayOrder.invalid"
+      aria-describedby="product-errors"
+    />
+    <label class="check" for="featured"
+      ><input id="featured" type="checkbox" formControlName="featured" />{{
+      i18n.translate('featured') }}</label
+    >
+    <label class="check" for="isNew"
+      ><input id="isNew" type="checkbox" formControlName="isNew" />{{
+      i18n.translate('isNew') }}</label
+    >
+    <label class="check" for="published"
+      ><input id="published" type="checkbox" formControlName="published" />{{
+      i18n.translate('published') }}</label
+    >
+    @if (form.invalid) {
+    <p id="product-errors" class="field-error">
+      {{ i18n.translate('productValidation') }}
+    </p>
+    }
+    <app-admin-translation-tabs
+      [forms]="form.controls.translations"
+      [seo]="true"
+      [product]="true"
+    />
+    <div class="form-actions">
+      <button
+        type="submit"
+        data-product-save
+        [disabled]="form.invalid || saving() || optionsLoading() || optionsError() || mediaBusy()"
+      >
+        {{ i18n.translate(saving() ? 'loading' : 'save') }}</button
+      ><button
+        type="button"
+        data-preview
+        [disabled]="form.invalid"
+        (click)="preview.set(!preview())"
+      >
+        {{ i18n.translate('preview') }}</button
+      ><a routerLink="/admin/products" queryParamsHandling="preserve"
+        >{{ i18n.translate('cancel') }}</a
+      >
+    </div>
+  </fieldset>
+</form>
+@if (persisted(); as product) { @if (product.published) {
+<p>
+  <a
+    data-public-product
+    [routerLink]="['/', i18n.locale(), 'product', product.slug]"
+    >{{ i18n.translate('publicProduct') }}</a
+  >
+</p>
+} } @if (preview() && form.valid) {<app-admin-product-preview
+  [product]="draft()"
+  [images]="images()"
+/>}
+<app-admin-product-images
+  [productId]="id"
+  [images]="images()"
+  [disabled]="saving()"
+  (imagesChange)="images.set($event)"
+/>
+}

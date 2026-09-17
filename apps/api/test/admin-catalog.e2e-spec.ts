@@ -114,6 +114,57 @@ describe("Admin catalog", () => {
 
   const cookies = () => [`athlon_access=${accessToken}`, `athlon_csrf=${csrf}`];
 
+  it("maps a real adapter commit serialization failure to controlled conflict", async () => {
+    prisma.$transaction.mockRejectedValueOnce(
+      Object.assign(new Error("TransactionWriteConflict"), {
+        name: "DriverAdapterError",
+        cause: { kind: "TransactionWriteConflict", originalCode: "40001" },
+      }),
+    );
+    await request(app.getHttpServer())
+      .delete(`/api/v1/admin/brands/${brandId}`)
+      .set("Cookie", cookies())
+      .set("x-csrf-token", csrf)
+      .expect(409);
+  });
+
+  it.each(["post", "patch"] as const)(
+    "maps duplicate product %s to safe 409",
+    async (method) => {
+      const delegate =
+        method === "post" ? prisma.product.create : prisma.product.update;
+      delegate.mockRejectedValueOnce(
+        Object.assign(new Error("private product constraint"), {
+          code: "P2002",
+        }),
+      );
+      const response = await request(app.getHttpServer())
+        [method](`/api/v1/admin/products${method === "patch" ? "/p1" : ""}`)
+        .set("Cookie", cookies())
+        .set("x-csrf-token", csrf)
+        .send({
+          sku: "DUPLICATE",
+          slug: "duplicate",
+          categoryId,
+          price: null,
+          availability: "ON_REQUEST",
+          characteristics: {},
+          featured: false,
+          isNew: false,
+          published: false,
+          displayOrder: 0,
+          translations: [{ locale: "HY", name: "Duplicate" }],
+        })
+        .expect(409);
+      expect(response.body.message).toBe(
+        "A product with this SKU or slug already exists",
+      );
+      expect(JSON.stringify(response.body)).not.toContain(
+        "private product constraint",
+      );
+    },
+  );
+
   it.each([
     ["categories", "post"],
     ["categories", "patch"],

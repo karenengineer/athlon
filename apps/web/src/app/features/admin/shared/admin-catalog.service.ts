@@ -8,6 +8,13 @@ import {
   AdminCategoryInput,
   AdminList,
   AdminListQuery,
+  AdminProduct,
+  AdminProductInput,
+  AdminProductListItem,
+  AdminProductQuery,
+  AdminProductWrite,
+  AdminImage,
+  AdminImageInput,
 } from "./admin-api.types";
 
 @Injectable({ providedIn: "root" })
@@ -55,6 +62,78 @@ export class AdminCatalogService {
   deleteBrand(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/brands/${id}`);
   }
+  listProducts(
+    query: AdminProductQuery = {},
+  ): Observable<AdminList<AdminProductListItem>> {
+    return this.list("products", query);
+  }
+  getProduct(id: string): Observable<AdminProduct> {
+    return this.http.get<AdminProduct>(`${this.base}/products/${id}`);
+  }
+  createProduct(input: AdminProductInput): Observable<AdminProductWrite> {
+    return this.http.post<AdminProductWrite>(`${this.base}/products`, input);
+  }
+  updateProduct(
+    id: string,
+    input: Partial<AdminProductInput>,
+  ): Observable<AdminProductWrite> {
+    return this.http.patch<AdminProductWrite>(
+      `${this.base}/products/${id}`,
+      input,
+    );
+  }
+  deleteProduct(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/products/${id}`);
+  }
+  uploadImage(
+    productId: string,
+    file: File,
+    fields: AdminImageInput,
+  ): Observable<AdminImage> {
+    const body = new FormData();
+    body.append("file", file);
+    for (const [key, value] of Object.entries(fields))
+      if (value !== undefined) body.append(key, String(value));
+    return this.http.post<AdminImage>(
+      `${this.base}/products/${productId}/images`,
+      body,
+    );
+  }
+  orderImages(
+    productId: string,
+    images: { id: string; position: number }[],
+  ): Observable<void> {
+    return this.http.patch<void>(
+      `${this.base}/products/${productId}/images/order`,
+      { images },
+    );
+  }
+  updateImage(
+    productId: string,
+    imageId: string,
+    input: Partial<AdminImageInput>,
+  ): Observable<AdminImage> {
+    return this.http.patch<AdminImage>(
+      `${this.base}/products/${productId}/images/${imageId}`,
+      input,
+    );
+  }
+  deleteImage(productId: string, imageId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.base}/products/${productId}/images/${imageId}`,
+    );
+  }
+  allBrands(page = 1): Observable<AdminBrand[]> {
+    return this.listBrands({ page, pageSize: 100, sort: "order" }).pipe(
+      switchMap((list) =>
+        list.meta.page < list.meta.totalPages
+          ? this.allBrands(page + 1).pipe(
+              map((rest) => [...list.items, ...rest]),
+            )
+          : of(list.items),
+      ),
+    );
+  }
   // Admin options deliberately include drafts and traverse every server page.
   allCategories(page = 1): Observable<AdminCategory[]> {
     return this.listCategories({ page, pageSize: 100, sort: "order" }).pipe(
@@ -68,8 +147,8 @@ export class AdminCatalogService {
     );
   }
   private list<T>(
-    resource: "categories" | "brands",
-    query: AdminListQuery,
+    resource: "categories" | "brands" | "products",
+    query: AdminListQuery | AdminProductQuery,
   ): Observable<AdminList<T>> {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(query))

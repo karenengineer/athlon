@@ -70,11 +70,23 @@ export function adminNamePage(
 }
 
 export function rethrowCatalogConflict(error: unknown): never {
+  // adapter-pg can surface a commit-time serialization failure directly,
+  // rather than the usual Prisma P2034. Restrict mapping to its exact shape.
+  const adapterConflict =
+    error instanceof Error &&
+    error.name === "DriverAdapterError" &&
+    error.cause !== null &&
+    typeof error.cause === "object" &&
+    "kind" in error.cause &&
+    error.cause.kind === "TransactionWriteConflict" &&
+    "originalCode" in error.cause &&
+    ["40001", "40P01"].includes(String(error.cause.originalCode));
   if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    ["P2003", "P2034"].includes(String(error.code))
+    adapterConflict ||
+    (error &&
+      typeof error === "object" &&
+      "code" in error &&
+      ["P2003", "P2034"].includes(String(error.code)))
   ) {
     throw new ConflictException(
       "Catalog dependencies or concurrent changes prevent this operation",

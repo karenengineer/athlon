@@ -1,0 +1,122 @@
+<section class="panel image-manager">
+  <h2>{{ i18n.translate('images') }}</h2>
+  @if (!productId) {
+  <p>{{ i18n.translate('saveBeforeImages') }}</p>
+  } @else { @if (error(); as key) {
+  <p role="alert">{{ i18n.translate(key) }}</p>
+  } @if (busy()) {
+  <p role="status">{{ i18n.translate('loading') }}</p>
+  }
+  <form [formGroup]="uploadForm" (ngSubmit)="upload()">
+    <fieldset [disabled]="busy() || disabled">
+      <label for="image-file">{{ i18n.translate('imageFile') }}</label
+      ><input
+        #fileInput
+        id="image-file"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        (change)="chooseFile($event)"
+        aria-describedby="file-hint"
+      />
+      <p id="file-hint">{{ i18n.translate('imageValidation') }}</p>
+      @for (locale of ['Ru','Hy','En']; track locale) {<label
+        [for]="'upload-alt' + locale"
+        >{{ i18n.translate('altText') }} ({{ locale.toUpperCase() }})</label
+      ><input
+        [id]="'upload-alt' + locale"
+        [formControlName]="'alt' + locale"
+        maxlength="250"
+        [attr.aria-invalid]="uploadForm.get('alt' + locale)?.invalid"
+        aria-describedby="upload-alt-error"
+      />} @if (uploadForm.invalid) {
+      <p id="upload-alt-error" class="field-error">
+        {{ i18n.translate('altValidation') }}
+      </p>
+      }
+      <label class="check" for="upload-primary"
+        ><input
+          id="upload-primary"
+          type="checkbox"
+          formControlName="primary"
+        />{{ i18n.translate('primary') }}</label
+      >
+      <button
+        type="submit"
+        data-upload
+        [disabled]="!file() || uploadForm.invalid || error() === 'imageValidation'"
+      >
+        {{ i18n.translate('upload') }}
+      </button>
+    </fieldset>
+  </form>
+  @for (image of images; track image.id; let index = $index) {
+  <article
+    [attr.data-image-row]="image.id"
+    [attr.data-primary]="image.primary"
+    class="image-row"
+  >
+    @if (imageUrl(image.cardKey); as url) {<img
+      [src]="url"
+      [alt]="alt(image)"
+    />}
+    <form [formGroup]="forms.get(image.id)!" (ngSubmit)="save(image)">
+      <fieldset [disabled]="busy() || disabled">
+        @for (locale of ['Ru','Hy','En']; track locale) {<label
+          [for]="'image-alt' + locale + '-' + image.id"
+          >{{ i18n.translate('altText') }} ({{ locale.toUpperCase() }})</label
+        ><input
+          [id]="'image-alt' + locale + '-' + image.id"
+          [formControlName]="'alt' + locale"
+          maxlength="250"
+          [attr.aria-invalid]="forms.get(image.id)!.get('alt' + locale)?.invalid"
+          [attr.aria-describedby]="'image-alt-error-' + image.id"
+        />} @if (forms.get(image.id)!.invalid) {
+        <p [id]="'image-alt-error-' + image.id" class="field-error">
+          {{ i18n.translate('altValidation') }}
+        </p>
+        }
+        <label class="check" [for]="'image-primary-' + image.id"
+          ><input
+            [id]="'image-primary-' + image.id"
+            type="checkbox"
+            formControlName="primary"
+          />{{ i18n.translate('primary') }}</label
+        >
+        <div class="form-actions">
+          <button
+            type="submit"
+            data-image-save
+            [disabled]="forms.get(image.id)!.invalid"
+          >
+            {{ i18n.translate('save') }}</button
+          ><button
+            type="button"
+            data-image-up
+            [disabled]="index === 0"
+            (click)="move(image, -1)"
+          >
+            {{ i18n.translate('moveUp') }}</button
+          ><button
+            type="button"
+            data-image-down
+            [disabled]="index === images.length - 1"
+            (click)="move(image, 1)"
+          >
+            {{ i18n.translate('moveDown') }}</button
+          ><button
+            type="button"
+            data-image-delete
+            [attr.aria-label]="i18n.translate('delete') + ': ' + alt(image)"
+            (click)="pendingDelete.set(image)"
+          >
+            {{ i18n.translate('delete') }}
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  </article>
+  } @if (pendingDelete(); as image) {<app-admin-delete-confirmation
+    [name]="alt(image)"
+    (decision)="confirmDelete($event)"
+  />} }
+</section>

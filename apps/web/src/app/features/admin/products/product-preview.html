@@ -1,0 +1,20 @@
+<section class="preview" data-draft-preview>
+  <h2>{{ i18n.translate('localPreview') }}</h2>
+  <div class="gallery">
+    @for (image of images; track image.id) { @if (imageUrl(image.detailKey); as
+    url) {<img [src]="url" [alt]="alt(image)" /> } }
+  </div>
+  <p>{{ product.sku }} / {{ product.slug }}</p>
+  <p>
+    {{ product.price === null ? i18n.translate('requestPrice') : product.price +
+    ' AMD' }} — {{ i18n.translate(product.availability) }}
+  </p>
+  @for (translation of product.translations; track translation.locale) {
+  <article>
+    <h3>{{ translation.locale }} — {{ translation.name }}</h3>
+    <p>{{ translation.shortDescription }}</p>
+    <p class="description">{{ translation.description }}</p>
+  </article>
+  }
+  <pre>{{ specifications() }}</pre>
+</section>
