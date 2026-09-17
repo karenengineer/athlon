@@ -131,6 +131,43 @@ separately, and a build/runtime configuration error is a failed release. Staging
 `/opt/athlon/.deploy-staging`, backups and uniquely tagged rollback images accumulate;
 retention and removal of individually reviewed obsolete resources are operator-managed.
 
+### CI credentials and Telegram notifications
+
+Store these in the GitHub **production environment secrets**, entered privately through
+repository Settings, not in chat, commits, shell history, `.env` or `.env.example`:
+
+- `DEPLOY_SSH_PRIVATE_KEY`: a dedicated deployment key, not the general-purpose personal Lightsail key.
+- `DEPLOY_KNOWN_HOSTS`: host-key contents verified through a trusted connection; the workflow must materialize a private file for `ATHLON_KNOWN_HOSTS`.
+- `TELEGRAM_BOT_TOKEN`: the Telegram bot's private token.
+- `TELEGRAM_CHAT_ID`: the intended numeric chat ID (including the minus sign for a group).
+
+Production environment variables are `DEPLOY_HOST` and `DEPLOY_USER`. Do not expose
+these secrets to pull-request code or accept tokens/chat IDs from workflow inputs.
+Configuring secrets, provisioning keys and activating automatic deployment are separate
+authorized setup operations; adding the scripts alone does not enable deployment.
+
+`bash scripts/notify-telegram.sh` uses Node.js 22 and curl. It requires the two Telegram
+secrets plus trusted workflow metadata: `DEPLOY_STATUS` (`started`, `success` or
+`failure`), `DEPLOY_COMMIT` (full 40-character hexadecimal SHA), and `DEPLOY_RUN_URL`
+(`https://github.com/<owner>/<repo>/actions/runs/<id>`, optionally `/attempts/<id>`).
+Optional `DEPLOY_COMMIT_SUBJECT` becomes a plain-text single line, stripped of controls
+and limited to 160 Unicode characters. The message identifies ATHLON / production,
+status, a seven-character commit, subject and run URL; it has no Telegram parse mode.
+Pass metadata through environment variables, never interpolated shell source.
+
+The notifier sends the token-bearing URL through curl configuration on stdin, keeps
+request/response files private and removes them on exit. It permits trusted HTTPS only,
+uses 5-second connection and 15-second total timeouts with a 64 KiB response limit,
+and requires both a successful HTTP status and JSON `ok: true`. Missing configuration
+or unconfirmed delivery exits nonzero with a sanitized warning, never a raw API body
+or curl error. The workflow must make notification steps nonblocking while preserving
+the actual deployment result: a failed message must neither hide a failed deployment
+nor mark a successful deployment as failed. Delivery cannot be tested for real until
+the bot/chat and production secrets are configured privately.
+
+Run isolated notification behavior tests with `bash scripts/tests/notify-telegram.test.sh`;
+all curl requests are stubbed and use fixture credentials, never real Telegram.
+
 ### Backups and restore
 
 Create a timestamped, compressed PostgreSQL backup on the host before migrations or
