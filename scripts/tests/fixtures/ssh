@@ -17,5 +17,7 @@ for arg in "$@"; do args+=("${arg/\/opt\/athlon/$TEST_FIXTURE/remote}"); done
 if grep -q '^mktemp -d' "$program"; then
   bash "$program" | sed "s|$TEST_FIXTURE/remote|/opt/athlon|g"
 else
-  bash "$program" "${args[@]}"
+  # Match SSH bash -s: release source and subprocess fd 0 share a pipe. Executing
+  # a filename instead would conceal accidental consumers of remaining commands.
+  cat "$program" | bash -s -- "${args[@]}"
 fi

@@ -155,7 +155,9 @@ mv -- "$manifest" .previous-images
 # Compose project/env and persistent volumes, never a staging project.
 docker compose --env-file /opt/athlon/.env -f "$stage/infrastructure/docker-compose.production.yml" build api web
 "${COMPOSE[@]}" up -d --wait --wait-timeout 120 postgres
-bash scripts/backup-production.sh
+# -T disables a TTY, not stdin forwarding: do not let backup's Docker exec
+# consume the remaining SSH bash -s release program.
+bash scripts/backup-production.sh </dev/null
 "${COMPOSE[@]}" run --rm --interactive=false migrate
 if [[ "$seed_mode" == 1 ]]; then "${COMPOSE[@]}" run --rm --no-deps --interactive=false seed; fi
 for service in api web caddy; do

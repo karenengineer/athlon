@@ -46,6 +46,10 @@ printf 'old-revision\n' > "$fixture/remote/REVISION"
 reset_events() { : > "$fixture/events"; }
 reset_events
 bash "$ROOT/scripts/deploy-production.sh" > "$fixture/output" 2>&1 || { cat "$fixture/output"; fail 'deploy success'; }
+if grep -q backup-consumed-release-stdin "$fixture/events"; then fail 'backup consumed remaining SSH release commands'; fi
+for sentinel in 'interactive=false migrate' 'wait-timeout 120 api' 'wait-timeout 120 web' 'wait-timeout 120 caddy' 'health/live' revision-write; do
+  grep -q "$sentinel" "$fixture/events" || fail "stdin-executed release skipped $sentinel"
+done
 cmp "$fixture/remote/.env" "$fixture/env-before" || fail 'server env changed'
 [[ "$(cat "$fixture/remote/REVISION")" == "$ATHLON_DEPLOY_REVISION" ]] || fail 'revision not recorded'
 stages=("$fixture/remote/.deploy-staging/"source.*)
@@ -97,6 +101,7 @@ for failure in backup migrate health page products redirect hsts www lock build;
   reset_events
   if TEST_FAIL="$failure" bash "$ROOT/scripts/deploy-production.sh" > "$fixture/output" 2>&1; then fail "$failure accepted"; fi
   [[ "$(cat "$fixture/remote/REVISION")" == old-revision ]] || fail "$failure overwrote revision"
+  if grep -q backup-consumed-release-stdin "$fixture/events"; then fail "$failure backup consumed SSH program stdin"; fi
   if [[ "$failure" != lock && "$failure" != build && "$failure" != backup ]]; then
     grep -q 'interactive=false migrate' "$fixture/events" || { cat "$fixture/output"; fail "$failure failed before its expected boundary"; }
   fi
@@ -104,6 +109,26 @@ for failure in backup migrate health page products redirect hsts www lock build;
   if [[ "$failure" == lock ]] && grep -q source-promotion "$fixture/events"; then fail 'promotion without lock'; fi
 done
 printf 'PASS: lock/build/backup/migration and every public smoke failure preserve REVISION\n'
+
+# A standalone caller also deserves an intact continuation, without needing to
+# know the backup implementation's Docker stdin behavior.
+reset_events
+bash -s -- "$fixture/remote/scripts/backup-production.sh" > "$fixture/output" 2>&1 <<'BACKUP_CALLER'
+set -euo pipefail
+bash "$1"
+printf 'backup-caller-continuation\n' >> "$TEST_FIXTURE/events"
+BACKUP_CALLER
+if grep -q backup-consumed-release-stdin "$fixture/events"; then fail 'standalone backup consumed caller continuation'; fi
+grep -q backup-caller-continuation "$fixture/events" || fail 'standalone backup skipped caller continuation'
+reset_events
+if TEST_FAIL=backup bash -s -- "$fixture/remote/scripts/backup-production.sh" > "$fixture/output" 2>&1 <<'BACKUP_FAILURE'
+set -euo pipefail
+bash "$1"
+printf 'failed-backup-caller-continuation\n' >> "$TEST_FIXTURE/events"
+BACKUP_FAILURE
+then fail 'standalone backup failure was masked'; fi
+if grep -q failed-backup-caller-continuation "$fixture/events"; then fail 'caller continued after failed backup'; fi
+printf 'PASS: stdin-consuming dump cannot skip caller/release continuation; backup failures propagate\n'
 
 reset_events
 bash "$ROOT/scripts/smoke-production.sh" > "$fixture/output" 2>&1 || { cat "$fixture/output"; fail 'standalone smoke'; }
