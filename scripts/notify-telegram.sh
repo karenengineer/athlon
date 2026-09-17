@@ -20,6 +20,23 @@ for tool in node curl; do
   fi
 done
 
+# curl >=8.4 also caps chunked/unknown-length responses with --max-filesize.
+# Probe without secrets, with a hard process timeout/output bound; never expose
+# version output or a hostile executable's diagnostic to the caller.
+if ! node 2>/dev/null <<'CURL_VERSION'
+const { spawnSync } = require('node:child_process');
+const result = spawnSync('curl', ['--disable', '--version'], {
+  encoding: 'utf8', timeout: 2000, killSignal: 'SIGKILL', maxBuffer: 4096,
+});
+const version = /^curl ([0-9]+)\.([0-9]+)\.([0-9]+)(?:[ .-]|$)/.exec(result.stdout || '');
+if (result.error || result.status !== 0 || !version
+  || !(Number(version[1]) > 8 || (Number(version[1]) === 8 && Number(version[2]) >= 4))) process.exit(1);
+CURL_VERSION
+then
+  warn 'curl >=8.4 is required for bounded unknown-length responses; version probe failed or timed out.'
+  exit 1
+fi
+
 if ! scratch="$(mktemp -d 2>/dev/null)"; then
   warn 'Cannot create private temporary request files.'
   exit 1

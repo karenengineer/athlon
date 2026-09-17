@@ -1,0 +1,124 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: athlon-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/ci.yml
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && needs.verify.result == 'success'
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEPLOY_COMMIT: ${{ needs.verify.outputs.revision }}
+      DEPLOY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+    steps:
+      - name: Check out verified commit
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify.outputs.revision }}
+          persist-credentials: false
+      - name: Set up application Node for script JSON validation
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.22.2"
+          package-manager-cache: false
+      - name: Confirm verified checkout and approved target
+        env:
+          EXPECTED_REVISION: ${{ github.sha }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          [[ "$DEPLOY_COMMIT" =~ ^[0-9a-f]{40}$ && "$DEPLOY_COMMIT" == "$EXPECTED_REVISION" ]] || exit 1
+          [[ "$(git rev-parse HEAD)" == "$DEPLOY_COMMIT" ]] || exit 1
+          [[ "$DEPLOY_HOST" == 18.158.105.59 && "$DEPLOY_USER" == ubuntu ]] || {
+            printf 'Configure the approved production host and user environment variables.\n' >&2
+            exit 1
+          }
+      - name: Notify deployment started
+        id: notify-start
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_STATUS: started
+        run: DEPLOY_COMMIT_SUBJECT="$(git log -1 --format=%s)" bash scripts/notify-telegram.sh
+      - name: Materialize private deployment credentials
+        id: credentials
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set +x
+          set +v
+          umask 077
+          [[ -n "$DEPLOY_SSH_PRIVATE_KEY" && -n "$DEPLOY_KNOWN_HOSTS" ]] || {
+            printf 'Configure dedicated SSH key and vetted known hosts production secrets.\n' >&2
+            exit 1
+          }
+          credentials="$(mktemp -d "$RUNNER_TEMP/athlon-deploy.XXXXXXXXXX")"
+          ready=0
+          cleanup_failed() {
+            if [[ "$ready" == 0 ]]; then
+              rm -f -- "$credentials/key" "$credentials/known_hosts"
+              rmdir -- "$credentials"
+            fi
+          }
+          trap cleanup_failed EXIT
+          printf 'directory=%s\n' "$credentials" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$credentials/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$credentials/known_hosts"
+          chmod 600 "$credentials/key" "$credentials/known_hosts"
+          ready=1
+      - name: Deploy checked release and verify public smoke
+        id: release
+        env:
+          ATHLON_SSH_HOST: ${{ vars.DEPLOY_HOST }}
+          ATHLON_SSH_USER: ${{ vars.DEPLOY_USER }}
+          ATHLON_SSH_KEY: ${{ steps.credentials.outputs.directory }}/key
+          ATHLON_KNOWN_HOSTS: ${{ steps.credentials.outputs.directory }}/known_hosts
+          ATHLON_DEPLOY_REVISION: ${{ needs.verify.outputs.revision }}
+          ATHLON_SKIP_BOOTSTRAP: "1"
+        run: bash scripts/deploy-production.sh
+      - name: Always remove owned temporary SSH credentials
+        id: cleanup
+        if: always()
+        env:
+          CREDENTIAL_DIRECTORY: ${{ steps.credentials.outputs.directory }}
+        run: |
+          [[ -n "$CREDENTIAL_DIRECTORY" ]] || exit 0
+          [[ "$CREDENTIAL_DIRECTORY" == "$RUNNER_TEMP"/athlon-deploy.* ]] || exit 1
+          suffix="${CREDENTIAL_DIRECTORY#"$RUNNER_TEMP"/athlon-deploy.}"
+          [[ "$suffix" =~ ^[A-Za-z0-9]{10}$ ]] || exit 1
+          [[ -d "$CREDENTIAL_DIRECTORY" && -O "$CREDENTIAL_DIRECTORY" && ! -L "$CREDENTIAL_DIRECTORY" ]] || {
+            [[ ! -e "$CREDENTIAL_DIRECTORY" ]] && exit 0
+            exit 1
+          }
+          rm -f -- "$CREDENTIAL_DIRECTORY/key" "$CREDENTIAL_DIRECTORY/known_hosts"
+          rmdir -- "$CREDENTIAL_DIRECTORY"
+      - name: Notify actual deployment result
+        id: notify-final
+        if: always()
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_STATUS: ${{ steps.release.outcome == 'success' && 'success' || 'failure' }}
+        run: DEPLOY_COMMIT_SUBJECT="$(git log -1 --format=%s)" bash scripts/notify-telegram.sh

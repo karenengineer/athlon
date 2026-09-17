@@ -4,6 +4,15 @@ set -euo pipefail
 # arguments/config/payload; hostile failures deliberately contain the fixture
 # token to prove they never reach the notifier's user-visible output.
 curl() {
+  if [[ "${1:-}" == --disable && "${2:-}" == --version ]]; then
+    case "${TELEGRAM_TEST_CURL_VERSION:-supported}" in
+      supported) printf 'curl 8.5.0 (fixture) libcurl/8.5.0\n' ;;
+      old) printf 'curl 8.3.0 (fixture) libcurl/8.3.0\n' ;;
+      malformed) printf '%s\n' "$TELEGRAM_BOT_TOKEN" ;;
+      stalled) while :; do :; done ;;
+    esac
+    return 0
+  fi
   printf '%s\n' "$@" > "$TELEGRAM_TEST_FIXTURE/args"
   local config='' output='' payload='' connect='' max='' limit=''
   local disable=0 https=0 silent=0
@@ -83,6 +92,10 @@ reject_before_network() {
 }
 
 [[ -f "$ROOT/scripts/notify-telegram.sh" ]] || fail 'notifier behavior is missing'
+for version in old malformed stalled; do
+  reject_before_network env TELEGRAM_TEST_CURL_VERSION="$version" bash "$ROOT/scripts/notify-telegram.sh"
+done
+printf 'PASS: curl >=8.4 prerequisite rejects old/invalid/stalled version probes before secret-bearing requests\n'
 for status in started success failure; do
   run env DEPLOY_STATUS="$status" bash "$ROOT/scripts/notify-telegram.sh" || fail "$status delivery was not confirmed"
   TEST_STATUS="$status" node <<'ASSERT'

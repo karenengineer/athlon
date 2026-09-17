@@ -4,8 +4,8 @@ Production-oriented monorepo foundation for the ATHLON sports nutrition and acce
 
 ## Requirements
 
-- Node.js 22+
-- pnpm 11+
+- Node.js 22 (>=22.12.0; Actions use 22.22.2)
+- pnpm 11.19.0 (the pinned packageManager version)
 - Docker with Docker Compose
 
 ## Local setup
@@ -37,7 +37,11 @@ pnpm verify
 ```
 
 This checks formatting, the Prisma schema, TypeScript, lint, tests, end-to-end tests,
-and the production build.
+the production build and production-shaped SSR. `pnpm test:ops` separately checks
+shell syntax, isolated deploy/notifier behavior and parsed workflow security contracts.
+CI additionally runs the isolated actual PostgreSQL suite and a bounded native Linux
+`flock` contention/wait/release probe. A passing primitive probe plus deployment
+fixtures is not proof of live concurrent production deployment behavior.
 
 ## Production operations
 
@@ -146,7 +150,11 @@ these secrets to pull-request code or accept tokens/chat IDs from workflow input
 Configuring secrets, provisioning keys and activating automatic deployment are separate
 authorized setup operations; adding the scripts alone does not enable deployment.
 
-`bash scripts/notify-telegram.sh` uses Node.js 22 and curl. It requires the two Telegram
+`bash scripts/notify-telegram.sh` uses Node.js 22 and **curl >=8.4** (needed for the
+64 KiB cap on chunked/unknown-length responses). A bounded, secret-free version probe
+rejects older, malformed or stalled curl installations before making the request.
+The pinned Ubuntu 24.04 runner inventory currently supplies curl 8.5; manual callers
+must also meet this prerequisite. It requires the two Telegram
 secrets plus trusted workflow metadata: `DEPLOY_STATUS` (`started`, `success` or
 `failure`), `DEPLOY_COMMIT` (full 40-character hexadecimal SHA), and `DEPLOY_RUN_URL`
 (`https://github.com/<owner>/<repo>/actions/runs/<id>`, optionally `/attempts/<id>`).
@@ -167,6 +175,151 @@ the bot/chat and production secrets are configured privately.
 
 Run isolated notification behavior tests with `bash scripts/tests/notify-telegram.test.sh`;
 all curl requests are stubbed and use fixture credentials, never real Telegram.
+
+### Activating GitHub Actions (separate authorized setup)
+
+The workflow files are implementation, not evidence of activation. No production
+environment, secrets, key, branch rule or real Telegram receipt is established by
+the local tests. Review the complete plan independently before authorizing setup,
+integration/push and a first monitored release. Never send credentials in this chat.
+
+1. Confirm the private repository's GitHub plan supports the required production
+   environment/secrets and desired protection rules. Availability differs by plan;
+   the current account plan is unconfirmed. Keep the approved `production` environment
+   architecture: do not make the repository public, buy an upgrade, move secrets to
+   repository scope or weaken controls without an explicit decision. See
+   [GitHub environment availability](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments).
+2. With separate provisioning approval, generate a dedicated Ed25519 key locally
+   using `ssh-keygen` in a private directory outside the checkout. The current script
+   uses noninteractive SSH without a passphrase agent, so its CI private key must be
+   passphrase-free and protected by mode 600 and environment access rules. Through
+   an already trusted operator connection, install only its public key for `ubuntu`
+   on `18.158.105.59`, using authorized-key restrictions such as `restrict` (no PTY
+   or forwarding). Keep required noninteractive rsync/bash and existing Docker/owned
+   `/opt/athlon` permissions; this is shell deployment access, not a read-only key.
+   Do not replace personal keys or loosen server permissions. Keep the private key
+   only in the production environment secret and protected operator storage.
+3. Capture the host's public key/fingerprint through the trusted Lightsail console
+   or an already independently verified connection. Compare the SSH fingerprint
+   out of band and create the known-hosts entry for exactly `18.158.105.59`. Only then
+   privately enter the vetted contents as `DEPLOY_KNOWN_HOSTS`. `ssh-keyscan` alone
+   does not establish trust; a host-key change requires operator investigation.
+4. In repository Settings → Environments, create `production`, restrict deployment
+   branches to `main`, configure the available reviewer/bypass controls appropriate
+   to the account, and enter the four secrets listed above. Add environment variables
+   `DEPLOY_HOST=18.158.105.59` and `DEPLOY_USER=ubuntu`; the workflow refuses another
+   target. Do not paste values into issue/task comments, app `.env`, logs or screenshots.
+5. Protect `main` with reviewed pull requests and the observed **Verify release**
+   check context from **Checks** (confirm its exact displayed name after the first
+   secret-free PR run), require branches to be up to date, and review bypass/force-push
+   permissions. Keep default workflow token permissions read-only. Changing any
+   access control requires its own authorization.
+6. After authorized integration into `main` and private setup, review the Actions
+   run before relying on automatic releases. For a manual release, open **Deploy
+   production** → **Run workflow** and select **main**. Non-main dispatches skip
+   verification and deployment without accessing production secrets. Manual runs use
+   the same frozen dependencies and all checks as main pushes, not a bypass.
+
+`.github/workflows/ci.yml` runs on pull requests without production secrets and is
+reused by `.github/workflows/deploy.yml` for main pushes/manual runs. It checks the
+event SHA and returns that exact verified SHA; deployment checks it again and runs
+the reviewed scripts from that checkout. No seed/bootstrap, runtime `.env` overwrite
+or volume deletion occurs. Only the post-verification production job references
+secrets. Its SSH key and known-hosts files live outside the checkout in a unique
+private runner-temp directory, with mode 600 and failure/always cleanup of exact
+owned paths (not broad recursive deletion). Forced runner termination can prevent
+cleanup or notification; GitHub run state remains authoritative.
+
+The `athlon-production` concurrency group disables in-progress cancellation and
+the server release lock separately protects migrations and promotion. GitHub's
+concurrency queue may replace an older pending run with a newer one; it does not
+promise every intermediate push will deploy or FIFO ordering. Check the selected
+SHA and `/opt/athlon/REVISION`. Queue, build, backup and smoke time is not guaranteed;
+checks have a 30-minute job limit and deployment a 45-minute job limit. A timeout or
+partial failed release needs operator inspection, not an automatic destructive
+rollback; use the retained real image tags and compatible backup described below.
+Immutable Action pins were verified against the official repositories; application
+Node 22 is separate from the Actions' own Node24 runtime. Review updates deliberately.
+
+### Setting up the private Telegram recipient
+
+Create a deployment bot privately with [@BotFather](https://t.me/BotFather) using
+`/newbot`, following the [official token guidance](https://core.telegram.org/bots/tutorial#obtain-your-bot-token).
+Save its token privately and enter it only through GitHub production Settings.
+The intended personal recipient **@karenengineer** must open that bot and press
+**Start** (or send `/start`). A private user cannot be addressed by public username:
+`TELEGRAM_CHAT_ID` must be the numeric private chat ID from that user's update,
+not the username, a guessed number or the bot's own ID. No recipient ID is hardcoded.
+
+Obtain it locally using the official [getUpdates API](https://core.telegram.org/bots/api#getupdates)
+in a private, non-recorded Bash terminal with Node 22 and curl >=8.4. Never put the
+token in a browser URL, shell command argument, shell history, debug trace or screenshot.
+For example, run this subshell, enter the token only at the hidden prompt, and copy
+only the resulting numeric ID directly into production Settings:
+
+```bash
+(
+  set +x
+  set +v
+  set -euo pipefail
+  umask 077
+  telegram_setup_dir="$(mktemp -d)"
+  trap 'unset telegram_setup_token; rm -f -- "$telegram_setup_dir/updates.json"; rmdir -- "$telegram_setup_dir"' EXIT
+  read -r -s -p 'Bot token (hidden): ' telegram_setup_token
+  printf '\n' >&2
+  [[ "$telegram_setup_token" =~ ^[A-Za-z0-9:_-]{1,256}$ ]] || exit 1
+  telegram_setup_status="$(printf 'url = "https://api.telegram.org/bot%s/getUpdates"\n' "$telegram_setup_token" |
+    curl --disable --config - --silent --proto '=https' \
+      --connect-timeout 5 --max-time 15 --max-filesize 65536 \
+      --request POST --data 'timeout=0&limit=100' \
+      --output "$telegram_setup_dir/updates.json" --write-out '%{http_code}' 2>/dev/null)"
+  unset telegram_setup_token
+  [[ "$telegram_setup_status" =~ ^2[0-9][0-9]$ ]] || exit 1
+  node - "$telegram_setup_dir/updates.json" <<'CHAT_ID'
+const fs = require('node:fs');
+try {
+  const body = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+  if (body.ok !== true || !Array.isArray(body.result)) process.exit(1);
+  const ids = [...new Set(body.result
+    .filter(update => update.message?.chat?.type === 'private'
+      && update.message?.from?.username === 'karenengineer')
+    .map(update => update.message.chat.id)
+    .filter(id => Number.isSafeInteger(id) && id > 0))];
+  if (ids.length !== 1) process.exit(1);
+  console.log(ids[0]);
+} catch { process.exit(1); }
+CHAT_ID
+)
+```
+
+An empty/failed result is not a valid chat ID: confirm the intended account sent a
+fresh private message to the correct bot. Updates expire and an existing webhook or
+another poller can interfere; investigate privately rather than changing bot state
+or dumping responses into chat/logs. No bot framework or long-running poller is needed.
+A secret being present proves configuration only; after authorized activation, confirm
+actual start/final receipt in the intended private chat without exposing the token.
+
+### What triggers a release and who reports failures
+
+Reviewed code commits pushed/merged into protected `main` run checks, then deployment.
+A local commit alone does not trigger GitHub. Administrative catalog saves persist
+immediately in PostgreSQL and do not need a Git commit, push or deployment; public
+visibility still follows publication settings.
+
+Telegram sends **started**, then **success/failure** for a production deployment
+attempt. The final status comes from the deploy step's actual outcome; failures
+before that step cannot become success. Failed verification never starts the
+production job and sends no Telegram deployment success (or start/failure) message.
+Missing/broken Telegram configuration produces a sanitized, visible nonblocking
+step warning; it neither hides deployment failure nor fails a successful release.
+The GitHub run can still fail for credential cleanup or other non-notification errors.
+
+For CI/verification failures, configure your own GitHub Actions web/email preferences
+under account Settings → Notifications → Actions; select all runs or failed runs as
+desired and verify the notification email. GitHub controls which participating runs
+generate email; these workflows do not send email, notify on every local commit,
+or promise instant delivery. See [GitHub notification settings](https://docs.github.com/en/subscriptions-and-notifications/get-started/configuring-notifications).
+GitHub's run outcome/logs remain the source of truth if Telegram or the runner fails.
 
 ### Backups and restore
 
