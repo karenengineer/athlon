@@ -15,6 +15,7 @@ import { configureApplication } from "../src/bootstrap";
 import { PrismaService } from "../src/database/prisma.service";
 import { LocalStorageAdapter } from "../src/storage/local-storage.adapter";
 import { STORAGE_ADAPTER } from "../src/storage/storage-adapter";
+import { cleanupOwnedResources } from "./isolated-cleanup";
 
 const exec = promisify(execFile);
 // Never accepts DATABASE_URL or an existing database. Opt-in creates its own
@@ -146,10 +147,33 @@ integration("Isolated actual PostgreSQL catalog acceptance", () => {
       .toBuffer();
   }, 120_000);
   afterAll(async () => {
-    if (app) await app.close();
-    else if (prisma) await prisma.onModuleDestroy();
-    if (created) await exec("docker", ["stop", container]);
-    if (uploads) await rm(uploads, { recursive: true, force: true });
+    const ownedApp = app;
+    const ownedPrisma = prisma;
+    const ownedUploads = uploads;
+    await cleanupOwnedResources([
+      ...(ownedApp
+        ? [{ label: "Nest app / Prisma", cleanup: () => ownedApp.close() }]
+        : ownedPrisma
+          ? [{ label: "Prisma", cleanup: () => ownedPrisma.onModuleDestroy() }]
+          : []),
+      ...(created
+        ? [
+            {
+              label: `container ${container}`,
+              cleanup: () =>
+                exec("docker", ["stop", container], { timeout: 15_000 }),
+            },
+          ]
+        : []),
+      ...(ownedUploads
+        ? [
+            {
+              label: `uploads ${ownedUploads}`,
+              cleanup: () => rm(ownedUploads, { recursive: true, force: true }),
+            },
+          ]
+        : []),
+    ]);
   }, 30_000);
 
   it("persists category and brand CRUD, preserves omitted/null translations, and maps dependencies", async () => {
@@ -321,6 +345,14 @@ integration("Isolated actual PostgreSQL catalog acceptance", () => {
     expect(
       await prisma!.productImage.count({ where: { productId, primary: true } }),
     ).toBe(1);
+    // Always provide a non-primary target, even if one concurrent upload loses
+    // its serializable race, so the PATCH must actually switch primary state.
+    const target = await auth(
+      request(server()).post(`/api/v1/admin/products/${productId}/images`),
+    )
+      .field("altRu", "Keep persisted RU")
+      .attach("file", png, "safe.png")
+      .expect(201);
     const rows = await prisma!.productImage.findMany({ where: { productId } });
     expect(await readdir(uploads!)).toHaveLength(rows.length * 4);
     await auth(
@@ -341,14 +373,29 @@ integration("Isolated actual PostgreSQL catalog acceptance", () => {
     ).toBe(rows[0]!.position);
     await auth(
       request(server()).patch(
-        `/api/v1/admin/products/${productId}/images/${rows[0]!.id}`,
+        `/api/v1/admin/products/${productId}/images/${target.body.id}`,
       ),
     )
       .send({ altHy: "Նոր", primary: true })
       .expect(200);
+    const persisted = await prisma!.productImage.findUniqueOrThrow({
+      where: { id: target.body.id },
+      include: { translations: true },
+    });
+    expect(persisted.primary).toBe(true);
+    expect(persisted.translations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ locale: "HY", altText: "Նոր" }),
+        expect.objectContaining({ locale: "RU", altText: "Keep persisted RU" }),
+      ]),
+    );
+    const primaries = await prisma!.productImage.findMany({
+      where: { productId, primary: true },
+    });
+    expect(primaries.map((image) => image.id)).toEqual([target.body.id]);
     await auth(
       request(server()).delete(
-        `/api/v1/admin/products/${productId}/images/${rows[0]!.id}`,
+        `/api/v1/admin/products/${productId}/images/${target.body.id}`,
       ),
     ).expect(204);
     expect(await readdir(uploads!)).toHaveLength((rows.length - 1) * 4);

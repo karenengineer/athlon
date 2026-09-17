@@ -11,7 +11,16 @@ import { adminRobotsMiddleware } from "./admin-robots.middleware";
 const browserDistFolder = join(import.meta.dirname, "../browser");
 
 const app = express();
-const angularApp = new AngularNodeAppEngine();
+// Production web has no published port: Caddy is its public request boundary.
+// Caddy replaces these three headers (ignoring incoming spoofed values). Do not
+// trust arbitrary forwarded ports/prefixes or disable Angular's host validation.
+const angularApp = new AngularNodeAppEngine({
+  trustProxyHeaders: [
+    "x-forwarded-host",
+    "x-forwarded-proto",
+    "x-forwarded-for",
+  ],
+});
 app.use(adminRobotsMiddleware);
 
 /**

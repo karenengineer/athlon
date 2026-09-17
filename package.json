@@ -20,7 +20,8 @@
     "test": "pnpm --filter @athlon/api test && pnpm --filter @athlon/web test",
     "test:e2e": "pnpm --filter @athlon/api test:e2e",
     "typecheck": "pnpm --filter @athlon/api exec tsc -p tsconfig.json --noEmit && pnpm --filter @athlon/web exec tsc -p tsconfig.app.json --noEmit",
-    "verify": "pnpm format:check && pnpm prisma:validate && pnpm prisma:generate && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build"
+    "test:ssr": "node scripts/test-production-ssr.mjs",
+    "verify": "pnpm format:check && pnpm prisma:validate && pnpm prisma:generate && pnpm typecheck && pnpm lint && pnpm test && pnpm test:e2e && pnpm build && pnpm test:ssr"
   },
   "devDependencies": {
     "prettier": "3.6.2"

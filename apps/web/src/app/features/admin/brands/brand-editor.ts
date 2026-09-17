@@ -145,7 +145,7 @@ export class BrandEditor implements AdminDirtyForm {
         this.saving.set(false);
         this.saved.set(true);
         if (create)
-          void this.router.navigate(["/admin/brands", brand.id], {
+          void this.router.navigate(["/admin/brands", brand.id, "edit"], {
             replaceUrl: true,
             queryParamsHandling: "preserve",
           });

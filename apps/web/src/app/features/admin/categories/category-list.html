@@ -81,7 +81,7 @@
         <td>{{ i18n.translate(item.published ? 'published' : 'draft') }}</td>
         <td class="actions">
           <a
-            [routerLink]="['/admin', resource, item.id]"
+            [routerLink]="['/admin', resource, item.id, 'edit']"
             queryParamsHandling="preserve"
             [attr.aria-label]="i18n.translate('edit') + ': ' + name(item)"
             >{{ i18n.translate('edit') }}</a
