@@ -37,11 +37,11 @@
   text-decoration: none;
 }
 
-.brand img {
-  width: 58px;
-  height: 58px;
+.favicon-logo {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .brand-copy {
