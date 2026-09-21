@@ -10,6 +10,8 @@ import { PurchasesController } from "./purchases/purchases.controller";
 import { PurchasesService } from "./purchases/purchases.service";
 import { RecurringExpensesController } from "./recurring/recurring-expenses.controller";
 import { RecurringExpensesService } from "./recurring/recurring-expenses.service";
+import { FinanceReportingController } from "./reporting/finance-reporting.controller";
+import { FinanceReportingService } from "./reporting/finance-reporting.service";
 import { SalesController } from "./sales/sales.controller";
 import { SalesService } from "./sales/sales.service";
 import { SuppliersController } from "./suppliers/suppliers.controller";
@@ -24,6 +26,7 @@ import { SuppliersService } from "./suppliers/suppliers.service";
     ExpenseCategoriesController,
     ExpensesController,
     RecurringExpensesController,
+    FinanceReportingController,
   ],
   providers: [
     SuppliersService,
@@ -32,7 +35,12 @@ import { SuppliersService } from "./suppliers/suppliers.service";
     ExpensesService,
     RecurringExpensesService,
     InventoryLedgerService,
+    FinanceReportingService,
   ],
-  exports: [InventoryLedgerService, RecurringExpensesService],
+  exports: [
+    InventoryLedgerService,
+    RecurringExpensesService,
+    FinanceReportingService,
+  ],
 })
 export class FinanceModule {}
