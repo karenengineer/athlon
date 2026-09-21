@@ -120,18 +120,13 @@ export class InventoryLedgerService {
     const result = replayInventoryLedger(
       mergeProposedMutation(existingEntries, productId, proposed),
     );
-    const existingSaleIds = new Set(saleItems.map((item) => item.id));
 
     await Promise.all(
-      [...result.saleCosts].flatMap(([saleItemId, costUnitSnapshot]) =>
-        existingSaleIds.has(saleItemId)
-          ? [
-              tx.saleItem.update({
-                where: { id: saleItemId },
-                data: { costUnitSnapshot },
-              }),
-            ]
-          : [],
+      [...result.saleCosts].map(([saleItemId, costUnitSnapshot]) =>
+        tx.saleItem.updateMany({
+          where: { id: saleItemId },
+          data: { costUnitSnapshot },
+        }),
       ),
     );
 

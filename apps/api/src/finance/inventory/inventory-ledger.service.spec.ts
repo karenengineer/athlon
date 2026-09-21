@@ -3,6 +3,8 @@ import { roundMoney } from "../domain/money";
 import {
   type InventoryLedgerEntry,
   type LedgerMutation,
+  type PurchaseLedgerEntry,
+  type SaleLedgerEntry,
 } from "./inventory-ledger.types";
 import {
   InventoryLedgerService,
@@ -16,7 +18,7 @@ const purchase = (
   quantity: number,
   unitCost: string,
   id = `purchase-${occurredAt}`,
-): InventoryLedgerEntry => ({
+): PurchaseLedgerEntry => ({
   type: "purchase",
   id,
   productId,
@@ -30,7 +32,7 @@ const sale = (
   occurredAt: string,
   id: string,
   quantity: number,
-): InventoryLedgerEntry => ({
+): SaleLedgerEntry => ({
   type: "sale",
   id,
   productId,
@@ -129,6 +131,23 @@ describe("InventoryLedgerService", () => {
                 return Promise.resolve({});
               },
             ),
+          updateMany: jest
+            .fn()
+            .mockImplementation(
+              ({
+                where,
+                data,
+              }: {
+                where: { id: string };
+                data: { costUnitSnapshot: Prisma.Decimal };
+              }) => {
+                saleUpdates.push({
+                  id: where.id,
+                  costUnitSnapshot: data.costUnitSnapshot.toString(),
+                });
+                return Promise.resolve({ count: 1 });
+              },
+            ),
         },
       },
       saleUpdates,
@@ -181,5 +200,62 @@ describe("InventoryLedgerService", () => {
         upsert: [{ ...existingEntries[0]!, productId: "product-2" }],
       }),
     ).rejects.toThrow("Only 0 units are currently available.");
+  });
+
+  it("updates a moved sale with the destination product COGS snapshot", async () => {
+    const destinationProductId = "product-2";
+    const destinationPurchase = {
+      ...purchase("2026-09-01", 10, "15000", "purchase-2"),
+      productId: destinationProductId,
+    };
+    const movedSale = {
+      ...sale("2026-09-02", "sale-1", 3),
+      productId: destinationProductId,
+    };
+    const saleUpdates: Array<{ id: string; costUnitSnapshot: string }> = [];
+    const recordSaleUpdate = ({
+      where,
+      data,
+    }: {
+      where: { id: string };
+      data: { costUnitSnapshot: Prisma.Decimal };
+    }) => {
+      saleUpdates.push({
+        id: where.id,
+        costUnitSnapshot: data.costUnitSnapshot.toString(),
+      });
+      return Promise.resolve({ count: 1 });
+    };
+    const tx = {
+      purchaseItem: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            ...destinationPurchase,
+            purchaseId: "parent-purchase-2",
+            purchaseUnitPrice: destinationPurchase.unitCost,
+            purchase: {
+              date: destinationPurchase.occurredAt,
+              createdAt: destinationPurchase.createdAt,
+            },
+          },
+        ]),
+      },
+      saleItem: {
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn(),
+        updateMany: jest.fn().mockImplementation(recordSaleUpdate),
+      },
+    };
+
+    const result = await new InventoryLedgerService().replayProduct(
+      tx as never,
+      destinationProductId,
+      { upsert: [movedSale] },
+    );
+
+    expect(result.saleCosts.get("sale-1")?.toString()).toBe("15000");
+    expect(saleUpdates).toEqual([
+      { id: "sale-1", costUnitSnapshot: "15000" },
+    ]);
   });
 });
