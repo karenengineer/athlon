@@ -5,6 +5,8 @@ import {
   ExpensesController,
 } from "./expenses/expenses.controller";
 import { ExpensesService } from "./expenses/expenses.service";
+import { ExcelExportService } from "./export/excel-export.service";
+import { FinanceExportController } from "./export/finance-export.controller";
 import { InventoryLedgerService } from "./inventory/inventory-ledger.service";
 import { PurchasesController } from "./purchases/purchases.controller";
 import { PurchasesService } from "./purchases/purchases.service";
@@ -27,6 +29,7 @@ import { SuppliersService } from "./suppliers/suppliers.service";
     ExpensesController,
     RecurringExpensesController,
     FinanceReportingController,
+    FinanceExportController,
   ],
   providers: [
     SuppliersService,
@@ -36,6 +39,7 @@ import { SuppliersService } from "./suppliers/suppliers.service";
     RecurringExpensesService,
     InventoryLedgerService,
     FinanceReportingService,
+    ExcelExportService,
   ],
   exports: [
     InventoryLedgerService,
