@@ -558,6 +558,23 @@ describe("Finance expenses", () => {
       .set("x-csrf-token", csrf);
 
   beforeAll(async () => {
+    // Recurrence mutation semantics depend on the current calendar month.
+    // Freeze Date while preserving real timers for Nest and supertest I/O.
+    jest.useFakeTimers({
+      now: new Date("2026-09-21T12:00:00.000Z"),
+      doNotFake: [
+        "hrtime",
+        "nextTick",
+        "performance",
+        "queueMicrotask",
+        "setImmediate",
+        "clearImmediate",
+        "setInterval",
+        "clearInterval",
+        "setTimeout",
+        "clearTimeout",
+      ],
+    });
     accessToken = await new JwtService().signAsync(
       {
         sub: adminId,
@@ -579,7 +596,13 @@ describe("Finance expenses", () => {
     recurringService = app.get(RecurringExpensesService);
   });
 
-  afterAll(async () => app?.close());
+  afterAll(async () => {
+    try {
+      await app?.close();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 
   it("creates, lists, and updates custom expense categories", async () => {
     const created = await write(
