@@ -579,6 +579,9 @@ export class FinanceReportingService {
   ): Promise<Snapshot> {
     assertReportRange(query);
     const from = withComparison ? previousReportRange(query).from : query.from;
+    // Capture one reporting instant for all attempts. A requested future range
+    // must not freeze recurring templates before their occurrence dates arrive.
+    const materializeThrough = new Date(Math.min(+query.to, Date.now()));
     // Materialization and reads share a consistent transaction. A losing
     // concurrent materializer rolls back and retries the entire snapshot.
     for (let attempt = 0; ; attempt++) {
@@ -588,11 +591,12 @@ export class FinanceReportingService {
             const cursor = new Date(
               Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1),
             );
-            while (cursor <= query.to) {
+            while (cursor <= materializeThrough) {
               await this.recurring.materializePeriod(
                 tx,
                 cursor.getUTCFullYear(),
                 cursor.getUTCMonth() + 1,
+                materializeThrough,
               );
               cursor.setUTCMonth(cursor.getUTCMonth() + 1);
             }

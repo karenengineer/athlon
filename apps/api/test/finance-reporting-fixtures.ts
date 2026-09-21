@@ -197,16 +197,24 @@ export function reportingDatabase() {
         where,
       }: {
         where: {
+          active: boolean;
           startDate: { lte: Date };
           OR: Array<{ endDate: null | { gte: Date } }>;
         };
       }) =>
         Promise.resolve(
-          template.startDate <= where.startDate.lte &&
+          template.active === where.active &&
+            template.startDate <= where.startDate.lte &&
             template.endDate >= where.OR[1]!.endDate!.gte
             ? [template]
             : [],
         ),
+      findUnique: ({ where }: { where: { id: string } }) =>
+        Promise.resolve(where.id === template.id ? { ...template } : null),
+      update: ({ data }: { data: Partial<typeof template> }) => {
+        Object.assign(template, data);
+        return Promise.resolve({ ...template });
+      },
     },
     recurringExpenseOccurrence: {
       findUnique: ({
@@ -239,5 +247,5 @@ export function reportingDatabase() {
     $transaction: async <T>(run: (tx: unknown) => Promise<T>): Promise<T> =>
       run(prisma),
   };
-  return { prisma, products, expenses, occurrences };
+  return { prisma, products, expenses, occurrences, template };
 }

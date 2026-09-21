@@ -10,6 +10,12 @@ import { FinanceReportingService } from "./finance-reporting.service";
 import { normalizeReportRange, previousReportRange } from "./report-query.dto";
 
 describe("authoritative finance reporting", () => {
+  beforeEach(() => {
+    jest.useFakeTimers({ now: new Date("2026-09-21T12:00:00.000Z") });
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
   const range = {
     from: new Date("2026-09-01T00:00:00.000Z"),
     to: new Date("2026-09-30T23:59:59.999Z"),
@@ -47,6 +53,48 @@ describe("authoritative finance reporting", () => {
     expect(result.comparisons.revenue.comparisonPercent).toBeNull();
     expect((await service.getDashboard(range)).totalExpenses).toBe("100000");
     expect(occurrences.size).toBe(1);
+  });
+
+  it("annual reports materialize only due occurrences and leave future months open to template changes", async () => {
+    const { service, prisma, template, occurrences } = setup();
+    template.startDate = new Date("2026-01-25T00:00:00.000Z");
+    template.endDate = new Date("2026-12-31T00:00:00.000Z");
+    const recurring = new RecurringExpensesService(
+      prisma as unknown as PrismaService,
+    );
+
+    const annual = await service.getMonthlySummary(2026);
+    expect(annual.totals.recurringExpenses).toBe("320000");
+    expect(
+      annual.months.slice(8).map((month) => month.recurringExpenses),
+    ).toEqual(["0", "0", "0", "0"]);
+    expect(occurrences.size).toBe(8);
+    expect(
+      (await service.getDashboard(normalizeReportRange({ period: "thisYear" })))
+        .recurringExpenses,
+    ).toBe("320000");
+
+    await recurring.update(template.id, { amount: "50000" });
+    jest.setSystemTime(new Date("2026-09-25T00:00:00.000Z"));
+    const dueToday = await service.getMonthlySummary(2026);
+    expect(dueToday.totals.recurringExpenses).toBe("370000");
+    expect(dueToday.months[8]!.recurringExpenses).toBe("50000");
+    expect(occurrences.size).toBe(9);
+
+    await recurring.update(template.id, { amount: "70000" });
+    jest.setSystemTime(new Date("2026-10-25T00:00:00.000Z"));
+    const october = await service.getMonthlySummary(2026);
+    expect(october.months[8]!.recurringExpenses).toBe("50000");
+    expect(october.months[9]!.recurringExpenses).toBe("70000");
+    expect(october.totals.recurringExpenses).toBe("440000");
+    expect(occurrences.size).toBe(10);
+
+    await recurring.update(template.id, { active: false });
+    jest.setSystemTime(new Date("2026-12-31T12:00:00.000Z"));
+    expect(
+      (await service.getMonthlySummary(2026)).totals.recurringExpenses,
+    ).toBe("440000");
+    expect(occurrences.size).toBe(10);
   });
 
   it("uses matching sale lines and preserves current inventory under period/channel filters", async () => {

@@ -181,6 +181,7 @@ export class RecurringExpensesService {
     tx: Prisma.TransactionClient,
     year: number,
     month: number,
+    dueThrough?: Date,
   ): Promise<number> {
     if (!Number.isInteger(year) || year < 1 || year > 9999)
       throw new BadRequestException("year must be an integer from 1 to 9999");
@@ -189,6 +190,7 @@ export class RecurringExpensesService {
 
     const periodStart = new Date(Date.UTC(year, month - 1, 1));
     const periodEnd = new Date(Date.UTC(year, month, 0));
+    if (dueThrough && periodStart > dueThrough) return 0;
     const templates = await tx.recurringExpense.findMany({
       where: {
         active: true,
@@ -198,12 +200,19 @@ export class RecurringExpensesService {
       include: { category: true },
       orderBy: [{ id: "asc" }],
     });
-    if (!templates.length) return 0;
+    const dueTemplates = dueThrough
+      ? templates.filter(
+          (template) =>
+            monthlyOccurrenceDate(template.startDate, year, month) <=
+            dueThrough,
+        )
+      : templates;
+    if (!dueTemplates.length) return 0;
 
     const adminId = await this.materializationAdminId(tx);
 
     let created = 0;
-    for (const template of templates) {
+    for (const template of dueTemplates) {
       created += await this.materializeTemplatePeriod(
         tx,
         template,
