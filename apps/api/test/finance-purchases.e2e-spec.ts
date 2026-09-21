@@ -586,6 +586,22 @@ describe("Finance suppliers and purchases", () => {
       .expect(400);
   });
 
+  it("rejects null supplier active on create before persistence", async () => {
+    await auth("post", "/api/v1/admin/finance/suppliers")
+      .set("x-csrf-token", csrf)
+      .send({ name: "Null Active Supplier", active: null })
+      .expect(400);
+    expect(prisma.supplier.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects null supplier active on update before persistence", async () => {
+    await auth("patch", `/api/v1/admin/finance/suppliers/${supplierId}`)
+      .set("x-csrf-token", csrf)
+      .send({ active: null })
+      .expect(400);
+    expect(prisma.supplier.update).not.toHaveBeenCalled();
+  });
+
   it("supports supplier CRUD, normalized-name conflict, and referenced deletion protection", async () => {
     const listed = await auth(
       "get",

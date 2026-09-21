@@ -5,6 +5,7 @@ import {
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
 } from "class-validator";
 
 export class CreateSupplierDto {
@@ -13,5 +14,7 @@ export class CreateSupplierDto {
   @IsOptional() @IsString() @MaxLength(50) phone?: string | null;
   @IsOptional() @IsEmail() @MaxLength(320) email?: string | null;
   @IsOptional() @IsString() @MaxLength(5000) notes?: string | null;
-  @IsOptional() @IsBoolean() active = true;
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsBoolean()
+  active = true;
 }
