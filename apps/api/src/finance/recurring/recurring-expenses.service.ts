@@ -14,6 +14,9 @@ import { RecurringExpenseListQueryDto } from "./dto/recurring-expense-list-query
 import { UpdateRecurringExpenseDto } from "./dto/update-recurring-expense.dto";
 
 const recurringInclude = { category: true } as const;
+type RecurringWithCategory = Prisma.RecurringExpenseGetPayload<{
+  include: typeof recurringInclude;
+}>;
 const parseDate = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 const serializeRecurring = <T extends { amount: Prisma.Decimal }>(
   template: T,
@@ -85,47 +88,57 @@ export class RecurringExpensesService {
   }
 
   async update(id: string, input: UpdateRecurringExpenseDto): Promise<unknown> {
-    const current = await this.prisma.recurringExpense.findUnique({
-      where: { id },
-      include: recurringInclude,
-    });
-    if (!current) throw new NotFoundException("Recurring expense not found");
-    const startDate =
-      input.startDate ?? current.startDate.toISOString().slice(0, 10);
-    const endDate =
-      input.endDate === undefined
-        ? current.endDate?.toISOString().slice(0, 10)
-        : input.endDate;
-    this.ensureDateRange(startDate, endDate);
-    if (input.categoryId !== undefined)
-      await this.ensureActiveCategory(input.categoryId);
     try {
-      const template = await this.prisma.recurringExpense.update({
-        where: { id },
-        data: {
-          ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-          ...(input.categoryId !== undefined
-            ? { categoryId: input.categoryId }
-            : {}),
-          ...(input.amount !== undefined
-            ? { amount: money(input.amount) }
-            : {}),
-          ...(input.startDate !== undefined
-            ? { startDate: parseDate(input.startDate) }
-            : {}),
-          ...(input.endDate !== undefined
-            ? { endDate: input.endDate ? parseDate(input.endDate) : null }
-            : {}),
-          ...(input.active !== undefined ? { active: input.active } : {}),
-          ...(input.paymentMethod !== undefined
-            ? { paymentMethod: input.paymentMethod?.trim() || null }
-            : {}),
-          ...(input.notes !== undefined
-            ? { notes: input.notes?.trim() || null }
-            : {}),
+      const template = await this.prisma.$transaction(
+        async (tx) => {
+          const current = await tx.recurringExpense.findUnique({
+            where: { id },
+            include: recurringInclude,
+          });
+          if (!current)
+            throw new NotFoundException("Recurring expense not found");
+          const startDate =
+            input.startDate ?? current.startDate.toISOString().slice(0, 10);
+          const endDate =
+            input.endDate === undefined
+              ? current.endDate?.toISOString().slice(0, 10)
+              : input.endDate;
+          this.ensureDateRange(startDate, endDate);
+          if (input.categoryId !== undefined)
+            await this.ensureActiveCategory(input.categoryId, tx);
+
+          if (current.active)
+            await this.materializeCompletedPeriods(tx, current, new Date());
+
+          return tx.recurringExpense.update({
+            where: { id },
+            data: {
+              ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+              ...(input.categoryId !== undefined
+                ? { categoryId: input.categoryId }
+                : {}),
+              ...(input.amount !== undefined
+                ? { amount: money(input.amount) }
+                : {}),
+              ...(input.startDate !== undefined
+                ? { startDate: parseDate(input.startDate) }
+                : {}),
+              ...(input.endDate !== undefined
+                ? { endDate: input.endDate ? parseDate(input.endDate) : null }
+                : {}),
+              ...(input.active !== undefined ? { active: input.active } : {}),
+              ...(input.paymentMethod !== undefined
+                ? { paymentMethod: input.paymentMethod?.trim() || null }
+                : {}),
+              ...(input.notes !== undefined
+                ? { notes: input.notes?.trim() || null }
+                : {}),
+            },
+            include: recurringInclude,
+          });
         },
-        include: recurringInclude,
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
       return serializeRecurring(template);
     } catch (error) {
       rethrowRecurringConflict(error);
@@ -133,23 +146,32 @@ export class RecurringExpensesService {
   }
 
   async delete(id: string): Promise<void> {
-    if (
-      !(await this.prisma.recurringExpense.findUnique({
-        where: { id },
-        select: { id: true },
-      }))
-    )
-      throw new NotFoundException("Recurring expense not found");
-    if (
-      await this.prisma.recurringExpenseOccurrence.count({
-        where: { recurringExpenseId: id },
-      })
-    )
-      throw new ConflictException(
-        "Recurring expense has historical occurrences; deactivate it instead",
-      );
     try {
-      await this.prisma.recurringExpense.delete({ where: { id } });
+      const deleted = await this.prisma.$transaction(
+        async (tx) => {
+          const current = await tx.recurringExpense.findUnique({
+            where: { id },
+            include: recurringInclude,
+          });
+          if (!current)
+            throw new NotFoundException("Recurring expense not found");
+          if (current.active)
+            await this.materializeCompletedPeriods(tx, current, new Date());
+          if (
+            await tx.recurringExpenseOccurrence.count({
+              where: { recurringExpenseId: id },
+            })
+          )
+            return false;
+          await tx.recurringExpense.delete({ where: { id } });
+          return true;
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+      if (!deleted)
+        throw new ConflictException(
+          "Recurring expense has historical occurrences; deactivate it instead",
+        );
     } catch (error) {
       rethrowRecurringConflict(error);
     }
@@ -178,6 +200,114 @@ export class RecurringExpensesService {
     });
     if (!templates.length) return 0;
 
+    const adminId = await this.materializationAdminId(tx);
+
+    let created = 0;
+    for (const template of templates) {
+      created += await this.materializeTemplatePeriod(
+        tx,
+        template,
+        year,
+        month,
+        adminId,
+      );
+    }
+    return created;
+  }
+
+  private async materializeCompletedPeriods(
+    tx: Prisma.TransactionClient,
+    template: RecurringWithCategory,
+    now: Date,
+  ): Promise<number> {
+    const currentMonth = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    let period = new Date(
+      Date.UTC(
+        template.startDate.getUTCFullYear(),
+        template.startDate.getUTCMonth(),
+        1,
+      ),
+    );
+    if (period >= currentMonth) return 0;
+
+    const adminId = await this.materializationAdminId(tx);
+    let created = 0;
+    while (period < currentMonth) {
+      created += await this.materializeTemplatePeriod(
+        tx,
+        template,
+        period.getUTCFullYear(),
+        period.getUTCMonth() + 1,
+        adminId,
+      );
+      period = new Date(
+        Date.UTC(period.getUTCFullYear(), period.getUTCMonth() + 1, 1),
+      );
+    }
+    return created;
+  }
+
+  private async materializeTemplatePeriod(
+    tx: Prisma.TransactionClient,
+    template: RecurringWithCategory,
+    year: number,
+    month: number,
+    adminId: string,
+  ): Promise<number> {
+    const occurrenceDate = monthlyOccurrenceDate(
+      template.startDate,
+      year,
+      month,
+    );
+    if (
+      occurrenceDate < template.startDate ||
+      (template.endDate && occurrenceDate > template.endDate)
+    )
+      return 0;
+    const occurrenceKey = {
+      recurringExpenseId: template.id,
+      periodYear: year,
+      periodMonth: month,
+    };
+    if (
+      await tx.recurringExpenseOccurrence.findUnique({
+        where: { recurringExpenseId_periodYear_periodMonth: occurrenceKey },
+        select: { id: true },
+      })
+    )
+      return 0;
+
+    const expense = await tx.expense.create({
+      data: {
+        date: occurrenceDate,
+        categoryId: template.categoryId,
+        description: template.name,
+        amount: template.amount,
+        paymentMethod: template.paymentMethod,
+        notes: template.notes,
+        source: ExpenseSource.RECURRING_OCCURRENCE,
+        createdByAdminId: adminId,
+      },
+      select: { id: true },
+    });
+    await tx.recurringExpenseOccurrence.create({
+      data: {
+        ...occurrenceKey,
+        expenseId: expense.id,
+        nameSnapshot: template.name,
+        categoryNameSnapshot: template.category.name,
+        amountSnapshot: template.amount,
+        paymentMethodSnapshot: template.paymentMethod,
+      },
+    });
+    return 1;
+  }
+
+  private async materializationAdminId(
+    tx: Prisma.TransactionClient,
+  ): Promise<string> {
     const admin = await tx.adminUser.findFirst({
       where: { active: true },
       select: { id: true },
@@ -187,60 +317,7 @@ export class RecurringExpensesService {
       throw new ConflictException(
         "An active admin user is required to materialize recurring expenses",
       );
-
-    let created = 0;
-    for (const template of templates) {
-      const occurrenceDate = monthlyOccurrenceDate(
-        template.startDate,
-        year,
-        month,
-      );
-      if (
-        occurrenceDate < template.startDate ||
-        (template.endDate && occurrenceDate > template.endDate)
-      )
-        continue;
-      const occurrenceKey = {
-        recurringExpenseId: template.id,
-        periodYear: year,
-        periodMonth: month,
-      };
-      if (
-        await tx.recurringExpenseOccurrence.findUnique({
-          where: {
-            recurringExpenseId_periodYear_periodMonth: occurrenceKey,
-          },
-          select: { id: true },
-        })
-      )
-        continue;
-
-      const expense = await tx.expense.create({
-        data: {
-          date: occurrenceDate,
-          categoryId: template.categoryId,
-          description: template.name,
-          amount: template.amount,
-          paymentMethod: template.paymentMethod,
-          notes: template.notes,
-          source: ExpenseSource.RECURRING_OCCURRENCE,
-          createdByAdminId: admin.id,
-        },
-        select: { id: true },
-      });
-      await tx.recurringExpenseOccurrence.create({
-        data: {
-          ...occurrenceKey,
-          expenseId: expense.id,
-          nameSnapshot: template.name,
-          categoryNameSnapshot: template.category.name,
-          amountSnapshot: template.amount,
-          paymentMethodSnapshot: template.paymentMethod,
-        },
-      });
-      created += 1;
-    }
-    return created;
+    return admin.id;
   }
 
   private ensureDateRange(startDate: string, endDate?: string | null): void {
@@ -248,8 +325,11 @@ export class RecurringExpensesService {
       throw new BadRequestException("endDate must be on or after startDate");
   }
 
-  private async ensureActiveCategory(id: string): Promise<void> {
-    const category = await this.prisma.expenseCategory.findUnique({
+  private async ensureActiveCategory(
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const category = await (tx ?? this.prisma).expenseCategory.findUnique({
       where: { id },
       select: { id: true, active: true },
     });
@@ -271,11 +351,21 @@ function monthlyOccurrenceDate(
 }
 
 function rethrowRecurringConflict(error: unknown): never {
+  const adapterConflict =
+    error instanceof Error &&
+    error.name === "DriverAdapterError" &&
+    error.cause !== null &&
+    typeof error.cause === "object" &&
+    "kind" in error.cause &&
+    error.cause.kind === "TransactionWriteConflict" &&
+    "originalCode" in error.cause &&
+    ["40001", "40P01"].includes(String(error.cause.originalCode));
   if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    ["P2002", "P2003", "P2034"].includes(String(error.code))
+    adapterConflict ||
+    (error &&
+      typeof error === "object" &&
+      "code" in error &&
+      ["P2002", "P2003", "P2034"].includes(String(error.code)))
   )
     throw new ConflictException(
       "Recurring expense dependencies or a concurrent change prevent this operation",

@@ -116,6 +116,16 @@ function makePrismaMock() {
   ];
   const recurringExpenses: RecurringExpenseRow[] = [];
   const occurrences: RecurringExpenseOccurrenceRow[] = [];
+  let transactionTail = Promise.resolve();
+  let activeTransactions = 0;
+  let recurringReadBarrier:
+    | {
+        templateId: string;
+        reads: number;
+        release: () => void;
+        ready: Promise<void>;
+      }
+    | undefined;
 
   const categoryFor = (id: string) =>
     categories.find((category) => category.id === id);
@@ -150,10 +160,23 @@ function makePrismaMock() {
     return true;
   };
 
+  const transaction = jest.fn((callback: (tx: unknown) => Promise<unknown>) => {
+    const result = transactionTail.then(async () => {
+      activeTransactions += 1;
+      try {
+        return await callback(prisma);
+      } finally {
+        activeTransactions -= 1;
+      }
+    });
+    transactionTail = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  });
   const prisma: Row = {
-    $transaction: jest.fn((callback: (tx: unknown) => Promise<unknown>) =>
-      callback(prisma),
-    ),
+    $transaction: transaction,
     adminUser: {
       findFirst: jest.fn(() =>
         Promise.resolve({ id: adminId, email: "admin@athlon.test" }),
@@ -368,10 +391,22 @@ function makePrismaMock() {
           );
         },
       ),
-      findUnique: jest.fn(({ where: { id } }: { where: { id: string } }) => {
-        const template = recurringExpenses.find((row) => row.id === id);
-        return Promise.resolve(template ? hydrateRecurring(template) : null);
-      }),
+      findUnique: jest.fn(
+        async ({ where: { id } }: { where: { id: string } }) => {
+          const template = recurringExpenses.find((row) => row.id === id);
+          const result = template ? hydrateRecurring(template) : null;
+          if (
+            recurringReadBarrier?.templateId === id &&
+            activeTransactions === 0
+          ) {
+            recurringReadBarrier.reads += 1;
+            if (recurringReadBarrier.reads === 2)
+              recurringReadBarrier.release();
+            await recurringReadBarrier.ready;
+          }
+          return result;
+        },
+      ),
       create: jest.fn(
         ({
           data,
@@ -492,7 +527,21 @@ function makePrismaMock() {
       }),
     },
   };
-  return { prisma, categories, expenses, recurringExpenses, occurrences };
+  return {
+    prisma,
+    transaction,
+    categories,
+    expenses,
+    recurringExpenses,
+    occurrences,
+    pauseConcurrentRecurringReads(templateId: string) {
+      let release: () => void = () => {};
+      const ready = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      recurringReadBarrier = { templateId, reads: 0, release, ready };
+    },
+  };
 }
 
 describe("Finance expenses", () => {
@@ -827,6 +876,149 @@ describe("Finance expenses", () => {
     });
     expect(octoberExpense.amount.toString()).toBe("25000");
     expect(octoberExpense.date.toISOString()).toBe("2026-10-30T00:00:00.000Z");
+  });
+
+  it("preserves completed months with the previous template before an edit", async () => {
+    const created = await write(
+      request(app.getHttpServer()).post(
+        "/api/v1/admin/finance/recurring-expenses",
+      ),
+    )
+      .send({
+        name: "Historical subscription",
+        categoryId,
+        amount: "100",
+        startDate: "2026-08-10",
+        paymentMethod: "Cash",
+        notes: "August terms",
+      })
+      .expect(201);
+
+    await write(
+      request(app.getHttpServer()).patch(
+        `/api/v1/admin/finance/recurring-expenses/${created.body.id}`,
+      ),
+    )
+      .send({
+        name: "Edited subscription",
+        categoryId: otherCategoryId,
+        amount: "200",
+        paymentMethod: "Card",
+        notes: "September terms",
+      })
+      .expect(200);
+
+    await expect(
+      recurringService.materializePeriod(
+        database.prisma as unknown as Prisma.TransactionClient,
+        2026,
+        8,
+      ),
+    ).resolves.toBe(0);
+    const august = database.occurrences.find(
+      (occurrence) =>
+        occurrence.recurringExpenseId === created.body.id &&
+        occurrence.periodYear === 2026 &&
+        occurrence.periodMonth === 8,
+    )!;
+    const expense = database.expenses.find(
+      (row) => row.id === august.expenseId,
+    )!;
+    expect(august).toMatchObject({
+      nameSnapshot: "Historical subscription",
+      categoryNameSnapshot: "Rent",
+      paymentMethodSnapshot: "Cash",
+    });
+    expect(august.amountSnapshot.toString()).toBe("100");
+    expect(expense).toMatchObject({
+      categoryId,
+      description: "Historical subscription",
+      paymentMethod: "Cash",
+      notes: "August terms",
+    });
+    expect(expense.amount.toString()).toBe("100");
+  });
+
+  it("preserves completed months before deactivation or deletion", async () => {
+    const createTemplate = (name: string) =>
+      write(
+        request(app.getHttpServer()).post(
+          "/api/v1/admin/finance/recurring-expenses",
+        ),
+      )
+        .send({
+          name,
+          categoryId,
+          amount: "300",
+          startDate: "2026-08-20",
+        })
+        .expect(201);
+    const deactivated = await createTemplate("Deactivate with history");
+    const deletion = await createTemplate("Delete with history");
+
+    await write(
+      request(app.getHttpServer()).patch(
+        `/api/v1/admin/finance/recurring-expenses/${deactivated.body.id}`,
+      ),
+    )
+      .send({ active: false })
+      .expect(200);
+    await write(
+      request(app.getHttpServer()).delete(
+        `/api/v1/admin/finance/recurring-expenses/${deletion.body.id}`,
+      ),
+    ).expect(409);
+
+    for (const templateId of [deactivated.body.id, deletion.body.id]) {
+      const august = database.occurrences.find(
+        (occurrence) =>
+          occurrence.recurringExpenseId === templateId &&
+          occurrence.periodYear === 2026 &&
+          occurrence.periodMonth === 8,
+      );
+      expect(august?.amountSnapshot.toString()).toBe("300");
+    }
+  });
+
+  it("serializes concurrent date-boundary updates before validation", async () => {
+    const created = await write(
+      request(app.getHttpServer()).post(
+        "/api/v1/admin/finance/recurring-expenses",
+      ),
+    )
+      .send({
+        name: "Concurrent dates",
+        categoryId,
+        amount: "1",
+        startDate: "2026-09-01",
+        endDate: "2026-10-31",
+      })
+      .expect(201);
+    database.pauseConcurrentRecurringReads(created.body.id);
+
+    const patchTemplate = (body: Row) =>
+      write(
+        request(app.getHttpServer()).patch(
+          `/api/v1/admin/finance/recurring-expenses/${created.body.id}`,
+        ),
+      ).send(body);
+    const responses = await Promise.all([
+      patchTemplate({ startDate: "2026-10-01" }),
+      patchTemplate({ endDate: "2026-09-30" }),
+    ]);
+    const statuses = responses.map((response) => response.status).sort();
+    expect(statuses[0]).toBe(200);
+    expect([400, 409]).toContain(statuses[1]);
+
+    const stored = database.recurringExpenses.find(
+      (template) => template.id === created.body.id,
+    )!;
+    expect(stored.startDate.getTime()).toBeLessThanOrEqual(
+      stored.endDate!.getTime(),
+    );
+    expect(database.transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    });
   });
 
   it("does not materialize inactive or out-of-window templates", async () => {
