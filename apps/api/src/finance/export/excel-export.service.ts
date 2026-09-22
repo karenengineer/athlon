@@ -304,6 +304,33 @@ export class ExcelExportService {
       }),
     );
 
+    const expensesByCategory = addSheet(
+      workbook,
+      "Expenses by Category",
+      [
+        { header: "Category", key: "category", width: 30 },
+        { header: "Amount", key: "amount", width: 18, format: "amd" },
+        {
+          header: "Percentage",
+          key: "percentage",
+          width: 16,
+          format: "percent",
+        },
+      ],
+      dataset.expenseBreakdown.map((row) => ({
+        category: row.categoryName,
+        amount: amount(row.amount),
+        percentage: row.percentage === null ? null : amount(row.percentage),
+      })),
+    );
+    styleTotal(
+      expensesByCategory.addRow({
+        category: "TOTAL",
+        amount: amount(dataset.summary.totalExpenses),
+        percentage: null,
+      }),
+    );
+
     const monthly = addSheet(
       workbook,
       "Monthly Summary",

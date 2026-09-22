@@ -13,7 +13,10 @@ import { ExpenseListQueryDto } from "../expenses/dto/expense-list-query.dto";
 import { PurchaseListQueryDto } from "../purchases/dto/purchase-list-query.dto";
 import {
   AccountingDataset,
+  AccountingExpenseRow,
   AccountingExportQuery,
+  AccountingPurchaseRow,
+  AccountingSaleRow,
 } from "../reporting/finance-reporting.types";
 import { FinanceReportingService } from "../reporting/finance-reporting.service";
 import {
@@ -79,82 +82,11 @@ function csvDefinition(
         ]),
       };
     case "purchases":
-      return {
-        headers: [
-          "Date",
-          "Purchase",
-          "Supplier",
-          "SKU",
-          "Product",
-          "Quantity",
-          "Unit Cost AMD",
-          "Total Cost AMD",
-        ],
-        rows: dataset.purchases.map((row) => [
-          row.date,
-          row.purchaseNumber,
-          row.supplierName,
-          row.sku,
-          row.name,
-          row.quantity,
-          money(row.purchaseUnitPrice),
-          money(row.totalCost),
-        ]),
-      };
+      return purchaseCsv(dataset.purchases);
     case "sales":
-      return {
-        headers: [
-          "Date",
-          "Sale",
-          "Order",
-          "Channel",
-          "Trainer Referral",
-          "SKU",
-          "Product",
-          "Quantity",
-          "Unit Price AMD",
-          "Discount AMD",
-          "Revenue AMD",
-          "COGS AMD",
-          "Gross Profit AMD",
-        ],
-        rows: dataset.sales.map((row) => [
-          row.date,
-          row.saleNumber,
-          row.orderId,
-          row.channel,
-          row.trainerReferralCode,
-          row.sku,
-          row.name,
-          row.quantity,
-          money(row.actualUnitPrice),
-          money(row.lineDiscount),
-          money(row.revenue),
-          money(row.costOfGoodsSold),
-          money(row.grossProfit),
-        ]),
-      };
+      return saleCsv(dataset.sales);
     case "expenses":
-      return {
-        headers: [
-          "Date",
-          "Category",
-          "Description",
-          "Source",
-          "Payment Method",
-          "Notes",
-          "Amount AMD",
-        ],
-        rows: dataset.expenses.map((row) => [
-          row.date,
-          row.categoryName,
-          row.description,
-          row.source,
-          row.paymentMethod,
-          row.notes,
-          money(row.amount),
-        ]),
-      };
+      return expenseCsv(dataset.expenses);
     case "monthly-summary":
       return {
         headers: [
@@ -214,6 +146,89 @@ function csvDefinition(
   }
 }
 
+function purchaseCsv(rows: AccountingPurchaseRow[]): CsvDefinition {
+  return {
+    headers: [
+      "Date",
+      "Purchase",
+      "Supplier",
+      "SKU",
+      "Product",
+      "Quantity",
+      "Unit Cost AMD",
+      "Total Cost AMD",
+    ],
+    rows: rows.map((row) => [
+      row.date,
+      row.purchaseNumber,
+      row.supplierName,
+      row.sku,
+      row.name,
+      row.quantity,
+      money(row.purchaseUnitPrice),
+      money(row.totalCost),
+    ]),
+  };
+}
+
+function saleCsv(rows: AccountingSaleRow[]): CsvDefinition {
+  return {
+    headers: [
+      "Date",
+      "Sale",
+      "Order",
+      "Channel",
+      "Trainer Referral",
+      "SKU",
+      "Product",
+      "Quantity",
+      "Unit Price AMD",
+      "Discount AMD",
+      "Revenue AMD",
+      "COGS AMD",
+      "Gross Profit AMD",
+    ],
+    rows: rows.map((row) => [
+      row.date,
+      row.saleNumber,
+      row.orderId,
+      row.channel,
+      row.trainerReferralCode,
+      row.sku,
+      row.name,
+      row.quantity,
+      money(row.actualUnitPrice),
+      money(row.lineDiscount),
+      money(row.revenue),
+      money(row.costOfGoodsSold),
+      money(row.grossProfit),
+    ]),
+  };
+}
+
+function expenseCsv(rows: AccountingExpenseRow[]): CsvDefinition {
+  return {
+    headers: [
+      "Date",
+      "Category",
+      "Description",
+      "Source",
+      "Payment Method",
+      "Notes",
+      "Amount AMD",
+    ],
+    rows: rows.map((row) => [
+      row.date,
+      row.categoryName,
+      row.description,
+      row.source,
+      row.paymentMethod,
+      row.notes,
+      money(row.amount),
+    ]),
+  };
+}
+
 function periodLabel(range: AccountingDataset["range"]): string {
   const from = range.from.slice(0, 10);
   const to = range.to.slice(0, 10);
@@ -242,99 +257,15 @@ function downloadHeaders(
   });
 }
 
-function listRange(query: { dateFrom?: string; dateTo?: string }) {
-  return normalizeReportRange(
-    query.dateFrom || query.dateTo
-      ? {
-          period: "custom",
-          ...(query.dateFrom ? { dateFrom: query.dateFrom } : {}),
-          ...(query.dateTo ? { dateTo: query.dateTo } : {}),
-        }
-      : {},
-  );
-}
-
-function includes(value: string | null, query: string): boolean {
-  return (
-    value?.toLocaleLowerCase().includes(query.toLocaleLowerCase()) ?? false
-  );
-}
-
-function currentPurchases(
-  dataset: AccountingDataset,
-  query: PurchaseListQueryDto,
-): AccountingDataset {
-  const direction = query.sort.endsWith("Asc") ? 1 : -1;
-  const rows = dataset.purchases
-    .filter(
-      (row) =>
-        !query.q ||
-        [row.purchaseNumber, row.sku, row.name].some((value) =>
-          includes(value, query.q!),
-        ),
-    )
-    .sort((left, right) => {
-      const comparison = query.sort.startsWith("total")
-        ? Number(left.totalCost) - Number(right.totalCost)
-        : left.date.localeCompare(right.date);
-      return (
-        comparison * direction ||
-        left.purchaseId.localeCompare(right.purchaseId) ||
-        left.productId.localeCompare(right.productId)
-      );
-    });
-  return { ...dataset, purchases: rows };
-}
-
-function currentSales(
-  dataset: AccountingDataset,
-  query: SaleListQueryDto,
-): AccountingDataset {
-  const direction = query.sort.endsWith("Asc") ? 1 : -1;
-  const rows = dataset.sales
-    .filter(
-      (row) =>
-        !query.q ||
-        [row.saleNumber, row.orderId, row.sku, row.name].some((value) =>
-          includes(value, query.q!),
-        ),
-    )
-    .sort((left, right) => {
-      const comparison = query.sort.startsWith("revenue")
-        ? Number(left.revenue) - Number(right.revenue)
-        : query.sort.startsWith("profit")
-          ? Number(left.grossProfit) - Number(right.grossProfit)
-          : left.date.localeCompare(right.date);
-      return (
-        comparison * direction ||
-        left.saleId.localeCompare(right.saleId) ||
-        left.productId.localeCompare(right.productId)
-      );
-    });
-  return { ...dataset, sales: rows };
-}
-
-function currentExpenses(
-  dataset: AccountingDataset,
-  query: ExpenseListQueryDto,
-): AccountingDataset {
-  const direction = query.sort.endsWith("Asc") ? 1 : -1;
-  const rows = dataset.expenses
-    .filter(
-      (row) =>
-        (!query.source || row.source === query.source) &&
-        (!query.q ||
-          [row.description, row.paymentMethod, row.notes].some((value) =>
-            includes(value, query.q!),
-          )),
-    )
-    .sort((left, right) => {
-      const comparison = query.sort.startsWith("amount")
-        ? Number(left.amount) - Number(right.amount)
-        : left.date.localeCompare(right.date);
-      return comparison * direction || left.id.localeCompare(right.id);
-    });
-  return { ...dataset, expenses: rows };
+function listPeriodLabel(query: {
+  dateFrom?: string;
+  dateTo?: string;
+}): string {
+  if (query.dateFrom && query.dateTo)
+    return periodLabel({ from: query.dateFrom, to: query.dateTo });
+  if (query.dateFrom) return `from-${query.dateFrom}`;
+  if (query.dateTo) return `through-${query.dateTo}`;
+  return "all";
 }
 
 @ApiTags("admin-finance-exports")
@@ -354,15 +285,26 @@ export class FinanceExportController {
     kind: ExportKind,
     query: AccountingExportQuery,
     response: Response,
-    currentView: (dataset: AccountingDataset) => AccountingDataset = (
-      dataset,
-    ) => dataset,
   ): Promise<StreamableFile> {
-    const dataset = currentView(await this.reporting.getExportDataset(query));
+    const dataset = await this.reporting.getExportDataset(query);
     const definition = csvDefinition(kind, dataset);
     downloadHeaders(
       response,
       `athlon-${kind}-${periodLabel(dataset.range)}.csv`,
+      "text/csv; charset=utf-8",
+    );
+    return new StreamableFile(toCsv(definition.headers, definition.rows));
+  }
+
+  private csvRows(
+    kind: ExportKind,
+    period: string,
+    definition: CsvDefinition,
+    response: Response,
+  ): StreamableFile {
+    downloadHeaders(
+      response,
+      `athlon-${kind}-${period}.csv`,
       "text/csv; charset=utf-8",
     );
     return new StreamableFile(toCsv(definition.headers, definition.rows));
@@ -377,57 +319,41 @@ export class FinanceExportController {
   }
 
   @Get("purchases.csv")
-  purchases(
+  async purchases(
     @Query() query: PurchaseListQueryDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<StreamableFile> {
-    return this.csv(
+    return this.csvRows(
       "purchases",
-      {
-        ...listRange(query),
-        ...(query.productId ? { productId: query.productId } : {}),
-        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-        ...(query.supplierId ? { supplierId: query.supplierId } : {}),
-      },
+      listPeriodLabel(query),
+      purchaseCsv(await this.reporting.getPurchaseExportRows(query)),
       response,
-      (dataset) => currentPurchases(dataset, query),
     );
   }
 
   @Get("sales.csv")
-  sales(
+  async sales(
     @Query() query: SaleListQueryDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<StreamableFile> {
-    return this.csv(
+    return this.csvRows(
       "sales",
-      {
-        ...listRange(query),
-        ...(query.productId ? { productId: query.productId } : {}),
-        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-        ...(query.channel ? { channel: query.channel } : {}),
-        ...(query.trainerReferralCode
-          ? { trainerReferralCode: query.trainerReferralCode }
-          : {}),
-      },
+      listPeriodLabel(query),
+      saleCsv(await this.reporting.getSaleExportRows(query)),
       response,
-      (dataset) => currentSales(dataset, query),
     );
   }
 
   @Get("expenses.csv")
-  expenses(
+  async expenses(
     @Query() query: ExpenseListQueryDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<StreamableFile> {
-    return this.csv(
+    return this.csvRows(
       "expenses",
-      {
-        ...listRange(query),
-        ...(query.categoryId ? { expenseCategoryId: query.categoryId } : {}),
-      },
+      listPeriodLabel(query),
+      expenseCsv(await this.reporting.getExpenseExportRows(query)),
       response,
-      (dataset) => currentExpenses(dataset, query),
     );
   }
 

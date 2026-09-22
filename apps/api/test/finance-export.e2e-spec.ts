@@ -42,13 +42,15 @@ describe("Finance export HTTP contracts", () => {
       date: new Date("2026-09-15T00:00:00.000Z"),
       channel: "INSTAGRAM",
       trainerReferralCode: "SOCIAL-COACH",
+      customerName: "Alice Athlete",
+      customerPhone: "+374 00 000000",
     });
     database.products[0]!.saleItems.push({
       ...database.products[0]!.saleItems[0]!,
       id: "sale-gym-october-line",
       saleId: "sale-gym-october",
       quantity: 1,
-      actualUnitPrice: new Prisma.Decimal(125000),
+      actualUnitPrice: new Prisma.Decimal(500000),
       lineDiscount: new Prisma.Decimal(0),
       sale: {
         ...instagramSale,
@@ -57,8 +59,81 @@ describe("Finance export HTTP contracts", () => {
         date: new Date("2026-10-01T00:00:00.000Z"),
         channel: "GYM",
         trainerReferralCode: "",
+        customerName: null,
+        customerPhone: null,
       },
     });
+
+    const originalPurchase = database.products[0]!.purchaseItems[0]!.purchase;
+    const groupPurchase = {
+      ...originalPurchase,
+      id: "purchase-group",
+      purchaseNumber: "PUR-GROUP",
+      date: new Date("2026-10-01T00:00:00.000Z"),
+      createdAt: new Date("2026-10-01T09:00:00.000Z"),
+    };
+    database.products[0]!.purchaseItems.push({
+      ...database.products[0]!.purchaseItems[0]!,
+      id: "purchase-group-a",
+      purchaseId: groupPurchase.id,
+      quantity: 4,
+      purchaseUnitPrice: new Prisma.Decimal(100000),
+      purchase: groupPurchase,
+    });
+    database.products[1]!.purchaseItems.push({
+      ...database.products[1]!.purchaseItems[0]!,
+      id: "purchase-group-b",
+      purchaseId: groupPurchase.id,
+      quantity: 2,
+      purchaseUnitPrice: new Prisma.Decimal(100000),
+      purchase: groupPurchase,
+    });
+    const middlePurchase = {
+      ...originalPurchase,
+      id: "purchase-middle",
+      purchaseNumber: "PUR-MIDDLE",
+      date: new Date("2026-10-02T00:00:00.000Z"),
+      createdAt: new Date("2026-10-02T09:00:00.000Z"),
+    };
+    database.products[0]!.purchaseItems.push({
+      ...database.products[0]!.purchaseItems[0]!,
+      id: "purchase-middle-a",
+      purchaseId: middlePurchase.id,
+      quantity: 5,
+      purchaseUnitPrice: new Prisma.Decimal(100000),
+      purchase: middlePurchase,
+    });
+
+    const expenseCategory = database.expenses[0]!.category;
+    database.expenses.push(
+      {
+        ...database.expenses[0]!,
+        id: "expense-z-later",
+        date: new Date("2026-09-20T00:00:00.000Z"),
+        createdAt: new Date("2026-09-20T11:00:00.000Z"),
+        category: expenseCategory,
+        description: "Later created expense",
+        amount: new Prisma.Decimal(70000),
+      },
+      {
+        ...database.expenses[0]!,
+        id: "expense-a-earlier",
+        date: new Date("2026-09-20T00:00:00.000Z"),
+        createdAt: new Date("2026-09-20T10:00:00.000Z"),
+        category: expenseCategory,
+        description: "Earlier created expense",
+        amount: new Prisma.Decimal(70000),
+      },
+      {
+        ...database.expenses[0]!,
+        id: "expense-october",
+        date: new Date("2026-10-03T00:00:00.000Z"),
+        createdAt: new Date("2026-10-03T10:00:00.000Z"),
+        category: expenseCategory,
+        description: "October expense",
+        amount: new Prisma.Decimal(80000),
+      },
+    );
 
     const module = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
@@ -97,6 +172,16 @@ describe("Finance export HTTP contracts", () => {
       .expect(401);
   });
 
+  it.each(["purchases.csv", "sales.csv", "expenses.csv"])(
+    "rejects reversed current-view dates for %s",
+    async (file) => {
+      await download(file, {
+        dateFrom: "2026-10-01",
+        dateTo: "2026-09-30",
+      }).expect(400);
+    },
+  );
+
   it("returns a branded accounting workbook whose revenue equals the dashboard", async () => {
     const dashboard = await request(app.getHttpServer())
       .get("/api/v1/admin/finance/dashboard")
@@ -118,14 +203,17 @@ describe("Finance export HTTP contracts", () => {
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(Uint8Array.from(response.body as Buffer).buffer);
-    expect(workbook.worksheets.map(({ name }) => name)).toEqual([
-      "Dashboard",
-      "Products",
-      "Purchases",
-      "Sales",
-      "Expenses",
-      "Monthly Summary",
-    ]);
+    expect(workbook.worksheets.map(({ name }) => name)).toEqual(
+      expect.arrayContaining([
+        "Dashboard",
+        "Products",
+        "Purchases",
+        "Sales",
+        "Expenses",
+        "Monthly Summary",
+        "Expenses by Category",
+      ]),
+    );
     const dashboardSheet = workbook.getWorksheet("Dashboard")!;
     const revenueRow = dashboardSheet
       .getRows(1, dashboardSheet.rowCount)!
@@ -152,6 +240,13 @@ describe("Finance export HTTP contracts", () => {
       bold: true,
       color: { argb: "FFFFFFFF" },
     });
+    const expenseCategorySheet = workbook.getWorksheet("Expenses by Category")!;
+    const operationsRow = expenseCategorySheet
+      .getRows(1, expenseCategorySheet.rowCount)!
+      .find((row) => row.getCell(1).value === "Operations");
+    expect(operationsRow?.getCell(2).value).toBe(
+      Number(dashboard.body.totalExpenses),
+    );
   });
 
   it("exports only the current view across date and finance filters", async () => {
@@ -229,5 +324,86 @@ describe("Finance export HTTP contracts", () => {
       month: 9,
     }).expect(200);
     expect(monthly.text).toContain("2026-09");
+  });
+
+  it("preserves open date bounds, transaction-level sorting and list search semantics", async () => {
+    const allSales = await download("sales.csv", {
+      sort: "revenueAsc",
+    }).expect(200);
+    const saleNumbers = allSales.text
+      .split("\r\n")
+      .slice(1)
+      .map((row) => row.split(",")[1]);
+    expect(saleNumbers).toEqual([
+      "SAL-GYM-OCTOBER",
+      "SAL-INSTAGRAM-SEPTEMBER",
+      "SAL-INSTAGRAM-SEPTEMBER",
+    ]);
+
+    const fromOnly = await download("sales.csv", {
+      dateFrom: "2026-10-01",
+    }).expect(200);
+    expect(fromOnly.text).toContain("SAL-GYM-OCTOBER");
+    expect(fromOnly.text).not.toContain("SAL-INSTAGRAM-SEPTEMBER");
+
+    const customerSearch = await download("sales.csv", {
+      dateTo: "2026-09-30",
+      q: "Alice Athlete",
+    }).expect(200);
+    expect(customerSearch.text).toContain("SAL-INSTAGRAM-SEPTEMBER");
+    expect(customerSearch.text).not.toContain("SAL-GYM-OCTOBER");
+
+    const customerPhoneSearch = await download("sales.csv", {
+      q: "+374 00 000000",
+    }).expect(200);
+    expect(customerPhoneSearch.text).toContain("SAL-INSTAGRAM-SEPTEMBER");
+    expect(customerPhoneSearch.text).not.toContain("SAL-GYM-OCTOBER");
+
+    const purchases = await download("purchases.csv", {
+      dateFrom: "2026-10-01",
+      sort: "totalAsc",
+    }).expect(200);
+    const purchaseNumbers = purchases.text
+      .split("\r\n")
+      .slice(1)
+      .map((row) => row.split(",")[1]);
+    expect(purchaseNumbers).toEqual(["PUR-MIDDLE", "PUR-GROUP", "PUR-GROUP"]);
+
+    const allPurchases = await download("purchases.csv", {
+      sort: "dateDesc",
+    }).expect(200);
+    expect(allPurchases.text).toContain("PUR-1");
+    expect(allPurchases.text).toContain("PUR-GROUP");
+
+    const oldPurchases = await download("purchases.csv", {
+      dateTo: "2026-08-31",
+    }).expect(200);
+    expect(oldPurchases.text).toContain("PUR-1");
+    expect(oldPurchases.text).not.toContain("PUR-GROUP");
+
+    const octoberExpenses = await download("expenses.csv", {
+      dateFrom: "2026-10-01",
+    }).expect(200);
+    expect(octoberExpenses.text).toContain("October expense");
+    expect(octoberExpenses.text).not.toContain("One time");
+
+    const allExpenses = await download("expenses.csv", {}).expect(200);
+    expect(allExpenses.text).toContain("One time");
+    expect(allExpenses.text).toContain("October expense");
+
+    const throughSeptember = await download("expenses.csv", {
+      dateTo: "2026-09-30",
+    }).expect(200);
+    expect(throughSeptember.text).toContain("One time");
+    expect(throughSeptember.text).not.toContain("October expense");
+
+    const septemberTie = await download("expenses.csv", {
+      dateTo: "2026-09-20",
+      dateFrom: "2026-09-20",
+      sort: "dateDesc",
+    }).expect(200);
+    expect(septemberTie.text.indexOf("Later created expense")).toBeLessThan(
+      septemberTie.text.indexOf("Earlier created expense"),
+    );
   });
 });

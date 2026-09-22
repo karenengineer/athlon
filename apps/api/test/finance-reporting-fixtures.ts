@@ -124,6 +124,7 @@ export function reportingDatabase() {
     {
       id: "expense",
       date: date("2026-09-30"),
+      createdAt: stamp,
       categoryId: category.id,
       category,
       description: "One time",
@@ -164,14 +165,15 @@ export function reportingDatabase() {
       findMany: ({
         where,
       }: {
-        where: { date: { gte: Date; lte: Date }; categoryId?: string };
-      }) =>
+        where?: { date: { gte: Date; lte: Date }; categoryId?: string };
+      } = {}) =>
         Promise.resolve(
           expenses.filter(
             (expense) =>
-              expense.date >= where.date.gte &&
-              expense.date <= where.date.lte &&
-              (!where.categoryId || expense.categoryId === where.categoryId),
+              (!where ||
+                (expense.date >= where.date.gte &&
+                  expense.date <= where.date.lte)) &&
+              (!where?.categoryId || expense.categoryId === where.categoryId),
           ),
         ),
       create: ({
@@ -185,6 +187,7 @@ export function reportingDatabase() {
         const expense = {
           ...data,
           id: `expense-${expenses.length}`,
+          createdAt: stamp,
           category,
           recurringOccurrence: null,
         };

@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from "@nestjs/common";
 import {
   adminListEnvelope,
   adminListOffset,
@@ -8,11 +12,16 @@ import { PrismaService } from "../../database/prisma.service";
 import { Prisma } from "../../generated/prisma/client";
 import { DateRange } from "../domain/finance.types";
 import { money, moneySum, roundMoney, safePercent } from "../domain/money";
+import type { ExpenseListQueryDto } from "../expenses/dto/expense-list-query.dto";
 import { replayInventoryLedger } from "../inventory/inventory-ledger.service";
+import type { PurchaseListQueryDto } from "../purchases/dto/purchase-list-query.dto";
 import { RecurringExpensesService } from "../recurring/recurring-expenses.service";
+import type { SaleListQueryDto } from "../sales/dto/sale-list-query.dto";
 import {
   AccountingDataset,
   AccountingExportQuery,
+  AccountingExpenseRow,
+  AccountingPurchaseRow,
   AccountingSaleRow,
   AdminList,
   ExpenseBreakdownRow,
@@ -246,6 +255,277 @@ function selectedExpenses(
       (!query.expenseCategoryId ||
         expense.categoryId === query.expenseCategoryId),
   );
+}
+
+function listDateMatches(
+  date: Date,
+  query: { dateFrom?: string; dateTo?: string },
+): boolean {
+  const value = date.toISOString().slice(0, 10);
+  return (
+    (!query.dateFrom || value >= query.dateFrom) &&
+    (!query.dateTo || value <= query.dateTo)
+  );
+}
+
+function assertListDateOrder(query: {
+  dateFrom?: string;
+  dateTo?: string;
+}): void {
+  if (query.dateFrom && query.dateTo && query.dateFrom > query.dateTo)
+    throw new BadRequestException("dateFrom must be on or before dateTo");
+}
+
+function textMatches(value: string | null, search: string): boolean {
+  return value?.toLocaleLowerCase().includes(search) ?? false;
+}
+
+function productTextMatches(product: Product, search: string): boolean {
+  return [
+    product.sku,
+    ...product.translations.map((translation) => translation.name),
+  ].some((value) => textMatches(value, search));
+}
+
+function purchaseExportRows(
+  snapshot: Snapshot,
+  query: PurchaseListQueryDto,
+): AccountingPurchaseRow[] {
+  const search = query.q?.toLocaleLowerCase();
+  const matchingPurchaseIds = new Set<string>();
+  const totalsByPurchase = new Map<string, Prisma.Decimal>();
+  for (const product of snapshot.products) {
+    for (const item of product.purchaseItems) {
+      totalsByPurchase.set(
+        item.purchaseId,
+        (totalsByPurchase.get(item.purchaseId) ?? money(0)).add(
+          item.purchaseUnitPrice.mul(item.quantity),
+        ),
+      );
+      if (
+        search &&
+        (textMatches(item.purchase.purchaseNumber, search) ||
+          productTextMatches(product, search))
+      )
+        matchingPurchaseIds.add(item.purchaseId);
+    }
+  }
+
+  const groups = new Map<
+    string,
+    {
+      date: Date;
+      createdAt: Date;
+      rows: AccountingPurchaseRow[];
+    }
+  >();
+  for (const product of snapshot.products) {
+    if (
+      (query.productId && product.id !== query.productId) ||
+      (query.categoryId && product.categoryId !== query.categoryId)
+    )
+      continue;
+    for (const item of product.purchaseItems) {
+      if (
+        !listDateMatches(item.purchase.date, query) ||
+        (query.supplierId && item.purchase.supplierId !== query.supplierId) ||
+        (search && !matchingPurchaseIds.has(item.purchaseId))
+      )
+        continue;
+      const group = groups.get(item.purchaseId) ?? {
+        date: item.purchase.date,
+        createdAt: item.purchase.createdAt,
+        rows: [],
+      };
+      group.rows.push({
+        purchaseId: item.purchaseId,
+        purchaseNumber: item.purchase.purchaseNumber,
+        date: item.purchase.date.toISOString().slice(0, 10),
+        supplierId: item.purchase.supplierId,
+        supplierName: item.purchase.supplier.name,
+        productId: product.id,
+        sku: product.sku,
+        name: localizedName(product.translations, undefined, product.sku),
+        quantity: item.quantity,
+        purchaseUnitPrice: item.purchaseUnitPrice.toString(),
+        totalCost: item.purchaseUnitPrice.mul(item.quantity).toString(),
+      });
+      groups.set(item.purchaseId, group);
+    }
+  }
+
+  const direction = query.sort.endsWith("Asc") ? 1 : -1;
+  return [...groups.entries()]
+    .sort(([leftId, left], [rightId, right]) => {
+      if (query.sort.startsWith("total"))
+        return (
+          (totalsByPurchase.get(leftId) ?? money(0)).comparedTo(
+            totalsByPurchase.get(rightId) ?? money(0),
+          ) * direction || leftId.localeCompare(rightId)
+        );
+      return (
+        (+left.date - +right.date) * direction ||
+        (+left.createdAt - +right.createdAt) * direction ||
+        leftId.localeCompare(rightId)
+      );
+    })
+    .flatMap(([, group]) =>
+      group.rows.sort((left, right) =>
+        left.productId.localeCompare(right.productId),
+      ),
+    );
+}
+
+function saleExportRows(
+  snapshot: Snapshot,
+  query: SaleListQueryDto,
+): AccountingSaleRow[] {
+  const search = query.q?.toLocaleLowerCase();
+  const matchingSaleIds = new Set<string>();
+  const totalsBySale = new Map<
+    string,
+    { revenue: Prisma.Decimal; grossProfit: Prisma.Decimal }
+  >();
+  for (const product of snapshot.products) {
+    for (const item of product.saleItems) {
+      const amounts = saleAmounts(item);
+      const total = totalsBySale.get(item.saleId) ?? {
+        revenue: money(0),
+        grossProfit: money(0),
+      };
+      total.revenue = total.revenue.add(amounts.revenue);
+      total.grossProfit = total.grossProfit.add(amounts.grossProfit);
+      totalsBySale.set(item.saleId, total);
+      if (
+        search &&
+        ([
+          item.sale.saleNumber,
+          item.sale.orderId,
+          item.sale.customerName,
+          item.sale.customerPhone,
+        ].some((value) => textMatches(value, search)) ||
+          productTextMatches(product, search))
+      )
+        matchingSaleIds.add(item.saleId);
+    }
+  }
+
+  const groups = new Map<
+    string,
+    { date: Date; createdAt: Date; rows: AccountingSaleRow[] }
+  >();
+  for (const product of snapshot.products) {
+    if (
+      (query.productId && product.id !== query.productId) ||
+      (query.categoryId && product.categoryId !== query.categoryId)
+    )
+      continue;
+    for (const item of product.saleItems) {
+      if (
+        !listDateMatches(item.sale.date, query) ||
+        (query.channel && item.sale.channel !== query.channel) ||
+        (query.trainerReferralCode &&
+          item.sale.trainerReferralCode !== query.trainerReferralCode) ||
+        (search && !matchingSaleIds.has(item.saleId))
+      )
+        continue;
+      const amounts = saleAmounts(item);
+      const group = groups.get(item.saleId) ?? {
+        date: item.sale.date,
+        createdAt: item.sale.createdAt,
+        rows: [],
+      };
+      group.rows.push({
+        saleId: item.saleId,
+        saleNumber: item.sale.saleNumber,
+        date: item.sale.date.toISOString().slice(0, 10),
+        orderId: item.sale.orderId,
+        channel: item.sale.channel,
+        trainerReferralCode: item.sale.trainerReferralCode,
+        productId: product.id,
+        sku: product.sku,
+        name: localizedName(product.translations, undefined, product.sku),
+        quantity: item.quantity,
+        actualUnitPrice: item.actualUnitPrice.toString(),
+        lineDiscount: item.lineDiscount.toString(),
+        costUnitSnapshot: item.costUnitSnapshot.toString(),
+        revenue: amounts.revenue.toString(),
+        costOfGoodsSold: amounts.costOfGoodsSold.toString(),
+        grossProfit: amounts.grossProfit.toString(),
+      });
+      groups.set(item.saleId, group);
+    }
+  }
+
+  const direction = query.sort.endsWith("Asc") ? 1 : -1;
+  return [...groups.entries()]
+    .sort(([leftId, left], [rightId, right]) => {
+      if (query.sort.startsWith("revenue") || query.sort.startsWith("profit")) {
+        const field = query.sort.startsWith("revenue")
+          ? "revenue"
+          : "grossProfit";
+        return (
+          (totalsBySale.get(leftId)?.[field] ?? money(0)).comparedTo(
+            totalsBySale.get(rightId)?.[field] ?? money(0),
+          ) * direction || leftId.localeCompare(rightId)
+        );
+      }
+      return (
+        (+left.date - +right.date) * direction ||
+        (+left.createdAt - +right.createdAt) * direction ||
+        leftId.localeCompare(rightId)
+      );
+    })
+    .flatMap(([, group]) =>
+      group.rows.sort((left, right) =>
+        left.productId.localeCompare(right.productId),
+      ),
+    );
+}
+
+function expenseExportRows(
+  snapshot: Snapshot,
+  query: ExpenseListQueryDto,
+): AccountingExpenseRow[] {
+  const search = query.q?.toLocaleLowerCase();
+  const direction = query.sort.endsWith("Asc") ? 1 : -1;
+  return snapshot.expenses
+    .filter(
+      (expense) =>
+        listDateMatches(expense.date, query) &&
+        (!query.categoryId || expense.categoryId === query.categoryId) &&
+        (!query.source || expense.source === query.source) &&
+        (!search ||
+          [expense.description, expense.paymentMethod, expense.notes].some(
+            (value) => textMatches(value, search),
+          )),
+    )
+    .sort((left, right) => {
+      if (query.sort.startsWith("amount"))
+        return (
+          left.amount.comparedTo(right.amount) * direction ||
+          +right.date - +left.date ||
+          left.id.localeCompare(right.id)
+        );
+      return (
+        (+left.date - +right.date) * direction ||
+        (+left.createdAt - +right.createdAt) * direction ||
+        left.id.localeCompare(right.id)
+      );
+    })
+    .map((expense) => ({
+      id: expense.id,
+      date: expense.date.toISOString().slice(0, 10),
+      categoryId: expense.categoryId,
+      categoryName:
+        expense.recurringOccurrence?.categoryNameSnapshot ??
+        expense.category.name,
+      description: expense.description,
+      amount: expense.amount.toString(),
+      source: expense.source,
+      paymentMethod: expense.paymentMethod,
+      notes: expense.notes,
+    }));
 }
 
 function totals(
@@ -509,6 +789,27 @@ export class FinanceReportingService {
     return breakdown(selectedExpenses(snapshot, query));
   }
 
+  async getPurchaseExportRows(
+    query: PurchaseListQueryDto,
+  ): Promise<AccountingPurchaseRow[]> {
+    assertListDateOrder(query);
+    return purchaseExportRows(await this.readStored(true, false), query);
+  }
+
+  async getSaleExportRows(
+    query: SaleListQueryDto,
+  ): Promise<AccountingSaleRow[]> {
+    assertListDateOrder(query);
+    return saleExportRows(await this.readStored(true, false), query);
+  }
+
+  async getExpenseExportRows(
+    query: ExpenseListQueryDto,
+  ): Promise<AccountingExpenseRow[]> {
+    assertListDateOrder(query);
+    return expenseExportRows(await this.readStored(false, true), query);
+  }
+
   async getExportDataset(
     query: AccountingExportQuery,
   ): Promise<AccountingDataset> {
@@ -643,5 +944,31 @@ export class FinanceReportingService {
         rethrowCatalogConflict(error);
       }
     }
+  }
+
+  private async readStored(
+    withProducts: boolean,
+    withExpenses: boolean,
+  ): Promise<Snapshot> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const [products, expenses] = await Promise.all([
+          withProducts
+            ? tx.product.findMany({
+                include: productInclude,
+                orderBy: { id: "asc" },
+              })
+            : Promise.resolve([]),
+          withExpenses
+            ? tx.expense.findMany({
+                include: expenseInclude,
+                orderBy: [{ date: "asc" }, { id: "asc" }],
+              })
+            : Promise.resolve([]),
+        ]);
+        return { products, expenses };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 }
