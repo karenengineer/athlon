@@ -18,15 +18,48 @@
       </button>
     </div>
   </header>
-  <nav [attr.aria-label]="i18n.translate('admin')">
-    @for (link of links; track link) {<a
-      [routerLink]="link === 'dashboard' ? '/admin' : '/admin/' + link"
+  <nav class="primary-navigation" [attr.aria-label]="i18n.translate('admin')">
+    @for (link of links; track link.path) {
+    <a
+      [routerLink]="link.path"
       routerLinkActive="active"
-      [routerLinkActiveOptions]="{exact:link === 'dashboard'}"
+      [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
       ariaCurrentWhenActive="page"
-      >{{ i18n.translate(link) }}</a
-    >}
-    <a [routerLink]="'/' + i18n.locale()">{{ i18n.translate('publicSite') }}</a>
+    >
+      {{ i18n.translate(link.key) }}
+    </a>
+    }
+    <section class="navigation-group">
+      <button
+        type="button"
+        class="navigation-group-toggle"
+        aria-controls="finance-navigation"
+        [attr.aria-expanded]="financeOpen()"
+        (click)="toggleFinance()"
+      >
+        <span>{{ i18n.translate('financeInventory') }}</span>
+        <span aria-hidden="true">{{ financeOpen() ? '−' : '+' }}</span>
+      </button>
+      <div
+        id="finance-navigation"
+        class="navigation-group-links"
+        [hidden]="!financeOpen()"
+      >
+        @for (link of financeLinks; track link.path) {
+        <a
+          [routerLink]="link.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
+          ariaCurrentWhenActive="page"
+        >
+          {{ i18n.translate(link.key) }}
+        </a>
+        }
+      </div>
+    </section>
+    <a class="public-site-link" [routerLink]="'/' + i18n.locale()">
+      {{ i18n.translate('publicSite') }}
+    </a>
   </nav>
   <main>
     @if (logoutFailed()) {

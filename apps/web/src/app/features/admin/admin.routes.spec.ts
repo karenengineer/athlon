@@ -11,6 +11,8 @@ import { RouterTestingHarness } from "@angular/router/testing";
 import { RenderMode } from "@angular/ssr";
 import { routes } from "../../app.routes";
 import { serverRoutes } from "../../app.routes.server";
+import { adminRoutes } from "./admin.routes";
+import { adminAuthGuard } from "./auth/admin-auth.guard";
 import { adminHttpInterceptor } from "./auth/admin-http.interceptor";
 import { LoginPage } from "./auth/login-page";
 import { DashboardPage } from "./dashboard/dashboard-page";
@@ -316,6 +318,31 @@ describe("admin route boundaries and UI", () => {
     } finally {
       confirm.mockRestore();
     }
+  });
+
+  it("keeps finance routes lazy and protected by the admin shell guard", async () => {
+    const shell = adminRoutes[0].children?.find(
+      (route) => route.path === "" && route.canActivate,
+    );
+    const finance = shell?.children?.find((route) => route.path === "finance");
+
+    expect(shell?.canActivate).toContain(adminAuthGuard);
+    expect(finance?.loadChildren).toEqual(expect.any(Function));
+    expect(finance?.children).toBeUndefined();
+
+    const loaded = await finance!.loadChildren!();
+    const financeRoutes = Array.isArray(loaded) ? loaded : [];
+    expect(financeRoutes.map((route) => route.path)).toEqual(
+      expect.arrayContaining([
+        "",
+        "products",
+        "purchases",
+        "sales",
+        "expenses",
+        "monthly-summary",
+        "export",
+      ]),
+    );
   });
 
   it("uses client rendering for admin while preserving public server rendering", () => {
