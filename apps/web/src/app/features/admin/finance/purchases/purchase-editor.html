@@ -1,0 +1,103 @@
+<section class="finance-page" aria-labelledby="purchase-editor-heading">
+  <div class="heading">
+    <h1 id="purchase-editor-heading">{{ id ? 'Edit' : 'Create' }} purchase</h1>
+    <a routerLink="/admin/finance/purchases" queryParamsHandling="preserve"
+      >Back to purchases</a
+    >
+  </div>
+  @if (loading() || optionsLoading()) {
+  <p role="status">Loading purchase…</p>
+  } @if (error()) {
+  <div #errorSummary role="alert" tabindex="-1" data-error-summary>
+    {{ error() }}
+    <button type="button" data-retry (click)="id ? load() : loadOptions()">
+      Retry
+    </button>
+  </div>
+  } @if (saved()) {
+  <p role="status">Purchase saved. Server total: {{ authoritativeTotal() }}</p>
+  } @if (!loading()) {
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <fieldset [disabled]="saving() || optionsLoading()">
+      <label for="purchase-date">Date</label
+      ><input id="purchase-date" type="date" formControlName="date" /><label
+        for="purchase-supplier"
+        >Supplier</label
+      ><select id="purchase-supplier" formControlName="supplierId">
+        <option value="">Choose supplier</option>
+        @for (supplier of suppliers(); track supplier.id) {
+        <option [value]="supplier.id">{{ supplier.name }}</option>
+        }</select
+      ><label for="purchase-notes">Notes</label
+      ><textarea id="purchase-notes" formControlName="notes"></textarea>
+      <fieldset formArrayName="items">
+        <legend>Products</legend>
+        @for (row of items.controls; track row; let index = $index) {
+        <div class="finance-toolbar" data-item-row [formGroupName]="index">
+          <div>
+            <label [for]="'purchase-product-' + index">Product</label
+            ><select
+              [id]="'purchase-product-' + index"
+              formControlName="productId"
+            >
+              <option value="">Choose product</option>
+              @for (product of products(); track product.productId) {
+              <option [value]="product.productId">
+                {{ product.name }} ({{ product.sku }})
+              </option>
+              }
+            </select>
+          </div>
+          <div>
+            <label [for]="'purchase-quantity-' + index">Quantity</label
+            ><input
+              [id]="'purchase-quantity-' + index"
+              type="number"
+              min="1"
+              step="1"
+              formControlName="quantity"
+            />
+          </div>
+          <div>
+            <label [for]="'purchase-price-' + index">Purchase unit price</label
+            ><input
+              [id]="'purchase-price-' + index"
+              inputmode="decimal"
+              formControlName="purchaseUnitPrice"
+            />
+          </div>
+          <p [attr.data-line-total]="index">
+            Line total: {{ lineTotal(index) }}
+          </p>
+          <button
+            type="button"
+            [attr.data-remove-row]="index"
+            [disabled]="items.length === 1"
+            (click)="removeItem(index)"
+          >
+            Remove
+          </button>
+        </div>
+        }<button type="button" data-add-row (click)="addItem()">
+          Add product</button
+        >@if (items.hasError('duplicateProducts')) {
+        <p role="alert" data-duplicate-products>
+          Each product may appear only once.
+        </p>
+        }
+      </fieldset>
+      <p>Purchase preview total: {{ draftTotal() }}</p>
+      <div class="form-actions">
+        <button
+          type="submit"
+          [disabled]="form.invalid || saving() || optionsLoading()"
+        >
+          {{ saving() ? 'Saving…' : 'Save' }}</button
+        ><a routerLink="/admin/finance/purchases" queryParamsHandling="preserve"
+          >Cancel</a
+        >
+      </div>
+    </fieldset>
+  </form>
+  }
+</section>

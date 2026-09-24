@@ -1,0 +1,135 @@
+<section class="finance-page" aria-labelledby="sale-editor-heading">
+  <div class="heading">
+    <h1 id="sale-editor-heading">{{ id ? 'Edit' : 'Create' }} sale</h1>
+    <a routerLink="/admin/finance/sales" queryParamsHandling="preserve"
+      >Back to sales</a
+    >
+  </div>
+  @if (loading() || optionsLoading()) {
+  <p role="status">Loading sale…</p>
+  } @if (error()) {
+  <div #errorSummary role="alert" tabindex="-1" data-error-summary>
+    {{ error() }}
+    <button type="button" data-retry (click)="id ? load() : loadOptions()">
+      Retry
+    </button>
+  </div>
+  } @if (saved()) {
+  <p role="status">Sale saved. Server net revenue: {{ authoritativeNet() }}</p>
+  } @if (!loading()) {
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <fieldset [disabled]="saving() || optionsLoading()">
+      <div class="finance-filters">
+        <div>
+          <label for="sale-date">Date</label
+          ><input id="sale-date" type="date" formControlName="date" />
+        </div>
+        <div>
+          <label for="sale-order">Order ID</label
+          ><input id="sale-order" formControlName="orderId" />
+        </div>
+        <div>
+          <label for="sale-channel">Channel</label
+          ><select id="sale-channel" formControlName="channel">
+            @for (channel of channels; track channel) {
+            <option [value]="channel">{{ channel }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="sale-referral">Referral code</label
+          ><input id="sale-referral" formControlName="trainerReferralCode" />
+        </div>
+        <div>
+          <label for="sale-customer">Customer name</label
+          ><input id="sale-customer" formControlName="customerName" />
+        </div>
+        <div>
+          <label for="sale-phone">Customer phone</label
+          ><input id="sale-phone" formControlName="customerPhone" />
+        </div>
+      </div>
+      <label for="sale-notes">Notes</label
+      ><textarea id="sale-notes" formControlName="notes"></textarea>
+      <fieldset formArrayName="items">
+        <legend>Products</legend>
+        @for (row of items.controls; track row; let index = $index) {
+        <div class="finance-toolbar" data-item-row [formGroupName]="index">
+          <div>
+            <label [for]="'sale-product-' + index">Product</label
+            ><select [id]="'sale-product-' + index" formControlName="productId">
+              <option value="">Choose product</option>
+              @for (product of products(); track product.productId) {
+              <option [value]="product.productId">
+                {{ product.name }} ({{ product.sku }})
+              </option>
+              }
+            </select>
+          </div>
+          <div>
+            <label [for]="'sale-quantity-' + index">Quantity</label
+            ><input
+              [id]="'sale-quantity-' + index"
+              type="number"
+              min="1"
+              step="1"
+              formControlName="quantity"
+            />
+          </div>
+          <div>
+            <label [for]="'sale-price-' + index">Actual unit price</label
+            ><input
+              [id]="'sale-price-' + index"
+              inputmode="decimal"
+              formControlName="actualUnitPrice"
+            />
+          </div>
+          <div>
+            <label [for]="'sale-discount-' + index">Line discount</label
+            ><input
+              [id]="'sale-discount-' + index"
+              inputmode="decimal"
+              formControlName="lineDiscount"
+            />
+          </div>
+          <p [attr.data-available-stock]="index">
+            Available stock: {{ availableStock(index) ?? '—' }}
+          </p>
+          <p [attr.data-line-net]="index">Net revenue: {{ lineNet(index) }}</p>
+          <button
+            type="button"
+            [attr.data-remove-row]="index"
+            [disabled]="items.length === 1"
+            (click)="removeItem(index)"
+          >
+            Remove</button
+          >@if (row.hasError('discount')) {
+          <p class="finance-field-error">
+            Discount cannot exceed line revenue.
+          </p>
+          }
+        </div>
+        }<button type="button" data-add-row (click)="addItem()">
+          Add product</button
+        >@if (items.hasError('duplicateProducts')) {
+        <p role="alert" data-duplicate-products>
+          Each product may appear only once.
+        </p>
+        }
+      </fieldset>
+      <p data-sale-net>Sale net revenue preview: {{ draftNet() }}</p>
+      <p>Preview values are estimates until the server saves the sale.</p>
+      <div class="form-actions">
+        <button
+          type="submit"
+          [disabled]="form.invalid || saving() || optionsLoading()"
+        >
+          {{ saving() ? 'Saving…' : 'Save' }}</button
+        ><a routerLink="/admin/finance/sales" queryParamsHandling="preserve"
+          >Cancel</a
+        >
+      </div>
+    </fieldset>
+  </form>
+  }
+</section>

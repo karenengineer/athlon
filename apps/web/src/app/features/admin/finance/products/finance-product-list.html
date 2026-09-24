@@ -1,0 +1,132 @@
+<section class="finance-page" aria-labelledby="finance-products-heading">
+  <h1 id="finance-products-heading">Products &amp; inventory</h1>
+  <form class="finance-filters" [formGroup]="filters" (ngSubmit)="search()">
+    <div>
+      <label for="q">Search</label
+      ><input id="q" formControlName="q" maxlength="120" />
+    </div>
+    <div>
+      <label for="categoryId">Category ID</label
+      ><input id="categoryId" formControlName="categoryId" />
+    </div>
+    <div>
+      <label for="supplierId">Supplier ID</label
+      ><input id="supplierId" formControlName="supplierId" />
+    </div>
+    <div>
+      <label for="stockStatus">Stock status</label
+      ><select id="stockStatus" formControlName="stockStatus">
+        <option value="">All</option>
+        <option value="IN_STOCK">In stock</option>
+        <option value="LOW_STOCK">Low stock</option>
+        <option value="OUT_OF_STOCK">Out of stock</option>
+      </select>
+    </div>
+    <div>
+      <label for="sort">Sort</label
+      ><select id="sort" formControlName="sort">
+        <option value="nameAsc">Name ascending</option>
+        <option value="nameDesc">Name descending</option>
+        <option value="stockAsc">Stock ascending</option>
+        <option value="stockDesc">Stock descending</option>
+        <option value="profitAsc">Profit ascending</option>
+        <option value="profitDesc">Profit descending</option>
+        <option value="marginAsc">Margin ascending</option>
+        <option value="marginDesc">Margin descending</option>
+        <option value="revenueAsc">Revenue ascending</option>
+        <option value="revenueDesc">Revenue descending</option>
+        <option value="unitsSoldAsc">Units sold ascending</option>
+        <option value="unitsSoldDesc">Units sold descending</option>
+      </select>
+    </div>
+    <div>
+      <label for="pageSize">Page size</label
+      ><select id="pageSize" formControlName="pageSize">
+        <option [ngValue]="10">10</option>
+        <option [ngValue]="24">24</option>
+        <option [ngValue]="50">50</option>
+        <option [ngValue]="100">100</option>
+      </select>
+    </div>
+    <button type="submit" data-search>Search</button
+    ><button type="button" (click)="clear()">Clear</button>
+  </form>
+  @if (error()) {
+  <p role="alert">
+    Could not load inventory.
+    <button type="button" data-retry (click)="load()">Retry</button>
+  </p>
+  } @if (loading()) {
+  <p role="status">Loading inventory…</p>
+  } @if (!loading() && list(); as result) { @if (!result.items.length) {
+  <p>No products found.</p>
+  } @else {
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <caption>
+        Product finance and inventory
+      </caption>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Supplier</th>
+          <th>Default sale price</th>
+          <th>Average buy price</th>
+          <th>Purchased</th>
+          <th>Sold</th>
+          <th>Current stock</th>
+          <th>Stock status</th>
+          <th>Profit / unit</th>
+          <th>Margin</th>
+          <th>Inventory value</th>
+          <th>Realized gross profit</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of result.items; track item.productId) {
+        <tr
+          [attr.data-stock-status]="item.stockStatus"
+          [class.finance-negative]="item.stockStatus !== 'IN_STOCK'"
+        >
+          <td>{{ item.sku }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.category.name }}</td>
+          <td>{{ item.suppliers.length ? item.suppliers[0].name : '—' }}</td>
+          <td>{{ money(item.defaultSalePrice) }}</td>
+          <td>{{ money(item.weightedAverageBuyPrice) }}</td>
+          <td>{{ item.totalPurchased }}</td>
+          <td>{{ item.totalSold }}</td>
+          <td>{{ item.currentStock }}</td>
+          <td>{{ stockLabel(item.stockStatus) }}</td>
+          <td>{{ money(item.profitPerUnit) }}</td>
+          <td>{{ percent(item.marginPercent) }}</td>
+          <td>{{ money(item.inventoryValue) }}</td>
+          <td>{{ money(item.realizedGrossProfit) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+  <nav class="finance-toolbar" aria-label="Pagination">
+    <button
+      type="button"
+      [disabled]="result.meta.page <= 1"
+      (click)="page(result.meta.page - 1)"
+    >
+      Previous</button
+    ><span
+      >Page {{ result.meta.page }} / {{ result.meta.totalPages || 1 }} ({{
+      result.meta.total }})</span
+    ><button
+      type="button"
+      [disabled]="result.meta.page >= result.meta.totalPages"
+      (click)="page(result.meta.page + 1)"
+    >
+      Next
+    </button>
+  </nav>
+  }
+</section>
