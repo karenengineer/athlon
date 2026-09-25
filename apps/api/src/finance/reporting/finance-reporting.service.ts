@@ -52,7 +52,11 @@ const expenseInclude = { category: true, recurringOccurrence: true } as const;
 type Product = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 type Expense = Prisma.ExpenseGetPayload<{ include: typeof expenseInclude }>;
 type Snapshot = { products: Product[]; expenses: Expense[] };
-type SelectedProduct = { product: Product; row: FinanceProductRow };
+type SelectedProduct = {
+  product: Product;
+  row: FinanceProductRow;
+  inventoryValue: Prisma.Decimal;
+};
 
 const serializedRange = (range: DateRange): SerializedRange => ({
   from: range.from.toISOString(),
@@ -86,10 +90,10 @@ function saleMatches(
 }
 
 function saleAmounts(item: Product["saleItems"][number]) {
-  const revenue = roundMoney(
-    item.actualUnitPrice.mul(item.quantity).sub(item.lineDiscount),
-  );
-  const costOfGoodsSold = roundMoney(item.costUnitSnapshot.mul(item.quantity));
+  const revenue = item.actualUnitPrice
+    .mul(item.quantity)
+    .sub(item.lineDiscount);
+  const costOfGoodsSold = item.costUnitSnapshot.mul(item.quantity);
   return {
     revenue,
     costOfGoodsSold,
@@ -198,14 +202,14 @@ function selectProducts(
           : null,
       inventoryValue: roundMoney(position.inventoryValue).toString(),
       unitsSold: sales.reduce((sum, item) => sum + item.quantity, 0),
-      realizedRevenue: revenue.toString(),
-      realizedCostOfGoodsSold: costOfGoodsSold.toString(),
-      realizedGrossProfit: grossProfit.toString(),
+      realizedRevenue: roundMoney(revenue).toString(),
+      realizedCostOfGoodsSold: roundMoney(costOfGoodsSold).toString(),
+      realizedGrossProfit: roundMoney(grossProfit).toString(),
       realizedGrossMarginPercent: (
         safePercent(grossProfit, revenue) ?? money(0)
       ).toString(),
     };
-    return [{ product, row }];
+    return [{ product, row, inventoryValue: position.inventoryValue }];
   });
 }
 
@@ -558,13 +562,13 @@ function totals(
   const netProfit = grossProfit.sub(totalExpenses);
   const orderCount = new Set(sales.map((row) => row.saleId)).size;
   return {
-    revenue: revenue.toString(),
-    costOfGoodsSold: costOfGoodsSold.toString(),
-    grossProfit: grossProfit.toString(),
-    operatingExpenses: operatingExpenses.toString(),
-    recurringExpenses: recurringExpenses.toString(),
-    totalExpenses: totalExpenses.toString(),
-    netProfit: netProfit.toString(),
+    revenue: roundMoney(revenue).toString(),
+    costOfGoodsSold: roundMoney(costOfGoodsSold).toString(),
+    grossProfit: roundMoney(grossProfit).toString(),
+    operatingExpenses: roundMoney(operatingExpenses).toString(),
+    recurringExpenses: roundMoney(recurringExpenses).toString(),
+    totalExpenses: roundMoney(totalExpenses).toString(),
+    netProfit: roundMoney(netProfit).toString(),
     grossMarginPercent: (
       safePercent(grossProfit, revenue) ?? money(0)
     ).toString(),
@@ -620,8 +624,8 @@ function dashboard(
     range: serializedRange(query),
     previousRange: serializedRange(previousRange),
     comparisons,
-    inventoryValue: moneySum(
-      products.map(({ row }) => money(row.inventoryValue)),
+    inventoryValue: roundMoney(
+      moneySum(products.map(({ inventoryValue }) => inventoryValue)),
     ).toString(),
     currentStock: products.reduce((sum, { row }) => sum + row.currentStock, 0),
     lowStockCount: products.filter(({ row }) => row.stockStatus === "LOW_STOCK")

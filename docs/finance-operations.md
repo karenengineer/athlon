@@ -19,7 +19,7 @@ In a configured local or staging environment, run:
 
 ```bash
 pnpm --filter @athlon/api db:deploy
-pnpm --filter @athlon/api db:import-finance-opening -- --dry-run
+pnpm --filter @athlon/api db:import-finance-opening --dry-run
 pnpm --filter @athlon/api db:import-finance-opening
 pnpm verify
 ```
