@@ -41,10 +41,10 @@ export class MonthlySummaryPage {
   private request?: Subscription;
   constructor() {
     this.api
-      .listExpenseCategories({ pageSize: 100 })
+      .allExpenseCategories()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (r) => this.categories.set(r.items),
+        next: (categories) => this.categories.set(categories),
         error: () => this.error.set("Could not load expense categories."),
       });
     this.route.queryParamMap

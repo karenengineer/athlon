@@ -185,33 +185,66 @@ describe("finance reports admin pages", () => {
       totals,
     });
     http.expectOne((r) => r.url === `${base}expense-breakdown`).flush([]);
-    http
-      .expectOne((r) => r.url === `${base}expense-categories`)
-      .flush(envelope([{ id: "ec1", name: "Rent", active: true }]));
+    const firstCategories = http.expectOne(
+      (r) => r.url === `${base}expense-categories`,
+    );
+    expect(firstCategories.request.params.get("page")).toBe("1");
+    firstCategories.flush({
+      items: [
+        { id: "ec1", name: "Rent", active: true },
+        ...Array.from({ length: 99 }, (_, index) => ({
+          id: `first-${index}`,
+          name: `Other ${index}`,
+          active: true,
+        })),
+      ],
+      meta: { page: 1, pageSize: 100, total: 101, totalPages: 2 },
+    });
+    const secondCategories = http.expectOne(
+      (r) => r.url === `${base}expense-categories`,
+    );
+    expect(secondCategories.request.params.get("page")).toBe("2");
+    secondCategories.flush({
+      items: [{ id: "ec2", name: "Utilities", active: true }],
+      meta: { page: 2, pageSize: 100, total: 101, totalPages: 2 },
+    });
     harness.detectChanges();
     expect(
       dom().querySelector("#summary-expense-category")?.textContent,
     ).toContain("Rent");
+    expect(
+      dom().querySelector("#summary-expense-category")?.textContent,
+    ).toContain("Utilities");
     expect(dom().textContent).toContain("Gross margin");
     expect(dom().querySelector("#summary-expense-category")?.tagName).toBe(
       "SELECT",
     );
     expect(dom().textContent).not.toMatch(/Infinity|NaN/);
     input("#summary-month", "8");
+    input("#summary-expense-category", "ec2");
     dom().querySelector<HTMLButtonElement>("[data-apply]")!.click();
     await vi.waitFor(() =>
       expect(TestBed.inject(Router).url).toContain("month=8"),
     );
-    http
-      .expectOne((r) => r.url === `${base}monthly-summary`)
-      .flush({
-        year: 2026,
-        month: 8,
-        range: { from: "2026-08-01", to: "2026-08-31" },
-        months: [],
-        totals,
-      });
-    http.expectOne((r) => r.url === `${base}expense-breakdown`).flush([]);
+    expect(TestBed.inject(Router).url).toContain("expenseCategoryId=ec2");
+    const filteredMonth = http.expectOne(
+      (r) => r.url === `${base}monthly-summary`,
+    );
+    expect(filteredMonth.request.params.get("expenseCategoryId")).toBe("ec2");
+    filteredMonth.flush({
+      year: 2026,
+      month: 8,
+      range: { from: "2026-08-01", to: "2026-08-31" },
+      months: [],
+      totals,
+    });
+    const filteredBreakdown = http.expectOne(
+      (r) => r.url === `${base}expense-breakdown`,
+    );
+    expect(filteredBreakdown.request.params.get("expenseCategoryId")).toBe(
+      "ec2",
+    );
+    filteredBreakdown.flush([]);
   });
 
   it("keeps monthly CSV out of date-range exports and sends year/month from the summary page", async () => {

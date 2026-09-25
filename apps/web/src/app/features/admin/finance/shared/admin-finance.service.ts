@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams, HttpResponse } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
-import { map, Observable } from "rxjs";
+import { map, Observable, of, switchMap } from "rxjs";
 import {
   Expense,
   ExpenseBreakdownRow,
@@ -169,6 +169,17 @@ export class AdminFinanceService {
     query: ExpenseCategoryQuery = {},
   ): Observable<FinanceList<ExpenseCategory>> {
     return this.get("expense-categories", query);
+  }
+  allExpenseCategories(page = 1): Observable<ExpenseCategory[]> {
+    return this.listExpenseCategories({ page, pageSize: 100 }).pipe(
+      switchMap((list) =>
+        list.meta.page < list.meta.totalPages
+          ? this.allExpenseCategories(page + 1).pipe(
+              map((rest) => [...list.items, ...rest]),
+            )
+          : of(list.items),
+      ),
+    );
   }
 
   createExpenseCategory(
