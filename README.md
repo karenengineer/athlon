@@ -42,6 +42,10 @@ sales:
 pnpm --filter @athlon/api db:import-finance-opening
 ```
 
+Before a production migration or import, take and record a database backup.
+Follow the [finance operations runbook](docs/finance-operations.md) for dry-run
+reconciliation, verified import, finance/export smoke checks, and rollback.
+
 The importer uses stable keys, so rerunning it does not duplicate entries. It
 prints purchased and sold units, remaining stock, inventory value, revenue,
 COGS, and gross profit by SKU and in total. It exits with an error when

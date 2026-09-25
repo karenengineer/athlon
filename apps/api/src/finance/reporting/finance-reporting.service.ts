@@ -86,10 +86,10 @@ function saleMatches(
 }
 
 function saleAmounts(item: Product["saleItems"][number]) {
-  const revenue = item.actualUnitPrice
-    .mul(item.quantity)
-    .sub(item.lineDiscount);
-  const costOfGoodsSold = item.costUnitSnapshot.mul(item.quantity);
+  const revenue = roundMoney(
+    item.actualUnitPrice.mul(item.quantity).sub(item.lineDiscount),
+  );
+  const costOfGoodsSold = roundMoney(item.costUnitSnapshot.mul(item.quantity));
   return {
     revenue,
     costOfGoodsSold,
@@ -177,7 +177,7 @@ function selectProducts(
       },
       suppliers,
       defaultSalePrice: product.price?.toString() ?? null,
-      weightedAverageBuyPrice: position.averageUnitCost.toString(),
+      weightedAverageBuyPrice: roundMoney(position.averageUnitCost).toString(),
       totalPurchased: product.purchaseItems.reduce(
         (sum, item) => sum + item.quantity,
         0,
@@ -189,12 +189,14 @@ function selectProducts(
       currentStock: position.quantity,
       lowStockThreshold: product.lowStockThreshold,
       stockStatus,
-      profitPerUnit: profitPerUnit?.toString() ?? null,
+      profitPerUnit: profitPerUnit
+        ? roundMoney(profitPerUnit).toString()
+        : null,
       marginPercent:
         profitPerUnit !== null && product.price !== null
           ? (safePercent(profitPerUnit, product.price)?.toString() ?? null)
           : null,
-      inventoryValue: position.inventoryValue.toString(),
+      inventoryValue: roundMoney(position.inventoryValue).toString(),
       unitsSold: sales.reduce((sum, item) => sum + item.quantity, 0),
       realizedRevenue: revenue.toString(),
       realizedCostOfGoodsSold: costOfGoodsSold.toString(),

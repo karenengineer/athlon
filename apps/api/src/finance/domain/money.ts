@@ -2,8 +2,7 @@ import { Prisma } from "../../generated/prisma/client";
 
 export const money = (
   value: ConstructorParameters<typeof Prisma.Decimal>[0],
-): Prisma.Decimal =>
-  new Prisma.Decimal(value);
+): Prisma.Decimal => new Prisma.Decimal(value);
 
 export const moneySum = (values: Prisma.Decimal[]): Prisma.Decimal =>
   values.reduce((sum, value) => sum.add(value), new Prisma.Decimal(0));

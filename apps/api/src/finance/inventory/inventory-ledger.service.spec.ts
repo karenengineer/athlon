@@ -41,7 +41,8 @@ const sale = (
   createdAt: new Date(`${occurredAt}T00:00:00.000Z`),
 });
 
-const replay = (entries: InventoryLedgerEntry[]) => replayInventoryLedger(entries);
+const replay = (entries: InventoryLedgerEntry[]) =>
+  replayInventoryLedger(entries);
 
 describe("inventory ledger replay", () => {
   it("keeps 7 units after purchasing 10 and selling 3", () => {
@@ -167,17 +168,19 @@ describe("InventoryLedgerService", () => {
     );
 
     expect(result.position.quantity).toBe(5);
-    expect(saleUpdates).toEqual([
-      { id: "sale-1", costUnitSnapshot: "12000" },
-    ]);
+    expect(saleUpdates).toEqual([{ id: "sale-1", costUnitSnapshot: "12000" }]);
   });
 
   it("restores stock when a sale is deleted", async () => {
     const { tx } = transactionFor(existingEntries);
 
-    const result = await new InventoryLedgerService().replayProduct(tx as never, productId, {
-      deleteIds: ["sale-1"],
-    });
+    const result = await new InventoryLedgerService().replayProduct(
+      tx as never,
+      productId,
+      {
+        deleteIds: ["sale-1"],
+      },
+    );
 
     expect(result.position.quantity).toBe(10);
   });
@@ -254,8 +257,6 @@ describe("InventoryLedgerService", () => {
     );
 
     expect(result.saleCosts.get("sale-1")?.toString()).toBe("15000");
-    expect(saleUpdates).toEqual([
-      { id: "sale-1", costUnitSnapshot: "15000" },
-    ]);
+    expect(saleUpdates).toEqual([{ id: "sale-1", costUnitSnapshot: "15000" }]);
   });
 });

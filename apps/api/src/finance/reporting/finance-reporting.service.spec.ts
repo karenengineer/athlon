@@ -204,7 +204,7 @@ describe("authoritative finance reporting", () => {
     expect(year.totals.revenue).toBe("1000000");
   });
 
-  it("uses stored six-decimal COGS and exact fractional transaction prices", async () => {
+  it("rounds stored six-decimal COGS at the reporting boundary", async () => {
     const { service, products } = setup();
     const a = products[0]!.saleItems[0]!;
     const b = products[1]!.saleItems[0]!;
@@ -215,8 +215,8 @@ describe("authoritative finance reporting", () => {
     b.costUnitSnapshot = money("0.04");
     expect(await service.getDashboard(range)).toMatchObject({
       revenue: "1.39",
-      costOfGoodsSold: "0.340006",
-      grossProfit: "1.049994",
+      costOfGoodsSold: "0.34",
+      grossProfit: "1.05",
     });
   });
 

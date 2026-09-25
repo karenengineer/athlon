@@ -64,7 +64,9 @@ const mergeProposedMutation = (
   proposed?: LedgerMutation,
 ): InventoryLedgerEntry[] => {
   const deletedIds = new Set(proposed?.deleteIds ?? []);
-  const upsertedIds = new Set((proposed?.upsert ?? []).map((entry) => entry.id));
+  const upsertedIds = new Set(
+    (proposed?.upsert ?? []).map((entry) => entry.id),
+  );
   const merged = new Map(
     entries
       .filter(
