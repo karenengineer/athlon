@@ -26,6 +26,28 @@ and proxies browser API requests to the NestJS development server.
 To create the initial administrator, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`
 before running the seed. The password must contain at least 12 characters.
 
+### Import the approved opening finance ledger
+
+After the database migration, catalog products, and an active administrator exist,
+check the 2026-09-20 opening source with a read-only preview:
+
+```bash
+pnpm --filter @athlon/api db:import-finance-opening --dry-run
+```
+
+When all 25 source SKUs exist, import the opening purchase and two historical
+sales:
+
+```bash
+pnpm --filter @athlon/api db:import-finance-opening
+```
+
+The importer uses stable keys, so rerunning it does not duplicate entries. It
+prints purchased and sold units, remaining stock, inventory value, revenue,
+COGS, and gross profit by SKU and in total. It exits with an error when
+reconciliation differs from the approved source. Existing catalog default
+prices are preserved; any difference from the opening source is reported.
+
 Uploaded image variants are stored under `UPLOAD_DIR` (local development defaults to
 `./uploads`). The application uses a storage adapter so an object-storage implementation
 can replace local disk storage later without changing the catalog domain.
