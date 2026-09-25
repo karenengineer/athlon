@@ -228,6 +228,7 @@ export async function importFinanceOpening(
       const ledger = new InventoryLedgerService();
       let createdPurchases = 0;
       let createdSales = 0;
+      const recordMismatches: string[] = [];
       let purchase = await tx.purchase.findUnique({
         where: { importKey: purchaseKey },
         include: { items: true },
@@ -278,6 +279,19 @@ export async function importFinanceOpening(
           include: { items: true },
         });
         createdPurchases = 1;
+      }
+      if (purchase.date.toISOString().slice(0, 10) !== "2026-09-20") {
+        recordMismatches.push(
+          `Opening purchase date: expected 2026-09-20, found ${purchase.date.toISOString().slice(0, 10)}`,
+        );
+      }
+      if (
+        purchase.importKey !== purchaseKey ||
+        purchase.purchaseNumber !== "PUR-20260920-OPENING"
+      ) {
+        recordMismatches.push(
+          "Opening purchase identifier differs from the approved import",
+        );
       }
 
       const sales = [];
@@ -334,7 +348,21 @@ export async function importFinanceOpening(
           });
           createdSales++;
         }
-        sales.push(sale);
+        if (sale.date.toISOString().slice(0, 10) !== "2026-09-20") {
+          recordMismatches.push(
+            `Opening sale ${row.sku} date: expected 2026-09-20, found ${sale.date.toISOString().slice(0, 10)}`,
+          );
+        }
+        if (
+          sale.importKey !== saleKey(row.sku) ||
+          sale.saleNumber !== `SAL-20260920-OPENING-${row.sku}` ||
+          sale.sourceType !== SaleSourceType.MANUAL
+        ) {
+          recordMismatches.push(
+            `Opening sale ${row.sku} identifier or source differs from the approved import`,
+          );
+        }
+        sales.push({ row, sale });
       }
 
       const actual = new Map(
@@ -346,7 +374,12 @@ export async function importFinanceOpening(
       for (const item of purchase.items) {
         const sku = byId.get(item.productId);
         const line = sku ? actual.get(sku) : undefined;
-        if (!line) continue;
+        if (!line) {
+          recordMismatches.push(
+            `Opening purchase contains unexpected product ${item.productId}`,
+          );
+          continue;
+        }
         line.purchased += item.quantity;
         line.purchaseCost = line.purchaseCost.add(
           item.purchaseUnitPrice.mul(item.quantity),
@@ -355,11 +388,16 @@ export async function importFinanceOpening(
           item.purchaseUnitPrice.mul(item.quantity),
         );
       }
-      for (const sale of sales) {
+      for (const { row, sale } of sales) {
         for (const item of sale.items) {
           const sku = byId.get(item.productId);
           const line = sku ? actual.get(sku) : undefined;
-          if (!line) continue;
+          if (!line || sku !== row.sku) {
+            recordMismatches.push(
+              `Opening sale ${row.sku} contains unexpected product ${item.productId}`,
+            );
+            continue;
+          }
           line.sold += item.quantity;
           const cost = item.costUnitSnapshot.mul(item.quantity);
           line.inventoryValue = line.inventoryValue.sub(cost);
@@ -369,12 +407,14 @@ export async function importFinanceOpening(
           line.costOfGoodsSold = line.costOfGoodsSold.add(cost);
         }
       }
+      const summary = summarize(financeOpeningData, actual);
       return {
         dryRun: false,
         createdPurchases,
         createdSales,
         ...base,
-        ...summarize(financeOpeningData, actual),
+        ...summary,
+        mismatches: [...summary.mismatches, ...recordMismatches],
       };
     },
     {

@@ -196,4 +196,58 @@ describe("opening finance import", () => {
       "TRPRCH: sold units, stock, inventory value, revenue, COGS",
     );
   });
+
+  it("reports unexpected product items in a keyed opening purchase", async () => {
+    const db = statefulDatabase();
+    await importFinanceOpening(db.prisma as never);
+    db.purchases.get("opening-purchase-2026-09-20")!.items.push({
+      id: "unexpected-purchase-item",
+      productId: "other-product",
+      quantity: 1,
+      purchaseUnitPrice: new Prisma.Decimal("50"),
+    });
+
+    const result = await importFinanceOpening(db.prisma as never);
+
+    expect(result.mismatches).toContain(
+      "Opening purchase contains unexpected product other-product",
+    );
+  });
+
+  it("reports unexpected product items in a keyed opening sale", async () => {
+    const db = statefulDatabase();
+    await importFinanceOpening(db.prisma as never);
+    db.sales.get("opening-sale-TRPRCH-2026-09-20")!.items.push({
+      id: "unexpected-sale-item",
+      productId: "other-product",
+      quantity: 1,
+      costUnitSnapshot: new Prisma.Decimal("50"),
+    });
+
+    const result = await importFinanceOpening(db.prisma as never);
+
+    expect(result.mismatches).toContain(
+      "Opening sale TRPRCH contains unexpected product other-product",
+    );
+  });
+
+  it("reports keyed opening records with the wrong accounting date", async () => {
+    const db = statefulDatabase();
+    await importFinanceOpening(db.prisma as never);
+    db.purchases.get("opening-purchase-2026-09-20")!.date = new Date(
+      "2026-09-21T00:00:00.000Z",
+    );
+    db.sales.get("opening-sale-TRPRCH-2026-09-20")!.date = new Date(
+      "2026-09-21T00:00:00.000Z",
+    );
+
+    const result = await importFinanceOpening(db.prisma as never);
+
+    expect(result.mismatches).toContain(
+      "Opening purchase date: expected 2026-09-20, found 2026-09-21",
+    );
+    expect(result.mismatches).toContain(
+      "Opening sale TRPRCH date: expected 2026-09-20, found 2026-09-21",
+    );
+  });
 });
