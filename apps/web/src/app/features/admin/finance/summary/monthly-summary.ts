@@ -7,6 +7,7 @@ import { saveFinanceDownload } from "../export/save-download";
 import { AdminFinanceService } from "../shared/admin-finance.service";
 import {
   ExpenseBreakdownRow,
+  ExpenseCategory,
   MonthlySummary,
   MonthlySummaryQuery,
 } from "../shared/finance-api.types";
@@ -25,6 +26,7 @@ export class MonthlySummaryPage {
   private readonly destroyRef = inject(DestroyRef);
   readonly summary = signal<MonthlySummary | null>(null);
   readonly breakdown = signal<ExpenseBreakdownRow[]>([]);
+  readonly categories = signal<ExpenseCategory[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly exporting = signal(false);
@@ -38,6 +40,13 @@ export class MonthlySummaryPage {
   private query: MonthlySummaryQuery = { year: new Date().getFullYear() };
   private request?: Subscription;
   constructor() {
+    this.api
+      .listExpenseCategories({ pageSize: 100 })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (r) => this.categories.set(r.items),
+        error: () => this.error.set("Could not load expense categories."),
+      });
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((p) => {

@@ -3,6 +3,9 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Subscription } from "rxjs";
+import { AdminCatalogService } from "../../shared/admin-catalog.service";
+import { AdminCategory } from "../../shared/admin-api.types";
+import { AdminI18nService } from "../../shared/admin-i18n.service";
 import { saveFinanceDownload } from "../export/save-download";
 import { AdminFinanceService } from "../shared/admin-finance.service";
 import {
@@ -22,10 +25,13 @@ import { DateRangeFilter } from "../shared/date-range-filter";
 })
 export class ProfitabilityList {
   private readonly api = inject(AdminFinanceService);
+  private readonly catalog = inject(AdminCatalogService);
+  private readonly i18n = inject(AdminI18nService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   readonly list = signal<FinanceList<ProductProfitabilityRow> | null>(null);
+  readonly categories = signal<AdminCategory[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly exporting = signal(false);
@@ -39,6 +45,13 @@ export class ProfitabilityList {
   private query: ProfitabilityQuery = {};
   private request?: Subscription;
   constructor() {
+    this.catalog
+      .allCategories()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (categories) => this.categories.set(categories),
+        error: () => this.error.set("Could not load product categories."),
+      });
     this.route.queryParamMap
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((p) => {
@@ -118,6 +131,15 @@ export class ProfitabilityList {
       queryParamsHandling: "merge",
       queryParams: { page: page === 1 ? null : page },
     });
+  }
+  categoryName(category: AdminCategory): string {
+    return (
+      category.translations.find(
+        (t) => t.locale === this.i18n.locale().toUpperCase(),
+      )?.name ??
+      category.translations[0]?.name ??
+      category.slug
+    );
   }
   margin(row: ProductProfitabilityRow): string {
     return Number(row.revenue) === 0

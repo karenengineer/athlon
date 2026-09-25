@@ -1,17 +1,18 @@
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { RouterLink } from "@angular/router";
 import { AdminFinanceService } from "../shared/admin-finance.service";
 import {
   FinanceExportEndpoint,
-  ReportQuery,
+  FinanceExportQuery,
 } from "../shared/finance-api.types";
 import { normalizedFinanceDate } from "../shared/date-range-filter";
 import { saveFinanceDownload } from "./save-download";
 
 @Component({
   selector: "app-finance-export",
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: "./export-page.html",
   styleUrls: ["../../shared/catalog.scss", "../shared/finance-ui.scss"],
 })
@@ -26,7 +27,6 @@ export class FinanceExportPage {
     { endpoint: "purchases.csv", label: "Purchases CSV" },
     { endpoint: "sales.csv", label: "Sales CSV" },
     { endpoint: "expenses.csv", label: "Expenses CSV" },
-    { endpoint: "monthly-summary.csv", label: "Monthly summary CSV" },
     { endpoint: "profitability.csv", label: "Profitability CSV" },
   ];
   readonly form = new FormGroup({
@@ -49,7 +49,13 @@ export class FinanceExportPage {
     const endpoint: FinanceExportEndpoint = accounting
       ? "accounting.xlsx"
       : v.endpoint;
-    const query: ReportQuery = { period: "custom", dateFrom: from, dateTo: to };
+    const query: FinanceExportQuery = [
+      "purchases.csv",
+      "sales.csv",
+      "expenses.csv",
+    ].includes(endpoint)
+      ? { dateFrom: from, dateTo: to }
+      : { period: "custom", dateFrom: from, dateTo: to };
     this.downloading.set(true);
     this.error.set(null);
     this.success.set(null);

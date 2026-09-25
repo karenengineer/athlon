@@ -29,11 +29,16 @@
       </select>
     </div>
     <div>
-      <label for="summary-expense-category">Expense category ID</label
-      ><input
+      <label for="summary-expense-category">Expense category</label
+      ><select
         id="summary-expense-category"
         formControlName="expenseCategoryId"
-      />
+      >
+        <option value="">All expense categories</option>
+        @for (category of categories(); track category.id) {
+        <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
     </div>
     <button data-apply type="submit">Apply</button>
   </form>

@@ -126,7 +126,12 @@ describe("finance reports admin pages", () => {
         lowStockCount: 0,
         outOfStockCount: 0,
       });
-    http.expectOne((r) => r.url === `${base}profitability`).flush(envelope([]));
+    const chartProducts = http.expectOne(
+      (r) => r.url === `${base}profitability`,
+    );
+    expect(chartProducts.request.params.get("pageSize")).toBe("100");
+    expect(chartProducts.request.params.get("sort")).toBe("profitDesc");
+    chartProducts.flush(envelope([]));
     harness.detectChanges();
     for (const label of [
       "Revenue",
@@ -147,6 +152,7 @@ describe("finance reports admin pages", () => {
       "Profit by product",
     ])
       expect(dom().textContent).toContain(chart);
+    expect(dom().textContent).toContain("Top 100 products");
     expect(dom().textContent).not.toMatch(/Infinity|NaN/);
   });
 
@@ -179,8 +185,17 @@ describe("finance reports admin pages", () => {
       totals,
     });
     http.expectOne((r) => r.url === `${base}expense-breakdown`).flush([]);
+    http
+      .expectOne((r) => r.url === `${base}expense-categories`)
+      .flush(envelope([{ id: "ec1", name: "Rent", active: true }]));
     harness.detectChanges();
+    expect(
+      dom().querySelector("#summary-expense-category")?.textContent,
+    ).toContain("Rent");
     expect(dom().textContent).toContain("Gross margin");
+    expect(dom().querySelector("#summary-expense-category")?.tagName).toBe(
+      "SELECT",
+    );
     expect(dom().textContent).not.toMatch(/Infinity|NaN/);
     input("#summary-month", "8");
     dom().querySelector<HTMLButtonElement>("[data-apply]")!.click();
@@ -197,6 +212,88 @@ describe("finance reports admin pages", () => {
         totals,
       });
     http.expectOne((r) => r.url === `${base}expense-breakdown`).flush([]);
+  });
+
+  it("keeps monthly CSV out of date-range exports and sends year/month from the summary page", async () => {
+    await harness.navigateByUrl("/admin/finance/export");
+    expect(
+      dom().querySelector('option[value="monthly-summary.csv"]'),
+    ).toBeNull();
+    await harness.navigateByUrl(
+      "/admin/finance/monthly-summary?year=2026&month=9",
+    );
+    http
+      .expectOne((r) => r.url === `${base}monthly-summary`)
+      .flush({
+        year: 2026,
+        month: 9,
+        range: { from: "2026-09-01", to: "2026-09-30" },
+        months: [],
+        totals: {
+          revenue: "0",
+          costOfGoodsSold: "0",
+          grossProfit: "0",
+          operatingExpenses: "0",
+          recurringExpenses: "0",
+          totalExpenses: "0",
+          netProfit: "0",
+          grossMarginPercent: "0",
+          netMarginPercent: "0",
+          unitsSold: 0,
+          orderCount: 0,
+          averageOrderValue: "0",
+        },
+      });
+    http.expectOne((r) => r.url === `${base}expense-breakdown`).flush([]);
+    http
+      .expectOne((r) => r.url === `${base}expense-categories`)
+      .flush(envelope([]));
+    harness.detectChanges();
+    const button = Array.from(
+      dom().querySelectorAll<HTMLButtonElement>("button"),
+    ).find((item) => item.textContent?.includes("Export current view"))!;
+    button.click();
+    const request = http.expectOne(
+      (r) => r.url === `${base}exports/monthly-summary.csv`,
+    );
+    expect(request.request.params.get("year")).toBe("2026");
+    expect(request.request.params.get("month")).toBe("9");
+    expect(request.request.params.get("period")).toBeNull();
+  });
+
+  it("sends only supported date filters to transaction CSV exports", async () => {
+    await harness.navigateByUrl("/admin/finance/export");
+    input("#export-from", "2026-09-01");
+    input("#export-to", "2026-09-30");
+    input("#export-type", "expenses.csv");
+    dom().querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+    const request = http.expectOne(
+      (r) => r.url === `${base}exports/expenses.csv`,
+    );
+    expect(request.request.params.get("dateFrom")).toBe("2026-09-01");
+    expect(request.request.params.get("dateTo")).toBe("2026-09-30");
+    expect(request.request.params.has("period")).toBe(false);
+  });
+
+  it("offers named product categories for profitability filters", async () => {
+    await harness.navigateByUrl("/admin/finance/profitability?categoryId=c1");
+    http.expectOne((r) => r.url === `${base}profitability`).flush(envelope([]));
+    http
+      .expectOne((r) => r.url === "/api/v1/admin/categories")
+      .flush(
+        envelope([
+          {
+            id: "c1",
+            slug: "nutrition",
+            translations: [{ locale: "EN", name: "Nutrition" }],
+          },
+        ]),
+      );
+    harness.detectChanges();
+    expect(dom().querySelector("#profit-category")?.tagName).toBe("SELECT");
+    expect(dom().querySelector("#profit-category")?.textContent).toContain(
+      "Nutrition",
+    );
   });
 
   it("disables duplicate accounting downloads and recovers after backend error", async () => {

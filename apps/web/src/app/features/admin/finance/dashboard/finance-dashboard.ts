@@ -50,7 +50,11 @@ export class FinanceDashboardPage {
     this.error.set(null);
     this.request = forkJoin({
       dashboard: this.api.dashboard(this.query),
-      products: this.api.profitability({ ...this.query, pageSize: 100 }),
+      products: this.api.profitability({
+        ...this.query,
+        pageSize: 100,
+        sort: "profitDesc",
+      }),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

@@ -15,8 +15,13 @@
       ><input id="profit-q" formControlName="q" />
     </div>
     <div>
-      <label for="profit-category">Category ID</label
-      ><input id="profit-category" formControlName="categoryId" />
+      <label for="profit-category">Product category</label
+      ><select id="profit-category" formControlName="categoryId">
+        <option value="">All product categories</option>
+        @for (category of categories(); track category.id) {
+        <option [value]="category.id">{{ categoryName(category) }}</option>
+        }
+      </select>
     </div>
     <div>
       <label for="profit-sort">Sort</label

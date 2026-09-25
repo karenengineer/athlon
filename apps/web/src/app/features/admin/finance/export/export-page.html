@@ -2,6 +2,8 @@
   <h1 id="export-heading">Finance exports</h1>
   <p>
     Select a date range to download CSV data or the full accounting workbook.
+    For monthly summary CSV, use Export current view on the
+    <a routerLink="/admin/finance/monthly-summary">Monthly Summary</a> page.
   </p>
   <form [formGroup]="form" (ngSubmit)="download()">
     <fieldset [disabled]="downloading()">
