@@ -1,4 +1,4 @@
-import { Prisma } from "../src/generated/prisma/client";
+import { Prisma, SalesChannel } from "../src/generated/prisma/client";
 import { importFinanceOpening } from "./import-finance-opening";
 import { financeOpeningData } from "./finance-opening-data";
 
@@ -13,6 +13,7 @@ function statefulDatabase() {
     {
       date: Date;
       createdAt: Date;
+      supplierId: string;
       items: Array<{
         id: string;
         productId: string;
@@ -26,6 +27,7 @@ function statefulDatabase() {
     {
       date: Date;
       createdAt: Date;
+      channel: SalesChannel;
       items: Array<{
         id: string;
         productId: string;
@@ -34,18 +36,40 @@ function statefulDatabase() {
       }>;
     }
   >();
+  const suppliers = new Map<string, string>();
   const tx = {
     adminUser: { findFirst: jest.fn().mockResolvedValue({ id: "admin-1" }) },
     supplier: {
-      findFirst: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockResolvedValue({ id: "supplier-1" }),
+      findFirst: jest.fn(() =>
+        Promise.resolve(
+          [...suppliers].find(([, name]) => name === "Opening Inventory")
+            ? { id: "supplier-1" }
+            : null,
+        ),
+      ),
+      create: jest.fn(() => {
+        suppliers.set("supplier-1", "Opening Inventory");
+        return Promise.resolve({ id: "supplier-1" });
+      }),
     },
     purchase: {
-      findUnique: jest.fn(({ where }: any) =>
-        Promise.resolve(purchases.get(where.importKey) ?? null),
-      ),
+      findUnique: jest.fn(({ where }: any) => {
+        const purchase = purchases.get(where.importKey);
+        return Promise.resolve(
+          purchase
+            ? {
+                ...purchase,
+                supplier: { name: suppliers.get(purchase.supplierId) },
+              }
+            : null,
+        );
+      }),
       create: jest.fn(({ data }: any) => {
-        const purchase = { ...data, items: data.items.create };
+        const purchase = {
+          ...data,
+          items: data.items.create,
+          supplier: { name: suppliers.get(data.supplierId) },
+        };
         purchases.set(data.importKey, purchase);
         return Promise.resolve(purchase);
       }),
@@ -99,7 +123,7 @@ function statefulDatabase() {
       (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx),
     ),
   };
-  return { prisma, products, purchases, sales };
+  return { prisma, products, purchases, sales, suppliers };
 }
 
 describe("opening finance import", () => {
@@ -248,6 +272,32 @@ describe("opening finance import", () => {
     );
     expect(result.mismatches).toContain(
       "Opening sale TRPRCH date: expected 2026-09-20, found 2026-09-21",
+    );
+  });
+
+  it("reports a keyed purchase assigned to another supplier", async () => {
+    const db = statefulDatabase();
+    await importFinanceOpening(db.prisma as never);
+    db.suppliers.set("supplier-2", "Other Supplier");
+    db.purchases.get("opening-purchase-2026-09-20")!.supplierId = "supplier-2";
+
+    const result = await importFinanceOpening(db.prisma as never);
+
+    expect(result.mismatches).toContain(
+      "Opening purchase supplier: expected Opening Inventory, found Other Supplier",
+    );
+  });
+
+  it("reports a keyed sale with a changed channel", async () => {
+    const db = statefulDatabase();
+    await importFinanceOpening(db.prisma as never);
+    db.sales.get("opening-sale-TRPRCH-2026-09-20")!.channel =
+      SalesChannel.DIRECT;
+
+    const result = await importFinanceOpening(db.prisma as never);
+
+    expect(result.mismatches).toContain(
+      "Opening sale TRPRCH channel: expected OTHER, found DIRECT",
     );
   });
 });

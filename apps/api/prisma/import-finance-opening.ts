@@ -231,7 +231,7 @@ export async function importFinanceOpening(
       const recordMismatches: string[] = [];
       let purchase = await tx.purchase.findUnique({
         where: { importKey: purchaseKey },
-        include: { items: true },
+        include: { items: true, supplier: { select: { name: true } } },
       });
       if (!purchase) {
         const supplier =
@@ -276,7 +276,7 @@ export async function importFinanceOpening(
             notes: "Approved opening inventory ledger",
             items: { create: items },
           },
-          include: { items: true },
+          include: { items: true, supplier: { select: { name: true } } },
         });
         createdPurchases = 1;
       }
@@ -291,6 +291,11 @@ export async function importFinanceOpening(
       ) {
         recordMismatches.push(
           "Opening purchase identifier differs from the approved import",
+        );
+      }
+      if (purchase.supplier.name !== "Opening Inventory") {
+        recordMismatches.push(
+          `Opening purchase supplier: expected Opening Inventory, found ${purchase.supplier.name}`,
         );
       }
 
@@ -360,6 +365,11 @@ export async function importFinanceOpening(
         ) {
           recordMismatches.push(
             `Opening sale ${row.sku} identifier or source differs from the approved import`,
+          );
+        }
+        if (sale.channel !== SalesChannel.OTHER) {
+          recordMismatches.push(
+            `Opening sale ${row.sku} channel: expected OTHER, found ${sale.channel}`,
           );
         }
         sales.push({ row, sale });
