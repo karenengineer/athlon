@@ -1,0 +1,85 @@
+<section class="finance-page" aria-labelledby="recurring-editor-heading">
+  <div class="heading">
+    <h1 id="recurring-editor-heading">
+      {{ id ? 'Edit' : 'Create' }} recurring template
+    </h1>
+    <a routerLink="/admin/finance/recurring-expenses">Back to templates</a>
+  </div>
+  <p>
+    This template generates monthly expense occurrences. Changes to a template
+    do not rewrite historical months.
+  </p>
+  @if (loading()) {
+  <p role="status">Loading template…</p>
+  } @if (error()) {
+  <p role="alert">
+    {{ error() }} <button type="button" (click)="load()">Retry</button>
+  </p>
+  } @if (saved()) {
+  <p role="status">Template saved.</p>
+  } @if (!loading()) {
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <fieldset [disabled]="saving()">
+      <div class="finance-filters">
+        <div>
+          <label for="recurring-name">Name</label
+          ><input id="recurring-name" formControlName="name" />
+        </div>
+        <div>
+          <label for="recurring-category">Category</label
+          ><select id="recurring-category" formControlName="categoryId">
+            <option value="">Choose category</option>
+            @for (category of categories(); track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="recurring-amount">Monthly amount (AMD)</label
+          ><input
+            id="recurring-amount"
+            inputmode="decimal"
+            formControlName="amount"
+          />
+        </div>
+        <div>
+          <label for="recurring-start">Start date</label
+          ><input
+            id="recurring-start"
+            type="date"
+            formControlName="startDate"
+          />
+        </div>
+        <div>
+          <label for="recurring-end">End date (optional)</label
+          ><input id="recurring-end" type="date" formControlName="endDate" />
+        </div>
+        <div>
+          <label for="recurring-payment">Payment method</label
+          ><input id="recurring-payment" formControlName="paymentMethod" />
+        </div>
+      </div>
+      <label class="check"
+        ><input type="checkbox" formControlName="active" />Active</label
+      ><label for="recurring-notes">Notes</label
+      ><textarea id="recurring-notes" formControlName="notes"></textarea>
+      <div class="form-actions">
+        <button type="submit" [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Saving…' : 'Save template' }}</button
+        ><a routerLink="/admin/finance/recurring-expenses">Cancel</a>
+      </div>
+    </fieldset>
+  </form>
+  <form (ngSubmit)="addCategory()">
+    <label for="new-recurring-category">New category</label>
+    <div class="finance-toolbar">
+      <input id="new-recurring-category" [formControl]="newCategory" /><button
+        type="submit"
+        [disabled]="newCategory.invalid || addingCategory()"
+      >
+        {{ addingCategory() ? 'Adding…' : 'Add category' }}
+      </button>
+    </div>
+  </form>
+  }
+</section>

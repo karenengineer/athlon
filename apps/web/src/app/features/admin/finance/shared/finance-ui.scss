@@ -55,3 +55,48 @@
     flex-direction: column;
   }
 }
+
+.finance-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+.finance-kpi {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+.finance-kpi h2 {
+  font-size: 0.9rem;
+  margin: 0;
+}
+.finance-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0.4rem 0;
+}
+.finance-chart-grid {
+  display: grid;
+  gap: 1rem;
+}
+.finance-chart {
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+}
+.finance-chart-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(6rem, 3fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.6rem 0;
+}
+.finance-chart-track {
+  height: 0.8rem;
+  background: #eee;
+}
+.finance-chart-track span {
+  display: block;
+  height: 100%;
+  background: #bc1424;
+}

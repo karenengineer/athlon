@@ -1,0 +1,144 @@
+<section class="finance-page" aria-labelledby="expenses-heading">
+  <div class="heading">
+    <h1 id="expenses-heading">Expenses</h1>
+    <div class="finance-toolbar">
+      <a routerLink="/admin/finance/expenses/new" queryParamsHandling="preserve"
+        >Add expense</a
+      ><a routerLink="/admin/finance/recurring-expenses">Recurring templates</a
+      ><button type="button" [disabled]="exporting()" (click)="export()">
+        {{ exporting() ? 'Downloading…' : 'Export current view CSV' }}
+      </button>
+    </div>
+  </div>
+  <p>
+    One-time expenses are entered here. Generated monthly occurrences come from
+    recurring templates.
+  </p>
+  <form class="finance-filters" [formGroup]="filters" (ngSubmit)="search()">
+    <div>
+      <label for="expense-q">Search</label
+      ><input id="expense-q" formControlName="q" />
+    </div>
+    <div>
+      <label for="expense-from">From</label
+      ><input id="expense-from" type="date" formControlName="dateFrom" />
+    </div>
+    <div>
+      <label for="expense-to">To</label
+      ><input id="expense-to" type="date" formControlName="dateTo" />
+    </div>
+    <div>
+      <label for="expense-category">Category</label
+      ><select id="expense-category" formControlName="categoryId">
+        <option value="">All categories</option>
+        @for (c of categories(); track c.id) {
+        <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="expense-source">Source</label
+      ><select id="expense-source" formControlName="source">
+        <option value="">All sources</option>
+        <option value="ONE_TIME">One-time</option>
+        <option value="RECURRING_OCCURRENCE">
+          Generated monthly occurrence
+        </option>
+      </select>
+    </div>
+    <div>
+      <label for="expense-payment">Payment method</label
+      ><input id="expense-payment" formControlName="paymentMethod" />
+    </div>
+    <div>
+      <label for="expense-sort">Sort</label
+      ><select id="expense-sort" formControlName="sort">
+        <option value="dateDesc">Newest</option>
+        <option value="dateAsc">Oldest</option>
+        <option value="amountDesc">Highest amount</option>
+        <option value="amountAsc">Lowest amount</option>
+      </select>
+    </div>
+    <button data-search type="submit">Search</button
+    ><button type="button" (click)="clear()">Clear</button>
+  </form>
+  @if (error()) {
+  <p role="alert">
+    {{ error() }} <button type="button" (click)="load()">Retry</button>
+  </p>
+  } @if (loading()) {
+  <p role="status">Loading expenses…</p>
+  } @if (!loading() && list(); as result) { @if (!visible().length) {
+  <p>No expenses found.</p>
+  } @else {
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <caption>
+        Expenses
+      </caption>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Source</th>
+          <th>Payment</th>
+          <th>Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of visible(); track item.id) {
+        <tr>
+          <td>{{ date(item.date) }}</td>
+          <td>{{ item.description }}</td>
+          <td>{{ item.category.name }}</td>
+          <td>
+            {{ item.source === 'ONE_TIME' ? 'One-time' : 'Generated monthly
+            occurrence' }}
+          </td>
+          <td>{{ item.paymentMethod || '—' }}</td>
+          <td>{{ money(item.amount) }}</td>
+          <td class="actions">
+            @if (item.source === 'ONE_TIME') {
+            <a [routerLink]="['/admin/finance/expenses', item.id, 'edit']"
+              >Edit</a
+            >
+            <button
+              type="button"
+              [disabled]="deleting()"
+              (click)="pendingDelete.set(item)"
+            >
+              Delete
+            </button>
+            } @else { <span>Historical occurrence</span> }
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+  <nav class="finance-toolbar" aria-label="Pagination">
+    <button
+      type="button"
+      [disabled]="result.meta.page <= 1"
+      (click)="page(result.meta.page - 1)"
+    >
+      Previous</button
+    ><span>Page {{ result.meta.page }} / {{ result.meta.totalPages || 1 }}</span
+    ><button
+      type="button"
+      [disabled]="result.meta.page >= result.meta.totalPages"
+      (click)="page(result.meta.page + 1)"
+    >
+      Next
+    </button>
+  </nav>
+  } @if (pendingDelete(); as item) {
+  <app-admin-delete-confirmation
+    [name]="item.description"
+    (decision)="confirmDelete($event)"
+  />
+  }
+</section>

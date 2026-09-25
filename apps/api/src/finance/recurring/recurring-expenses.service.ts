@@ -33,6 +33,14 @@ export class RecurringExpensesService {
     const where: Prisma.RecurringExpenseWhereInput = {
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.active !== undefined ? { active: query.active } : {}),
+      ...(query.paymentMethod
+        ? {
+            paymentMethod: {
+              contains: query.paymentMethod,
+              mode: "insensitive",
+            },
+          }
+        : {}),
       ...(query.q ? { name: { contains: query.q, mode: "insensitive" } } : {}),
     };
     const orderBy: Prisma.RecurringExpenseOrderByWithRelationInput[] =

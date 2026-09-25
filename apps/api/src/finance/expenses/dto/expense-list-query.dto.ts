@@ -3,6 +3,8 @@ import {
   IsEnum,
   IsIn,
   IsOptional,
+  IsString,
+  MaxLength,
   IsUUID,
   Matches,
 } from "class-validator";
@@ -20,6 +22,7 @@ export class ExpenseListQueryDto extends FinanceListQueryDto {
   dateTo?: string;
   @IsOptional() @IsUUID() categoryId?: string;
   @IsOptional() @IsEnum(ExpenseSource) source?: ExpenseSource;
+  @IsOptional() @IsString() @MaxLength(100) paymentMethod?: string;
   @IsIn(["dateDesc", "dateAsc", "amountDesc", "amountAsc"])
   sort: "dateDesc" | "dateAsc" | "amountDesc" | "amountAsc" = "dateDesc";
 }

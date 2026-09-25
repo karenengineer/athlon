@@ -32,6 +32,19 @@ describe("authoritative finance reporting", () => {
     };
   }
 
+  it("limits expense CSV rows by payment method before export", async () => {
+    const { service, expenses } = setup();
+    (expenses[0] as { paymentMethod: string | null }).paymentMethod =
+      "Bank transfer";
+    const rows = await service.getExpenseExportRows({
+      page: 1,
+      pageSize: 24,
+      sort: "dateDesc",
+      paymentMethod: "bank",
+    });
+    expect(rows.map((row) => row.id)).toEqual(["expense"]);
+  });
+
   it("subtracts discounted line revenue, frozen COGS and materialized expenses exactly once", async () => {
     const { service, occurrences } = setup();
     const result = await service.getDashboard(range);

@@ -284,6 +284,7 @@ export interface Expense extends Omit<ExpenseInput, "paymentMethod" | "notes"> {
 }
 
 export interface ExpenseQuery extends FinanceListQuery {
+  paymentMethod?: string;
   dateFrom?: FinanceDate;
   dateTo?: FinanceDate;
   categoryId?: string;
@@ -320,6 +321,7 @@ export interface RecurringExpense
 }
 
 export interface RecurringExpenseQuery extends FinanceListQuery {
+  paymentMethod?: string;
   categoryId?: string;
   active?: boolean;
   sort?: "name" | "startDesc" | "updated";

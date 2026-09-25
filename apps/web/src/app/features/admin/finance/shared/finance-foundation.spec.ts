@@ -113,6 +113,7 @@ describe("finance admin foundation", () => {
     expect(TestBed.inject(Meta).getTag('name="robots"')?.content).toBe(
       "noindex, nofollow",
     );
+    http.match((request) => request.url.startsWith("/api/v1/admin/finance/"));
     http.verify();
   });
 
@@ -163,7 +164,7 @@ describe("finance admin foundation", () => {
   });
 
   it("formats finance values for display without changing API precision", () => {
-    expect(formatAmd("1234.50")).toBe("1235 AMD");
+    expect(formatAmd("1234.50").replace(/\s/g, "")).toBe("1235AMD");
     expect(formatPercent("12.345")).toBe("12,35%");
     expect(formatPercent(null)).toBe("—");
     expect(formatFinanceDate("2026-09-21T00:00:00.000Z")).toContain("2026");

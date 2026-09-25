@@ -1,0 +1,171 @@
+<section class="finance-page" aria-labelledby="summary-heading">
+  <div class="heading">
+    <h1 id="summary-heading">Monthly summary</h1>
+    <div class="finance-toolbar">
+      <a routerLink="/admin/finance/profitability">Product profitability</a
+      ><button type="button" [disabled]="exporting()" (click)="export()">
+        {{ exporting() ? 'Downloading…' : 'Export current view CSV' }}
+      </button>
+    </div>
+  </div>
+  <form class="finance-filters" [formGroup]="filters" (ngSubmit)="apply()">
+    <div>
+      <label for="summary-year">Year</label
+      ><input
+        id="summary-year"
+        type="number"
+        min="2000"
+        max="2100"
+        formControlName="year"
+      />
+    </div>
+    <div>
+      <label for="summary-month">Month</label
+      ><select id="summary-month" formControlName="month">
+        <option value="">Whole year</option>
+        @for (month of [1,2,3,4,5,6,7,8,9,10,11,12]; track month) {
+        <option [value]="month">{{ month }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="summary-expense-category">Expense category ID</label
+      ><input
+        id="summary-expense-category"
+        formControlName="expenseCategoryId"
+      />
+    </div>
+    <button data-apply type="submit">Apply</button>
+  </form>
+  @if (error()) {
+  <p role="alert">
+    {{ error() }} <button type="button" (click)="load()">Retry</button>
+  </p>
+  } @if (loading()) {
+  <p role="status">Loading summary…</p>
+  } @if (!loading() && summary(); as report) {
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <caption>
+        Financial totals
+      </caption>
+      <tbody>
+        <tr>
+          <th>Revenue</th>
+          <td>{{ money(report.totals.revenue) }}</td>
+        </tr>
+        <tr>
+          <th>Cost of goods sold</th>
+          <td>{{ money(report.totals.costOfGoodsSold) }}</td>
+        </tr>
+        <tr>
+          <th>Gross profit</th>
+          <td>{{ money(report.totals.grossProfit) }}</td>
+        </tr>
+        <tr>
+          <th>Gross margin</th>
+          <td>
+            {{ margin(report.totals.grossMarginPercent, report.totals.revenue)
+            }}
+          </td>
+        </tr>
+        <tr>
+          <th>One-time operating expenses</th>
+          <td>{{ money(report.totals.operatingExpenses) }}</td>
+        </tr>
+        <tr>
+          <th>Recurring expenses</th>
+          <td>{{ money(report.totals.recurringExpenses) }}</td>
+        </tr>
+        <tr>
+          <th>Total expenses</th>
+          <td>{{ money(report.totals.totalExpenses) }}</td>
+        </tr>
+        <tr>
+          <th>Net profit</th>
+          <td>{{ money(report.totals.netProfit) }}</td>
+        </tr>
+        <tr>
+          <th>Net margin</th>
+          <td>
+            {{ margin(report.totals.netMarginPercent, report.totals.revenue) }}
+          </td>
+        </tr>
+        <tr>
+          <th>Units sold</th>
+          <td>{{ report.totals.unitsSold }}</td>
+        </tr>
+        <tr>
+          <th>Orders</th>
+          <td>{{ report.totals.orderCount }}</td>
+        </tr>
+        <tr>
+          <th>Average order value</th>
+          <td>{{ money(report.totals.averageOrderValue) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <h2>Monthly breakdown</h2>
+  @if (!report.months.length) {
+  <p>No monthly rows.</p>
+  } @else {
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <caption>
+        Monthly financial results
+      </caption>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Revenue</th>
+          <th>Gross profit</th>
+          <th>Expenses</th>
+          <th>Net profit</th>
+          <th>Net margin</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of report.months; track row.year + '-' + row.month) {
+        <tr>
+          <td>{{ row.year }}-{{ row.month }}</td>
+          <td>{{ money(row.revenue) }}</td>
+          <td>{{ money(row.grossProfit) }}</td>
+          <td>{{ money(row.totalExpenses) }}</td>
+          <td>{{ money(row.netProfit) }}</td>
+          <td>{{ margin(row.netMarginPercent, row.revenue) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+  <h2>Expenses by category</h2>
+  @if (!breakdown().length) {
+  <p>No expenses for this period.</p>
+  } @else {
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <caption>
+        Expense category breakdown
+      </caption>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Share</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of breakdown(); track row.categoryId) {
+        <tr>
+          <td>{{ row.categoryName }}</td>
+          <td>{{ money(row.amount) }}</td>
+          <td>{{ row.percentage === null ? '—' : percent(row.percentage) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  } }
+</section>

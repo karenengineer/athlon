@@ -495,6 +495,11 @@ function expenseExportRows(
         listDateMatches(expense.date, query) &&
         (!query.categoryId || expense.categoryId === query.categoryId) &&
         (!query.source || expense.source === query.source) &&
+        (!query.paymentMethod ||
+          textMatches(
+            expense.paymentMethod,
+            query.paymentMethod.toLocaleLowerCase(),
+          )) &&
         (!search ||
           [expense.description, expense.paymentMethod, expense.notes].some(
             (value) => textMatches(value, search),

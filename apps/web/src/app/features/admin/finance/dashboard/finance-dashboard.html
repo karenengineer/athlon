@@ -1,0 +1,82 @@
+<section class="finance-page" aria-labelledby="dashboard-heading">
+  <div class="heading">
+    <h1 id="dashboard-heading">Finance dashboard</h1>
+    <a routerLink="/admin/finance/export">Export reports</a>
+  </div>
+  <app-date-range-filter />
+  @if (error()) {
+  <p role="alert">
+    {{ error() }} <button type="button" (click)="load()">Retry</button>
+  </p>
+  } @if (loading()) {
+  <p role="status">Loading dashboard…</p>
+  } @if (!loading() && data(); as d) {
+  <div class="finance-kpis">
+    <app-finance-kpi-card
+      label="Revenue"
+      [value]="money(d.revenue)"
+      [comparisonPercent]="comparison('revenue')"
+    />
+    <app-finance-kpi-card
+      label="Gross profit"
+      [value]="money(d.grossProfit)"
+      [comparisonPercent]="comparison('grossProfit')"
+    />
+    <app-finance-kpi-card
+      label="Net profit"
+      [value]="money(d.netProfit)"
+      [comparisonPercent]="comparison('netProfit')"
+      [tone]="+d.netProfit < 0 ? 'negative' : 'positive'"
+    />
+    <app-finance-kpi-card
+      label="Expenses"
+      [value]="money(d.totalExpenses)"
+      [comparisonPercent]="comparison('totalExpenses')"
+    />
+    <app-finance-kpi-card
+      label="Units sold"
+      [value]="'' + d.unitsSold"
+      [comparisonPercent]="comparison('unitsSold')"
+    />
+    <app-finance-kpi-card
+      label="Orders"
+      [value]="'' + d.orderCount"
+      [comparisonPercent]="comparison('orderCount')"
+    />
+    <app-finance-kpi-card
+      label="Average order value"
+      [value]="money(d.averageOrderValue)"
+      [comparisonPercent]="comparison('averageOrderValue')"
+    />
+    <app-finance-kpi-card
+      label="Inventory value"
+      [value]="money(d.inventoryValue)"
+    />
+  </div>
+  <p>
+    Gross margin: {{ +d.revenue ? percent(d.grossMarginPercent) : '—' }} · Net
+    margin: {{ +d.revenue ? percent(d.netMarginPercent) : '—' }}
+  </p>
+  <div class="finance-chart-grid">
+    <app-finance-simple-chart
+      title="Revenue comparison"
+      [points]="comparisonChart('revenue')"
+    />
+    <app-finance-simple-chart
+      title="Net profit comparison"
+      [points]="comparisonChart('netProfit')"
+    />
+    <app-finance-simple-chart
+      title="Expenses comparison"
+      [points]="comparisonChart('totalExpenses')"
+    />
+    <app-finance-simple-chart
+      title="Sales by product"
+      [points]="salesChart()"
+    /><app-finance-simple-chart
+      title="Profit by product"
+      [points]="profitChart()"
+    />
+  </div>
+  }
+</section>

@@ -1,0 +1,105 @@
+<section class="finance-page" aria-labelledby="profitability-heading">
+  <div class="heading">
+    <h1 id="profitability-heading">Product profitability</h1>
+    <div class="finance-toolbar">
+      <a routerLink="/admin/finance/monthly-summary">Monthly summary</a
+      ><button type="button" [disabled]="exporting()" (click)="export()">
+        {{ exporting() ? 'Downloading…' : 'Export current view CSV' }}
+      </button>
+    </div>
+  </div>
+  <app-date-range-filter />
+  <form class="finance-filters" [formGroup]="filters" (ngSubmit)="search()">
+    <div>
+      <label for="profit-q">Search product</label
+      ><input id="profit-q" formControlName="q" />
+    </div>
+    <div>
+      <label for="profit-category">Category ID</label
+      ><input id="profit-category" formControlName="categoryId" />
+    </div>
+    <div>
+      <label for="profit-sort">Sort</label
+      ><select id="profit-sort" formControlName="sort">
+        <option value="profitDesc">Highest profit</option>
+        <option value="profitAsc">Lowest profit</option>
+        <option value="revenueDesc">Highest revenue</option>
+        <option value="revenueAsc">Lowest revenue</option>
+        <option value="marginDesc">Highest margin</option>
+        <option value="marginAsc">Lowest margin</option>
+        <option value="unitsSoldDesc">Most sold</option>
+        <option value="unitsSoldAsc">Least sold</option>
+        <option value="nameAsc">Name A–Z</option>
+        <option value="nameDesc">Name Z–A</option>
+        <option value="stockDesc">Most stock</option>
+        <option value="stockAsc">Least stock</option>
+      </select>
+    </div>
+    <button type="submit">Apply</button
+    ><button type="button" (click)="clear()">Clear</button>
+  </form>
+  @if (error()) {
+  <p role="alert">
+    {{ error() }} <button type="button" (click)="load()">Retry</button>
+  </p>
+  } @if (loading()) {
+  <p role="status">Loading profitability…</p>
+  } @if (!loading() && list(); as result) { @if (!result.items.length) {
+  <p>No products found for this period.</p>
+  } @else {
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <caption>
+        Product sales and profit
+      </caption>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Units sold</th>
+          <th>Revenue</th>
+          <th>Cost of goods sold</th>
+          <th>Gross profit</th>
+          <th>Gross margin</th>
+          <th>Current stock</th>
+          <th>Inventory value</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of result.items; track row.productId) {
+        <tr>
+          <td>{{ row.sku }}</td>
+          <td>{{ row.name }}</td>
+          <td>{{ row.category.name }}</td>
+          <td>{{ row.unitsSold }}</td>
+          <td>{{ money(row.revenue) }}</td>
+          <td>{{ money(row.costOfGoodsSold) }}</td>
+          <td>{{ money(row.grossProfit) }}</td>
+          <td>{{ margin(row) }}</td>
+          <td>{{ row.currentStock }}</td>
+          <td>{{ money(row.inventoryValue) }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+  <nav class="finance-toolbar" aria-label="Pagination">
+    <button
+      type="button"
+      [disabled]="result.meta.page <= 1"
+      (click)="page(result.meta.page - 1)"
+    >
+      Previous</button
+    ><span>Page {{ result.meta.page }} / {{ result.meta.totalPages || 1 }}</span
+    ><button
+      type="button"
+      [disabled]="result.meta.page >= result.meta.totalPages"
+      (click)="page(result.meta.page + 1)"
+    >
+      Next
+    </button>
+  </nav>
+  }
+</section>

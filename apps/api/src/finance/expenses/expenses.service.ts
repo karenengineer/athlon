@@ -97,6 +97,14 @@ export class ExpensesService {
         : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.source ? { source: query.source } : {}),
+      ...(query.paymentMethod
+        ? {
+            paymentMethod: {
+              contains: query.paymentMethod,
+              mode: "insensitive",
+            },
+          }
+        : {}),
       ...(query.q
         ? {
             OR: ["description", "paymentMethod", "notes"].map((field) => ({

@@ -7,17 +7,15 @@ const editor = (path: string, loadComponent: () => Promise<Type<unknown>>) => ({
   canDeactivate: [adminDirtyFormGuard],
   loadComponent,
 });
-const guardedPlaceholder = (path: string) => ({
-  path,
-  canDeactivate: [adminDirtyFormGuard],
-  children: [],
-});
 
 export const financeRoutes: Routes = [
   {
     path: "",
     pathMatch: "full",
-    children: [],
+    loadComponent: () =>
+      import("./dashboard/finance-dashboard").then(
+        (m) => m.FinanceDashboardPage,
+      ),
     data: { financePage: "dashboard" },
   },
   {
@@ -51,27 +49,54 @@ export const financeRoutes: Routes = [
   editor("sales/:id/edit", () =>
     import("./sales/sale-editor").then((m) => m.SaleEditor),
   ),
-  { path: "expenses", children: [], data: { financePage: "expenses" } },
-  guardedPlaceholder("expenses/new"),
-  guardedPlaceholder("expenses/:id/edit"),
+  {
+    path: "expenses",
+    loadComponent: () =>
+      import("./expenses/expense-list").then((m) => m.ExpenseList),
+    data: { financePage: "expenses" },
+  },
+  editor("expenses/new", () =>
+    import("./expenses/expense-editor").then((m) => m.ExpenseEditor),
+  ),
+  editor("expenses/:id/edit", () =>
+    import("./expenses/expense-editor").then((m) => m.ExpenseEditor),
+  ),
   {
     path: "recurring-expenses",
-    children: [],
+    loadComponent: () =>
+      import("./expenses/recurring-expense-list").then(
+        (m) => m.RecurringExpenseList,
+      ),
     data: { financePage: "recurringExpenses" },
   },
-  guardedPlaceholder("recurring-expenses/new"),
-  guardedPlaceholder("recurring-expenses/:id/edit"),
+  editor("recurring-expenses/new", () =>
+    import("./expenses/recurring-expense-editor").then(
+      (m) => m.RecurringExpenseEditor,
+    ),
+  ),
+  editor("recurring-expenses/:id/edit", () =>
+    import("./expenses/recurring-expense-editor").then(
+      (m) => m.RecurringExpenseEditor,
+    ),
+  ),
   {
     path: "monthly-summary",
-    children: [],
+    loadComponent: () =>
+      import("./summary/monthly-summary").then((m) => m.MonthlySummaryPage),
     data: { financePage: "monthlySummary" },
   },
   {
     path: "profitability",
-    children: [],
+    loadComponent: () =>
+      import("./summary/profitability-list").then((m) => m.ProfitabilityList),
     data: { financePage: "profitability" },
   },
-  { path: "export", children: [], data: { financePage: "export" } },
+  {
+    path: "export",
+    loadComponent: () =>
+      import("./export/export-page").then((m) => m.FinanceExportPage),
+    data: { financePage: "export" },
+  },
   {
     path: "suppliers",
     loadComponent: () =>
