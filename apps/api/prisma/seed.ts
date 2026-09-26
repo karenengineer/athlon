@@ -20,6 +20,24 @@ const names = (hy: string, ru: string, en: string) => [
   { locale: Locale.EN, name: en },
 ];
 
+const standardExpenseCategories = [
+  "Phone",
+  "Website / Hosting",
+  "Domain",
+  "Advertising",
+  "Delivery",
+  "Packaging",
+  "Rent",
+  "Accounting",
+  "Bank Fees",
+  "Marketplace Fees",
+  "Software",
+  "Salaries",
+  "Trainer Commission",
+  "Taxes",
+  "Other",
+] as const;
+
 async function upsertCategory(
   code: string,
   slug: string,
@@ -48,6 +66,14 @@ async function upsertCategory(
 }
 
 async function main(): Promise<void> {
+  for (const name of standardExpenseCategories) {
+    await prisma.expenseCategory.upsert({
+      where: { name },
+      create: { name },
+      update: { active: true },
+    });
+  }
+
   const sportsNutritionId = await upsertCategory(
     "sports-nutrition",
     "sports-nutrition",

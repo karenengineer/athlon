@@ -25,6 +25,30 @@ enum AdminRole {
   ADMIN
 }
 
+enum SaleSourceType {
+  MANUAL
+  WEBSITE_ORDER
+}
+
+enum SalesChannel {
+  WEBSITE
+  INSTAGRAM
+  GYM
+  TRAINER
+  DIRECT
+  MARKETPLACE
+  OTHER
+}
+
+enum ExpenseSource {
+  ONE_TIME
+  RECURRING_OCCURRENCE
+}
+
+enum Recurrence {
+  MONTHLY
+}
+
 model Category {
   id           String                @id @default(uuid()) @db.Uuid
   code         String                @unique @db.VarChar(80)
@@ -69,36 +93,39 @@ model Brand {
 }
 
 model BrandTranslation {
-  id          String @id @default(uuid()) @db.Uuid
-  brandId     String @db.Uuid
-  brand       Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  id          String  @id @default(uuid()) @db.Uuid
+  brandId     String  @db.Uuid
+  brand       Brand   @relation(fields: [brandId], references: [id], onDelete: Cascade)
   locale      Locale
-  name        String @db.VarChar(180)
+  name        String  @db.VarChar(180)
   description String? @db.Text
 
   @@unique([brandId, locale])
 }
 
 model Product {
-  id              String                 @id @default(uuid()) @db.Uuid
-  sku             String                 @unique @db.VarChar(100)
-  slug            String                 @unique @db.VarChar(180)
-  categoryId      String                 @db.Uuid
-  category        Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  brandId         String?                @db.Uuid
-  brand           Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  price           Decimal?               @db.Decimal(12, 2)
-  currency        String                 @default("AMD") @db.Char(3)
-  availability    AvailabilityStatus     @default(ON_REQUEST)
-  characteristics Json                   @default("{}")
-  featured        Boolean                @default(false)
-  isNew           Boolean                @default(false)
-  published       Boolean                @default(false)
-  displayOrder    Int                    @default(0)
-  translations    ProductTranslation[]
-  images          ProductImage[]
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  id                String               @id @default(uuid()) @db.Uuid
+  sku               String               @unique @db.VarChar(100)
+  slug              String               @unique @db.VarChar(180)
+  categoryId        String               @db.Uuid
+  category          Category             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brandId           String?              @db.Uuid
+  brand             Brand?               @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  price             Decimal?             @db.Decimal(12, 2)
+  currency          String               @default("AMD") @db.Char(3)
+  availability      AvailabilityStatus   @default(ON_REQUEST)
+  characteristics   Json                 @default("{}")
+  featured          Boolean              @default(false)
+  isNew             Boolean              @default(false)
+  published         Boolean              @default(false)
+  displayOrder      Int                  @default(0)
+  lowStockThreshold Int                  @default(2)
+  translations      ProductTranslation[]
+  images            ProductImage[]
+  purchaseItems     PurchaseItem[]
+  saleItems         SaleItem[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   @@index([published, categoryId, displayOrder])
   @@index([published, brandId])
@@ -155,24 +182,27 @@ model ProductImageTranslation {
 }
 
 model AdminUser {
-  id              String           @id @default(uuid()) @db.Uuid
-  email           String           @unique @db.VarChar(320)
-  passwordHash    String           @db.VarChar(255)
-  role            AdminRole        @default(ADMIN)
-  active          Boolean          @default(true)
-  refreshSessions RefreshSession[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id               String           @id @default(uuid()) @db.Uuid
+  email            String           @unique @db.VarChar(320)
+  passwordHash     String           @db.VarChar(255)
+  role             AdminRole        @default(ADMIN)
+  active           Boolean          @default(true)
+  refreshSessions  RefreshSession[]
+  createdPurchases Purchase[]
+  createdSales     Sale[]
+  createdExpenses  Expense[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 }
 
 model RefreshSession {
-  id         String    @id @db.Uuid
-  adminUserId String   @db.Uuid
-  adminUser  AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
-  tokenHash  String    @db.VarChar(255)
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
+  id          String    @id @db.Uuid
+  adminUserId String    @db.Uuid
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash   String    @db.VarChar(255)
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([adminUserId, expiresAt])
 }
@@ -182,4 +212,158 @@ model SiteSetting {
   value     String?  @db.Text
   public    Boolean  @default(true)
   updatedAt DateTime @updatedAt
+}
+
+model Supplier {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String     @db.VarChar(180)
+  contactName String?    @db.VarChar(180)
+  phone       String?    @db.VarChar(50)
+  email       String?    @db.VarChar(320)
+  notes       String?    @db.Text
+  active      Boolean    @default(true)
+  purchases   Purchase[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Purchase {
+  id               String         @id @default(uuid()) @db.Uuid
+  purchaseNumber   String         @unique @db.VarChar(80)
+  date             DateTime       @db.Date
+  supplierId       String         @db.Uuid
+  supplier         Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  notes            String?        @db.Text
+  createdByAdminId String         @db.Uuid
+  createdByAdmin   AdminUser      @relation(fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  importKey        String?        @unique @db.VarChar(180)
+  items            PurchaseItem[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([date])
+  @@index([supplierId, date])
+  @@index([createdByAdminId])
+}
+
+model PurchaseItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  purchaseId        String   @db.Uuid
+  purchase          Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId         String   @db.Uuid
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity          Int
+  purchaseUnitPrice Decimal  @db.Decimal(14, 2)
+
+  @@unique([purchaseId, productId])
+  @@index([productId])
+}
+
+model Sale {
+  id                  String         @id @default(uuid()) @db.Uuid
+  saleNumber          String         @unique @db.VarChar(80)
+  date                DateTime       @db.Date
+  orderId             String?        @db.VarChar(100)
+  sourceType          SaleSourceType @default(MANUAL)
+  sourceId            String?        @db.VarChar(180)
+  channel             SalesChannel
+  trainerReferralCode String?        @db.VarChar(100)
+  customerName        String?        @db.VarChar(180)
+  customerPhone       String?        @db.VarChar(50)
+  notes               String?        @db.Text
+  createdByAdminId    String         @db.Uuid
+  createdByAdmin      AdminUser      @relation(fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  importKey           String?        @unique @db.VarChar(180)
+  items               SaleItem[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@unique([sourceType, sourceId])
+  @@index([date])
+  @@index([channel, date])
+  @@index([createdByAdminId])
+}
+
+model SaleItem {
+  id               String  @id @default(uuid()) @db.Uuid
+  saleId           String  @db.Uuid
+  sale             Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId        String  @db.Uuid
+  product          Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity         Int
+  actualUnitPrice  Decimal @db.Decimal(14, 2)
+  lineDiscount     Decimal @default(0) @db.Decimal(14, 2)
+  costUnitSnapshot Decimal @db.Decimal(18, 6)
+
+  @@unique([saleId, productId])
+  @@index([productId])
+}
+
+model ExpenseCategory {
+  id                String             @id @default(uuid()) @db.Uuid
+  name              String             @unique @db.VarChar(180)
+  active            Boolean            @default(true)
+  expenses          Expense[]
+  recurringExpenses RecurringExpense[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Expense {
+  id                  String                      @id @default(uuid()) @db.Uuid
+  date                DateTime                    @db.Date
+  categoryId          String                      @db.Uuid
+  category            ExpenseCategory             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  description         String                      @db.VarChar(500)
+  amount              Decimal                     @db.Decimal(14, 2)
+  paymentMethod       String?                     @db.VarChar(100)
+  notes               String?                     @db.Text
+  source              ExpenseSource               @default(ONE_TIME)
+  recurringOccurrence RecurringExpenseOccurrence?
+  createdByAdminId    String                      @db.Uuid
+  createdByAdmin      AdminUser                   @relation(fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  @@index([date])
+  @@index([categoryId, date])
+  @@index([createdByAdminId])
+}
+
+model RecurringExpense {
+  id            String                       @id @default(uuid()) @db.Uuid
+  name          String                       @db.VarChar(180)
+  categoryId    String                       @db.Uuid
+  category      ExpenseCategory              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  amount        Decimal                      @db.Decimal(14, 2)
+  recurrence    Recurrence                   @default(MONTHLY)
+  startDate     DateTime                     @db.Date
+  endDate       DateTime?                    @db.Date
+  active        Boolean                      @default(true)
+  paymentMethod String?                      @db.VarChar(100)
+  notes         String?                      @db.Text
+  occurrences   RecurringExpenseOccurrence[]
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+
+  @@index([categoryId])
+  @@index([active, startDate])
+}
+
+model RecurringExpenseOccurrence {
+  id                    String           @id @default(uuid()) @db.Uuid
+  recurringExpenseId    String           @db.Uuid
+  recurringExpense      RecurringExpense @relation(fields: [recurringExpenseId], references: [id], onDelete: Restrict)
+  periodYear            Int
+  periodMonth           Int
+  expenseId             String           @unique @db.Uuid
+  expense               Expense          @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+  nameSnapshot          String           @db.VarChar(180)
+  categoryNameSnapshot  String           @db.VarChar(180)
+  amountSnapshot        Decimal          @db.Decimal(14, 2)
+  paymentMethodSnapshot String?          @db.VarChar(100)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@unique([recurringExpenseId, periodYear, periodMonth])
 }

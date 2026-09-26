@@ -1,0 +1,54 @@
+<section class="finance-page" aria-labelledby="supplier-editor-heading">
+  <div class="heading">
+    <h1 id="supplier-editor-heading">{{ id ? 'Edit' : 'Create' }} supplier</h1>
+    <a routerLink="/admin/finance/suppliers" queryParamsHandling="preserve"
+      >Back to suppliers</a
+    >
+  </div>
+  @if (loading()) {
+  <p role="status">Loading supplier…</p>
+  } @if (error()) {
+  <p role="alert">
+    {{ error() }} @if (id && !saving()) {
+    <button type="button" data-retry (click)="load()">Retry</button> }
+  </p>
+  } @if (saved()) {
+  <p role="status">Supplier saved.</p>
+  } @if (!loading()) {
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <fieldset [disabled]="saving()">
+      <label for="supplier-name">Name</label
+      ><input
+        id="supplier-name"
+        formControlName="name"
+        maxlength="180"
+        [attr.aria-invalid]="form.controls.name.invalid"
+      />@if (form.controls.name.invalid && form.controls.name.touched) {
+      <p class="field-error">Enter a supplier name.</p>
+      }<label for="supplier-contact">Contact name</label
+      ><input id="supplier-contact" formControlName="contactName" /><label
+        for="supplier-phone"
+        >Phone</label
+      ><input id="supplier-phone" formControlName="phone" /><label
+        for="supplier-email"
+        >Email</label
+      ><input id="supplier-email" type="email" formControlName="email" />@if
+      (form.controls.email.invalid && form.controls.email.touched) {
+      <p class="field-error">Enter a valid email.</p>
+      }<label for="supplier-notes">Notes</label
+      ><textarea id="supplier-notes" formControlName="notes"></textarea
+      ><label class="check" for="supplier-active"
+        ><input id="supplier-active" type="checkbox" formControlName="active" />
+        Active</label
+      >
+      <div class="form-actions">
+        <button type="submit" [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Saving…' : 'Save' }}</button
+        ><a routerLink="/admin/finance/suppliers" queryParamsHandling="preserve"
+          >Cancel</a
+        >
+      </div>
+    </fieldset>
+  </form>
+  }
+</section>
