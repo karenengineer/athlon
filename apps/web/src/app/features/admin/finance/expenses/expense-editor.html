@@ -1,0 +1,78 @@
+<section class="finance-page" aria-labelledby="expense-editor-heading">
+  <div class="heading">
+    <h1 id="expense-editor-heading">{{ id ? 'Edit' : 'Create' }} expense</h1>
+    <a routerLink="/admin/finance/expenses" queryParamsHandling="preserve"
+      >Back to expenses</a
+    >
+  </div>
+  @if (loading()) {
+  <p role="status">Loading expense…</p>
+  } @if (error()) {
+  <p role="alert">
+    {{ error() }} <button type="button" (click)="load()">Retry</button>
+  </p>
+  } @if (saved()) {
+  <p role="status">Expense saved.</p>
+  } @if (source === 'RECURRING_OCCURRENCE') {
+  <p>
+    This is a generated monthly occurrence. Changes to its template do not
+    rewrite historical months.
+  </p>
+  } @if (!loading()) {
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <fieldset [disabled]="saving() || source === 'RECURRING_OCCURRENCE'">
+      <div class="finance-filters">
+        <div>
+          <label for="expense-date">Date</label
+          ><input id="expense-date" type="date" formControlName="date" />
+        </div>
+        <div>
+          <label for="expense-category">Category</label
+          ><select id="expense-category" formControlName="categoryId">
+            <option value="">Choose category</option>
+            @for (category of categories(); track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label for="expense-description">Description</label
+          ><input id="expense-description" formControlName="description" />
+        </div>
+        <div>
+          <label for="expense-amount">Amount (AMD)</label
+          ><input
+            id="expense-amount"
+            inputmode="decimal"
+            formControlName="amount"
+          />
+        </div>
+        <div>
+          <label for="expense-payment">Payment method</label
+          ><input id="expense-payment" formControlName="paymentMethod" />
+        </div>
+      </div>
+      <label for="expense-notes">Notes</label
+      ><textarea id="expense-notes" formControlName="notes"></textarea>
+      <div class="form-actions">
+        <button type="submit" [disabled]="form.invalid || saving()">
+          {{ saving() ? 'Saving…' : 'Save expense' }}</button
+        ><a routerLink="/admin/finance/expenses" queryParamsHandling="preserve"
+          >Cancel</a
+        >
+      </div>
+    </fieldset>
+  </form>
+  <form (ngSubmit)="addCategory()">
+    <label for="new-expense-category">New category</label>
+    <div class="finance-toolbar">
+      <input id="new-expense-category" [formControl]="newCategory" /><button
+        type="submit"
+        [disabled]="newCategory.invalid || addingCategory()"
+      >
+        {{ addingCategory() ? 'Adding…' : 'Add category' }}
+      </button>
+    </div>
+  </form>
+  }
+</section>

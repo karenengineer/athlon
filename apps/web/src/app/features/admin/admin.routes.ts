@@ -20,6 +20,13 @@ export const adminRoutes: Routes = [
           import("./admin-shell").then((module) => module.AdminShell),
         children: [
           {
+            path: "finance",
+            loadChildren: () =>
+              import("./finance/finance.routes").then(
+                (module) => module.financeRoutes,
+              ),
+          },
+          {
             path: "products/new",
             canDeactivate: [adminDirtyFormGuard],
             loadComponent: () =>

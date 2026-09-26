@@ -1,0 +1,14 @@
+<section class="finance-chart" [attr.aria-label]="title()">
+  <h2>{{ title() }}</h2>
+  @if (!points().length) {
+  <p>No chart data for this period.</p>
+  } @for (point of points(); track point.label) {
+  <div class="finance-chart-row">
+    <span>{{ point.label }}</span>
+    <div class="finance-chart-track" aria-hidden="true">
+      <span [style.width.%]="width(point.value)"></span>
+    </div>
+    <span>{{ point.value }}</span>
+  </div>
+  }
+</section>

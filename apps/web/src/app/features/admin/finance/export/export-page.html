@@ -1,0 +1,48 @@
+<section class="finance-page" aria-labelledby="export-heading">
+  <h1 id="export-heading">Finance exports</h1>
+  <p>
+    Select a date range to download CSV data or the full accounting workbook.
+    For monthly summary CSV, use Export current view on the
+    <a routerLink="/admin/finance/monthly-summary">Monthly Summary</a> page.
+  </p>
+  <form [formGroup]="form" (ngSubmit)="download()">
+    <fieldset [disabled]="downloading()">
+      <div class="finance-filters">
+        <div>
+          <label for="export-from">From</label
+          ><input id="export-from" type="date" formControlName="dateFrom" />
+        </div>
+        <div>
+          <label for="export-to">To</label
+          ><input id="export-to" type="date" formControlName="dateTo" />
+        </div>
+        <div>
+          <label for="export-type">CSV report</label
+          ><select id="export-type" formControlName="endpoint">
+            @for (option of options; track option.endpoint) {
+            <option [value]="option.endpoint">{{ option.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit">
+          {{ downloading() ? 'Downloading…' : 'Download CSV' }}</button
+        ><button
+          type="button"
+          data-export-accounting
+          [disabled]="downloading()"
+          (click)="download(true)"
+        >
+          {{ downloading() ? 'Downloading…' : 'Download full accounting Excel'
+          }}
+        </button>
+      </div>
+    </fieldset>
+  </form>
+  @if (error()) {
+  <p role="alert">{{ error() }}</p>
+  } @if (success()) {
+  <p role="status">{{ success() }}</p>
+  }
+</section>

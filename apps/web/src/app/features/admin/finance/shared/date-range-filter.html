@@ -1,0 +1,48 @@
+<section
+  class="finance-date-range"
+  [attr.aria-label]="i18n.translate('dateRange')"
+>
+  <div
+    class="finance-presets"
+    role="group"
+    [attr.aria-label]="i18n.translate('datePreset')"
+  >
+    @for (item of presets; track item) {
+    <button
+      type="button"
+      [class.active]="preset() === item"
+      [attr.aria-pressed]="preset() === item"
+      (click)="selectPreset(item)"
+    >
+      {{ presetLabel(item) }}
+    </button>
+    }
+  </div>
+  @if (preset() === 'custom') {
+  <div class="finance-custom-range">
+    <label for="finance-date-from">{{ i18n.translate('dateFrom') }}</label>
+    <input
+      id="finance-date-from"
+      #fromInput
+      type="date"
+      [value]="from()"
+      (input)="from.set(fromInput.value)"
+    />
+    <label for="finance-date-to">{{ i18n.translate('dateTo') }}</label>
+    <input
+      id="finance-date-to"
+      #toInput
+      type="date"
+      [value]="to()"
+      (input)="to.set(toInput.value)"
+    />
+    <button type="button" (click)="applyCustom()">
+      {{ i18n.translate('apply') }}
+    </button>
+  </div>
+  } @if (invalid()) {
+  <p class="finance-field-error" role="alert">
+    {{ i18n.translate('dateRangeInvalid') }}
+  </p>
+  }
+</section>

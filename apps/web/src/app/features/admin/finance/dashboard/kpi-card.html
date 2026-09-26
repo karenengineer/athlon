@@ -1,0 +1,10 @@
+<div
+  class="finance-kpi"
+  [class.finance-positive]="tone() === 'positive'"
+  [class.finance-negative]="tone() === 'negative'"
+>
+  <h2>{{ label() }}</h2>
+  <p class="finance-kpi-value">{{ value() }}</p>
+  @if (comparisonPercent() !== null) {
+  <small>Previous period: {{ comparisonPercent() }}</small> }
+</div>

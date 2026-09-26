@@ -1,7 +1,7 @@
 import { Component, inject, signal } from "@angular/core";
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { AdminSessionService } from "./auth/admin-session.service";
-import { AdminI18nService } from "./shared/admin-i18n.service";
+import { AdminCopyKey, AdminI18nService } from "./shared/admin-i18n.service";
 
 @Component({
   selector: "app-admin-shell",
@@ -12,9 +12,35 @@ import { AdminI18nService } from "./shared/admin-i18n.service";
 export class AdminShell {
   readonly i18n = inject(AdminI18nService);
   readonly session = inject(AdminSessionService);
-  readonly links = ["dashboard", "products", "categories", "brands"] as const;
+  readonly links: readonly {
+    key: AdminCopyKey;
+    path: string;
+    exact?: boolean;
+  }[] = [
+    { key: "dashboard", path: "/admin", exact: true },
+    { key: "products", path: "/admin/products" },
+    { key: "categories", path: "/admin/categories" },
+    { key: "brands", path: "/admin/brands" },
+  ];
+  readonly financeLinks: readonly {
+    key: AdminCopyKey;
+    path: string;
+    exact?: boolean;
+  }[] = [
+    { key: "financeDashboard", path: "/admin/finance", exact: true },
+    { key: "financeProducts", path: "/admin/finance/products" },
+    { key: "purchases", path: "/admin/finance/purchases" },
+    { key: "sales", path: "/admin/finance/sales" },
+    { key: "expenses", path: "/admin/finance/expenses" },
+    { key: "monthlySummary", path: "/admin/finance/monthly-summary" },
+    { key: "export", path: "/admin/finance/export" },
+  ];
+  readonly financeOpen = signal(true);
   readonly leaving = signal(false);
   readonly logoutFailed = signal(false);
+  toggleFinance(): void {
+    this.financeOpen.update((open) => !open);
+  }
   logout(): void {
     if (this.leaving()) return;
     this.leaving.set(true);

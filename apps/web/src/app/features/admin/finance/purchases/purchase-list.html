@@ -1,0 +1,125 @@
+<section class="finance-page" aria-labelledby="purchases-heading">
+  <div class="heading">
+    <h1 id="purchases-heading">Purchases</h1>
+    <a routerLink="/admin/finance/purchases/new" queryParamsHandling="preserve"
+      >Create purchase</a
+    >
+  </div>
+  <form class="finance-filters" [formGroup]="filters" (ngSubmit)="search()">
+    <div><label for="q">Search</label><input id="q" formControlName="q" /></div>
+    <div>
+      <label for="dateFrom">From</label
+      ><input id="dateFrom" type="date" formControlName="dateFrom" />
+    </div>
+    <div>
+      <label for="dateTo">To</label
+      ><input id="dateTo" type="date" formControlName="dateTo" />
+    </div>
+    <div>
+      <label for="supplierId">Supplier ID</label
+      ><input id="supplierId" formControlName="supplierId" />
+    </div>
+    <div>
+      <label for="productId">Product ID</label
+      ><input id="productId" formControlName="productId" />
+    </div>
+    <div>
+      <label for="categoryId">Category ID</label
+      ><input id="categoryId" formControlName="categoryId" />
+    </div>
+    <div>
+      <label for="sort">Sort</label
+      ><select id="sort" formControlName="sort">
+        <option value="dateDesc">Newest</option>
+        <option value="dateAsc">Oldest</option>
+        <option value="totalDesc">Highest total</option>
+        <option value="totalAsc">Lowest total</option>
+      </select>
+    </div>
+    <div>
+      <label for="pageSize">Page size</label
+      ><select id="pageSize" formControlName="pageSize">
+        <option [ngValue]="10">10</option>
+        <option [ngValue]="24">24</option>
+        <option [ngValue]="50">50</option>
+        <option [ngValue]="100">100</option>
+      </select>
+    </div>
+    <button type="submit" data-search>Search</button
+    ><button type="button" (click)="clear()">Clear</button>
+  </form>
+  @if (error()) {
+  <p role="alert">
+    {{ error() }}
+    <button type="button" data-retry (click)="load()">Retry</button>
+  </p>
+  } @if (loading()) {
+  <p role="status">Loading purchases…</p>
+  } @if (!loading() && list(); as result) { @if (!result.items.length) {
+  <p>No purchases found.</p>
+  } @else {
+  <div class="finance-table-wrap">
+    <table class="finance-table">
+      <caption>
+        Purchases
+      </caption>
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Date</th>
+          <th>Supplier</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of result.items; track item.id) {
+        <tr>
+          <td>{{ item.purchaseNumber }}</td>
+          <td>{{ date(item.date) }}</td>
+          <td>{{ item.supplier.name }}</td>
+          <td>{{ item.items.length }}</td>
+          <td>{{ money(item.totalPurchaseCost) }}</td>
+          <td class="actions">
+            <a
+              [routerLink]="['/admin/finance/purchases', item.id, 'edit']"
+              queryParamsHandling="preserve"
+              >Edit</a
+            ><button
+              type="button"
+              data-delete
+              (click)="pendingDelete.set(item)"
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+  <nav class="finance-toolbar" aria-label="Pagination">
+    <button
+      type="button"
+      [disabled]="result.meta.page <= 1"
+      (click)="page(result.meta.page - 1)"
+    >
+      Previous</button
+    ><span>Page {{ result.meta.page }} / {{ result.meta.totalPages || 1 }}</span
+    ><button
+      type="button"
+      [disabled]="result.meta.page >= result.meta.totalPages"
+      (click)="page(result.meta.page + 1)"
+    >
+      Next
+    </button>
+  </nav>
+  } @if (pendingDelete(); as item) {
+  <app-admin-delete-confirmation
+    [name]="item.purchaseNumber"
+    (decision)="confirmDelete($event)"
+  />
+  }
+</section>
