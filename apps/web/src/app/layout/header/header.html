@@ -67,3 +67,19 @@
     </div>
   </div>
 </header>
+
+<form
+  class="search mobile-search"
+  role="search"
+  (submit)="$event.preventDefault(); search(mobileSearchBox.value)"
+>
+  <label class="sr-only" for="mobile-site-search">{{ i18n.t("search") }}</label>
+  <input
+    #mobileSearchBox
+    id="mobile-site-search"
+    type="search"
+    [placeholder]="i18n.t('searchPlaceholder')"
+    autocomplete="off"
+  />
+  <button type="submit" [attr.aria-label]="i18n.t('search')">⌕</button>
+</form>

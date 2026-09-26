@@ -20,4 +20,21 @@ describe("Header logo presentation", () => {
     expect(image.width).toBe(64);
     expect(image.height).toBe(64);
   });
+  it("renders a dedicated mobile search bar outside the hamburger menu", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const mobileSearch: HTMLFormElement | null =
+      fixture.nativeElement.querySelector("form.mobile-search");
+    const menu = fixture.nativeElement.querySelector("#primary-navigation");
+
+    expect(mobileSearch).not.toBeNull();
+    expect(menu.contains(mobileSearch)).toBe(false);
+    expect(mobileSearch?.querySelector('input[type="search"]')).not.toBeNull();
+    expect(mobileSearch?.querySelector('button[type="submit"]')).not.toBeNull();
+  });
 });
