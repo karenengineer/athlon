@@ -18,7 +18,13 @@ type Column = {
   format?: "amd" | "date" | "percent";
 };
 
-const amount = (value: string): number => Number(value);
+const amount = (value: string): ExcelJS.CellValue => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return value;
+  if (Number.isInteger(numeric))
+    return Number.isSafeInteger(numeric) ? numeric : value;
+  return Math.abs(numeric) <= Number.MAX_SAFE_INTEGER ? numeric : value;
+};
 const date = (value: string): Date =>
   new Date(value.length === 10 ? `${value}T00:00:00.000Z` : value);
 

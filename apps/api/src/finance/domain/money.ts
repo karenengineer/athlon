@@ -1,5 +1,7 @@
 import { Prisma } from "../../generated/prisma/client";
 
+Prisma.Decimal.set({ precision: 40, toExpNeg: -9, toExpPos: 40 });
+
 export const money = (
   value: ConstructorParameters<typeof Prisma.Decimal>[0],
 ): Prisma.Decimal => new Prisma.Decimal(value);

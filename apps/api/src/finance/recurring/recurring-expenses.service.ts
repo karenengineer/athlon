@@ -18,6 +18,8 @@ type RecurringWithCategory = Prisma.RecurringExpenseGetPayload<{
   include: typeof recurringInclude;
 }>;
 const parseDate = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
+const formatDateOnly = (value: Date): string =>
+  value.toISOString().slice(0, 10);
 const serializeRecurring = <T extends { amount: Prisma.Decimal }>(
   template: T,
 ) => ({
@@ -105,8 +107,22 @@ export class RecurringExpensesService {
           });
           if (!current)
             throw new NotFoundException("Recurring expense not found");
+          const now = new Date();
+          const reactivating =
+            current.active === false && input.active === true;
+          const reactivationStartDate = reactivating
+            ? formatDateOnly(
+                monthlyOccurrenceDate(
+                  current.startDate,
+                  now.getUTCFullYear(),
+                  now.getUTCMonth() + 1,
+                ),
+              )
+            : undefined;
           const startDate =
-            input.startDate ?? current.startDate.toISOString().slice(0, 10);
+            input.startDate ??
+            reactivationStartDate ??
+            formatDateOnly(current.startDate);
           const endDate =
             input.endDate === undefined
               ? current.endDate?.toISOString().slice(0, 10)
@@ -116,7 +132,7 @@ export class RecurringExpensesService {
             await this.ensureActiveCategory(input.categoryId, tx);
 
           if (current.active)
-            await this.materializeCompletedPeriods(tx, current, new Date());
+            await this.materializeCompletedPeriods(tx, current, now);
 
           return tx.recurringExpense.update({
             where: { id },
@@ -128,8 +144,8 @@ export class RecurringExpensesService {
               ...(input.amount !== undefined
                 ? { amount: money(input.amount) }
                 : {}),
-              ...(input.startDate !== undefined
-                ? { startDate: parseDate(input.startDate) }
+              ...(input.startDate !== undefined || reactivationStartDate
+                ? { startDate: parseDate(startDate) }
                 : {}),
               ...(input.endDate !== undefined
                 ? { endDate: input.endDate ? parseDate(input.endDate) : null }

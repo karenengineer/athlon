@@ -41,7 +41,7 @@ type ExportKind =
 
 type CsvDefinition = { headers: string[]; rows: CsvCell[][] };
 
-const money = (value: string): number => Number(value);
+const money = (value: string): string => value;
 
 function csvDefinition(
   kind: ExportKind,

@@ -32,6 +32,54 @@ describe("authoritative finance reporting", () => {
     };
   }
 
+  it("reactivates recurring templates from the current month without backfilling inactive history", async () => {
+    const { service, prisma, template, occurrences } = setup();
+    template.active = false;
+    template.startDate = new Date("2026-01-01T00:00:00.000Z");
+    template.endDate = new Date("2026-12-31T00:00:00.000Z");
+    const recurring = new RecurringExpensesService(
+      prisma as unknown as PrismaService,
+    );
+
+    await recurring.update(template.id, { active: true, amount: "50000" });
+
+    const annual = await service.getMonthlySummary(2026);
+    expect(annual.totals.recurringExpenses).toBe("50000");
+    expect(
+      annual.months.slice(0, 8).map((month) => month.recurringExpenses),
+    ).toEqual(Array(8).fill("0"));
+    expect(annual.months[8]!.recurringExpenses).toBe("50000");
+    expect(template.startDate).toEqual(new Date("2026-09-01T00:00:00.000Z"));
+    expect(occurrences.size).toBe(1);
+  });
+
+  it("exports all transaction lines when purchase or sale filters match one product line", async () => {
+    const { service, products } = setup();
+    const purchase = products[0]!.purchaseItems[0]!.purchase;
+    products[1]!.purchaseItems[0]!.purchaseId = purchase.id;
+    products[1]!.purchaseItems[0]!.purchase = {
+      ...purchase,
+      supplierId: reportIds.supplier,
+      supplier: purchase.supplier,
+    };
+
+    const purchaseRows = await service.getPurchaseExportRows({
+      productId: reportIds.product,
+      page: 1,
+      pageSize: 24,
+      sort: "dateDesc",
+    });
+    expect(purchaseRows.map((row) => row.sku)).toEqual(["A-01", "B-02"]);
+
+    const saleRows = await service.getSaleExportRows({
+      productId: reportIds.product,
+      page: 1,
+      pageSize: 24,
+      sort: "dateDesc",
+    });
+    expect(saleRows.map((row) => row.sku)).toEqual(["A-01", "B-02"]);
+  });
+
   it("limits expense CSV rows by payment method before export", async () => {
     const { service, expenses } = setup();
     (expenses[0] as { paymentMethod: string | null }).paymentMethod =

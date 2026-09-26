@@ -15,6 +15,17 @@ describe("toCsv", () => {
     );
   });
 
+  it("preserves exact decimal text without treating negative money as a formula", () => {
+    const result = toCsv(
+      ["Big", "Negative", "Text"],
+      [["9008999999990991", "-123.45", "-command"]],
+    ).toString("utf8");
+
+    expect(result).toBe(
+      "\uFEFFBig,Negative,Text\r\n9008999999990991,-123.45,'-command",
+    );
+  });
+
   it.each(["=1+1", "+cmd", "-command", "@SUM(A1)"])(
     "prefixes unsafe text %s while leaving numeric values numeric",
     (unsafe) => {

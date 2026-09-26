@@ -188,6 +188,13 @@ describe("Finance export HTTP contracts", () => {
       .query(september)
       .set("Cookie", [`athlon_access=${token}`])
       .expect(200);
+    const precisionPurchase = database.products[0]!.purchaseItems[0]!;
+    const previousInventoryValue = precisionPurchase.purchaseUnitPrice;
+    const previousPurchaseDate = precisionPurchase.purchase.date;
+    precisionPurchase.purchaseUnitPrice = new Prisma.Decimal(
+      "9008999999990991",
+    );
+    precisionPurchase.purchase.date = new Date("2026-09-02T00:00:00.000Z");
     const response = await download("accounting.xlsx")
       .buffer(true)
       .parse(binaryParser)
@@ -247,6 +254,13 @@ describe("Finance export HTTP contracts", () => {
     expect(operationsRow?.getCell(2).value).toBe(
       Number(dashboard.body.totalExpenses),
     );
+    const purchasesSheet = workbook.getWorksheet("Purchases")!;
+    const highValueRow = purchasesSheet
+      .getRows(1, purchasesSheet.rowCount)!
+      .find((row) => row.getCell(7).value === "9008999999990991");
+    expect(highValueRow?.getCell(7).value).toBe("9008999999990991");
+    precisionPurchase.purchaseUnitPrice = previousInventoryValue;
+    precisionPurchase.purchase.date = previousPurchaseDate;
   });
 
   it("exports only the current view across date and finance filters", async () => {
@@ -291,7 +305,7 @@ describe("Finance export HTTP contracts", () => {
       productId: reportIds.product,
     }).expect(200);
     expect(product.text).toContain("A-01");
-    expect(product.text).not.toContain("B-02");
+    expect(product.text).toContain("B-02");
 
     const category = await download("products.csv", {
       ...september,

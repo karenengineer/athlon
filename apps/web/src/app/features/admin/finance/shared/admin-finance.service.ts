@@ -99,8 +99,37 @@ export class AdminFinanceService {
     return this.get("products", query);
   }
 
+  allProducts(page = 1): Observable<FinanceProductRow[]> {
+    return this.listProducts({ page, pageSize: 100, sort: "nameAsc" }).pipe(
+      switchMap((list) =>
+        list.meta.page < list.meta.totalPages
+          ? this.allProducts(page + 1).pipe(
+              map((rest) => [...list.items, ...rest]),
+            )
+          : of(list.items),
+      ),
+    );
+  }
+
   listSuppliers(query: SupplierQuery = {}): Observable<FinanceList<Supplier>> {
     return this.get("suppliers", query);
+  }
+
+  allSuppliers(page = 1): Observable<Supplier[]> {
+    return this.listSuppliers({
+      page,
+      pageSize: 100,
+      active: true,
+      sort: "name",
+    }).pipe(
+      switchMap((list) =>
+        list.meta.page < list.meta.totalPages
+          ? this.allSuppliers(page + 1).pipe(
+              map((rest) => [...list.items, ...rest]),
+            )
+          : of(list.items),
+      ),
+    );
   }
 
   getSupplier(id: string): Observable<Supplier> {

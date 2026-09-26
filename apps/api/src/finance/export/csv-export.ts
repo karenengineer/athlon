@@ -2,13 +2,16 @@ export type CsvCell = string | number | boolean | Date | null | undefined;
 
 const BOM = "\uFEFF";
 const FORMULA_PREFIX = /^[=+\-@]/;
+const DECIMAL_TEXT = /^-?\d+(?:\.\d+)?$/;
 
 function serializeCell(value: CsvCell): string {
   if (value === null || value === undefined) return "";
   const text =
     value instanceof Date
       ? value.toISOString()
-      : typeof value === "string" && FORMULA_PREFIX.test(value)
+      : typeof value === "string" &&
+          FORMULA_PREFIX.test(value) &&
+          !DECIMAL_TEXT.test(value)
         ? `'${value}`
         : String(value);
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;

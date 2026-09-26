@@ -116,18 +116,14 @@ export class PurchaseEditor implements AdminDirtyForm {
   loadOptions(): void {
     this.optionsLoading.set(true);
     forkJoin({
-      products: this.api.listProducts({ pageSize: 100, sort: "nameAsc" }),
-      suppliers: this.api.listSuppliers({
-        pageSize: 100,
-        active: true,
-        sort: "name",
-      }),
+      products: this.api.allProducts(),
+      suppliers: this.api.allSuppliers(),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ products, suppliers }) => {
-          this.products.set(products.items);
-          this.suppliers.set(suppliers.items);
+          this.products.set(products);
+          this.suppliers.set(suppliers);
           this.optionsLoading.set(false);
         },
         error: () => {

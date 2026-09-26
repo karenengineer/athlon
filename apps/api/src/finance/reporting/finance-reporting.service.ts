@@ -298,8 +298,9 @@ function purchaseExportRows(
   query: PurchaseListQueryDto,
 ): AccountingPurchaseRow[] {
   const search = query.q?.toLocaleLowerCase();
-  const matchingPurchaseIds = new Set<string>();
+  const selectedPurchaseIds = new Set<string>();
   const totalsByPurchase = new Map<string, Prisma.Decimal>();
+
   for (const product of snapshot.products) {
     for (const item of product.purchaseItems) {
       totalsByPurchase.set(
@@ -308,12 +309,20 @@ function purchaseExportRows(
           item.purchaseUnitPrice.mul(item.quantity),
         ),
       );
+      const matchesProductFilter =
+        (!query.productId || product.id === query.productId) &&
+        (!query.categoryId || product.categoryId === query.categoryId);
+      const matchesSearch =
+        !search ||
+        textMatches(item.purchase.purchaseNumber, search) ||
+        productTextMatches(product, search);
       if (
-        search &&
-        (textMatches(item.purchase.purchaseNumber, search) ||
-          productTextMatches(product, search))
+        matchesProductFilter &&
+        matchesSearch &&
+        listDateMatches(item.purchase.date, query) &&
+        (!query.supplierId || item.purchase.supplierId === query.supplierId)
       )
-        matchingPurchaseIds.add(item.purchaseId);
+        selectedPurchaseIds.add(item.purchaseId);
     }
   }
 
@@ -326,18 +335,8 @@ function purchaseExportRows(
     }
   >();
   for (const product of snapshot.products) {
-    if (
-      (query.productId && product.id !== query.productId) ||
-      (query.categoryId && product.categoryId !== query.categoryId)
-    )
-      continue;
     for (const item of product.purchaseItems) {
-      if (
-        !listDateMatches(item.purchase.date, query) ||
-        (query.supplierId && item.purchase.supplierId !== query.supplierId) ||
-        (search && !matchingPurchaseIds.has(item.purchaseId))
-      )
-        continue;
+      if (!selectedPurchaseIds.has(item.purchaseId)) continue;
       const group = groups.get(item.purchaseId) ?? {
         date: item.purchase.date,
         createdAt: item.purchase.createdAt,
@@ -387,11 +386,12 @@ function saleExportRows(
   query: SaleListQueryDto,
 ): AccountingSaleRow[] {
   const search = query.q?.toLocaleLowerCase();
-  const matchingSaleIds = new Set<string>();
+  const selectedSaleIds = new Set<string>();
   const totalsBySale = new Map<
     string,
     { revenue: Prisma.Decimal; grossProfit: Prisma.Decimal }
   >();
+
   for (const product of snapshot.products) {
     for (const item of product.saleItems) {
       const amounts = saleAmounts(item);
@@ -402,17 +402,28 @@ function saleExportRows(
       total.revenue = total.revenue.add(amounts.revenue);
       total.grossProfit = total.grossProfit.add(amounts.grossProfit);
       totalsBySale.set(item.saleId, total);
-      if (
-        search &&
-        ([
+
+      const matchesProductFilter =
+        (!query.productId || product.id === query.productId) &&
+        (!query.categoryId || product.categoryId === query.categoryId);
+      const matchesSearch =
+        !search ||
+        [
           item.sale.saleNumber,
           item.sale.orderId,
           item.sale.customerName,
           item.sale.customerPhone,
         ].some((value) => textMatches(value, search)) ||
-          productTextMatches(product, search))
+        productTextMatches(product, search);
+      if (
+        matchesProductFilter &&
+        matchesSearch &&
+        listDateMatches(item.sale.date, query) &&
+        (!query.channel || item.sale.channel === query.channel) &&
+        (!query.trainerReferralCode ||
+          item.sale.trainerReferralCode === query.trainerReferralCode)
       )
-        matchingSaleIds.add(item.saleId);
+        selectedSaleIds.add(item.saleId);
     }
   }
 
@@ -421,20 +432,8 @@ function saleExportRows(
     { date: Date; createdAt: Date; rows: AccountingSaleRow[] }
   >();
   for (const product of snapshot.products) {
-    if (
-      (query.productId && product.id !== query.productId) ||
-      (query.categoryId && product.categoryId !== query.categoryId)
-    )
-      continue;
     for (const item of product.saleItems) {
-      if (
-        !listDateMatches(item.sale.date, query) ||
-        (query.channel && item.sale.channel !== query.channel) ||
-        (query.trainerReferralCode &&
-          item.sale.trainerReferralCode !== query.trainerReferralCode) ||
-        (search && !matchingSaleIds.has(item.saleId))
-      )
-        continue;
+      if (!selectedSaleIds.has(item.saleId)) continue;
       const amounts = saleAmounts(item);
       const group = groups.get(item.saleId) ?? {
         date: item.sale.date,

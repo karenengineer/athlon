@@ -151,11 +151,11 @@ export class SaleEditor implements AdminDirtyForm {
   loadOptions(): void {
     this.optionsLoading.set(true);
     this.api
-      .listProducts({ pageSize: 100, sort: "nameAsc" })
+      .allProducts()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (r) => {
-          this.products.set(r.items);
+        next: (products) => {
+          this.products.set(products);
           this.optionsLoading.set(false);
         },
         error: () => {
