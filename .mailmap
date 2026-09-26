@@ -1,0 +1,4 @@
+# Normalize historical ATHLON commit authors to the repository owner.
+# This avoids split contributor statistics without rewriting Git history.
+karenengineer <gevorgyankaren728@gmail.com> kgevorgyan-alison <kgevorgyan@alison.com>
+karenengineer <gevorgyankaren728@gmail.com> karenengineer <31364906+karenengineer@users.noreply.github.com>
