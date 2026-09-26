@@ -98,6 +98,39 @@ describe("ATHLON public application", () => {
     expect(fixture.nativeElement.textContent).toContain("Уточнить цену");
   });
 
+  it("uses see all products CTAs above and below the home showcase", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/en");
+    fixture.detectChanges();
+
+    http
+      .expectOne((request) => request.url.endsWith("/categories"))
+      .flush(categories);
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [product],
+        meta: { page: 1, pageSize: 8, total: 1, totalPages: 1 },
+      });
+    fixture.detectChanges();
+
+    const links = [
+      ...fixture.nativeElement.querySelectorAll(
+        '[data-testid="see-all-products"]',
+      ),
+    ] as HTMLAnchorElement[];
+
+    expect(fixture.nativeElement.textContent).not.toContain("View catalog");
+    expect(links).toHaveLength(2);
+    expect(links.map((link) => link.textContent?.trim())).toEqual([
+      "See all products →",
+      "See all products →",
+    ]);
+    expect(
+      links.every((link) => link.getAttribute("href") === "/en/catalog"),
+    ).toBe(true);
+  });
+
   it("renders a useful empty state when the nutrition category has no products", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
