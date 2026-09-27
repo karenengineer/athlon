@@ -186,4 +186,24 @@ describe("Header logo presentation", () => {
     ).not.toBeNull();
     expect(basketLink.querySelector("b")).toBeNull();
   });
+
+  it("uses a shopping cart style basket icon instead of a bin-like bag", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const basketIcon = fixture.nativeElement.querySelector(
+      "[data-testid='basket-icon']",
+    ) as SVGElement;
+
+    expect(basketIcon.querySelectorAll("circle").length).toBe(2);
+    expect(
+      Array.from(basketIcon.querySelectorAll("path")).some((path) =>
+        path.getAttribute("d")?.includes("M3 4"),
+      ),
+    ).toBe(true);
+  });
 });
