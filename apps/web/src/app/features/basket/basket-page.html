@@ -1,0 +1,78 @@
+<section class="basket-page page-width">
+  <header>
+    <p>ATHLON ORDER</p>
+    <h1>{{ i18n.t("basket") }}</h1>
+  </header>
+
+  @if (basket.items().length) {
+  <div class="basket-layout">
+    <div class="basket-list">
+      @for (item of basket.items(); track item.id) {
+      <article class="basket-item">
+        <a [routerLink]="['/', i18n.locale(), 'product', item.slug]">
+          <img
+            [src]="item.imageUrl"
+            [alt]="item.name"
+            width="120"
+            height="120"
+          />
+        </a>
+        <div>
+          <p>{{ item.sku }}</p>
+          <h2>
+            <a [routerLink]="['/', i18n.locale(), 'product', item.slug]"
+              >{{ item.name }}</a
+            >
+          </h2>
+          <strong>
+            @if (item.price !== null) { {{ +item.price | currency: "AMD" :
+            "symbol-narrow" : "1.0-0" }} } @else { {{ i18n.t("contactPrice") }}
+            }
+          </strong>
+        </div>
+        <label>
+          <span>{{ i18n.t("quantity") }}</span>
+          <input
+            type="number"
+            min="1"
+            [value]="item.quantity"
+            (change)="update(item.id, $any($event.target).value)"
+          />
+        </label>
+        <button type="button" (click)="basket.remove(item.id)">
+          {{ i18n.t("remove") }}
+        </button>
+      </article>
+      }
+    </div>
+
+    <aside class="basket-summary">
+      <p>{{ i18n.t("basketTotal") }}</p>
+      <strong
+        >{{ basket.total() | currency: "AMD" : "symbol-narrow" : "1.0-0"
+        }}</strong
+      >
+      <button
+        type="button"
+        class="order-button"
+        (click)="copyAndOpenInstagram()"
+      >
+        {{ i18n.t("orderInstagram") }}
+      </button>
+      @if (copied()) {
+      <small>{{ i18n.t("orderCopied") }}</small>
+      }
+      <button type="button" class="clear-button" (click)="basket.clear()">
+        {{ i18n.t("clearBasket") }}
+      </button>
+    </aside>
+  </div>
+  } @else {
+  <div class="empty-basket">
+    <h2>{{ i18n.t("emptyBasket") }}</h2>
+    <a [routerLink]="['/', i18n.locale(), 'catalog']"
+      >{{ i18n.t("continueShopping") }}</a
+    >
+  </div>
+  }
+</section>
