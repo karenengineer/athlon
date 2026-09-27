@@ -121,55 +121,9 @@ nav a:hover {
   font-size: 1.3rem;
 }
 
-.social-menu {
-  position: relative;
-}
-
-.social-menu summary {
-  display: none;
-}
-
-.social-links {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .social-link {
   width: 36px;
   height: 36px;
-  display: grid;
-  flex: 0 0 36px;
-  place-items: center;
-  border: 1px solid #343438;
-  border-radius: 9px;
-  color: #f6f6f7;
-  background: #161618;
-}
-
-.social-link svg {
-  width: 19px;
-  height: 19px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
-}
-
-.social-link[data-social="facebook"] svg,
-.social-link[data-social="telegram"] svg {
-  fill: currentColor;
-  stroke: none;
-}
-
-.social-link--placeholder {
-  cursor: default;
-}
-
-.social-link:hover {
-  border-color: #fff;
-  color: #fff;
 }
 
 .languages {
@@ -251,46 +205,6 @@ nav a:hover {
   .header-content .search,
   .languages {
     display: none;
-  }
-
-  .social-menu {
-    order: 1;
-  }
-
-  .social-menu summary {
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-content: center;
-    border: 1px solid #3b3b3f;
-    border-radius: 999px;
-    color: #fff;
-    background: #171719;
-    font-size: 1.15rem;
-    font-weight: 900;
-    cursor: pointer;
-    list-style: none;
-  }
-
-  .social-menu summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .social-menu .social-links {
-    position: absolute;
-    z-index: 50;
-    top: calc(100% + 8px);
-    left: 0;
-    display: none;
-    grid-template-columns: repeat(4, 36px);
-    padding: 8px;
-    border: 1px solid #343438;
-    border-radius: 14px;
-    background: #111113;
-  }
-
-  .social-menu[open] .social-links {
-    display: grid;
   }
 
   .mobile-language {

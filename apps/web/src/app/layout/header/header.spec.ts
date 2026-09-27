@@ -93,4 +93,31 @@ describe("Header logo presentation", () => {
     expect(firstStyle.width).toBe("36px");
     expect(firstStyle.height).toBe("36px");
   });
+
+  it("shows a colored social trigger and closes the mobile socials on outside click", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const menu: HTMLDetailsElement =
+      fixture.nativeElement.querySelector(".social-menu");
+    const trigger = fixture.nativeElement.querySelector(
+      "[data-testid='social-menu-trigger']",
+    ) as HTMLElement;
+
+    expect(trigger.textContent?.trim()).not.toBe("•••");
+    expect(trigger.querySelector("svg")).not.toBeNull();
+    expect(getComputedStyle(trigger).backgroundColor).not.toBe(
+      "rgb(23, 23, 25)",
+    );
+
+    menu.open = true;
+    document.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(menu.open).toBe(false);
+  });
 });

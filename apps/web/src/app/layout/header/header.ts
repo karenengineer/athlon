@@ -1,4 +1,10 @@
-import { Component, inject } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  inject,
+  viewChild,
+} from "@angular/core";
 import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 import {
   I18nService,
@@ -17,6 +23,7 @@ export class Header {
   readonly i18n = inject(I18nService);
   readonly basket = inject(BasketService);
   readonly locales = supportedLocales;
+  readonly socialMenu = viewChild<ElementRef<HTMLDetailsElement>>("socialMenu");
   private readonly router = inject(Router);
 
   localeHref(locale: Locale): string {
@@ -38,5 +45,13 @@ export class Header {
   onLocaleSelect(event: Event): void {
     const locale = (event.target as HTMLSelectElement).value as Locale;
     void this.router.navigateByUrl(this.localeHref(locale));
+  }
+
+  @HostListener("document:click", ["$event"])
+  closeSocialsOnOutsideClick(event: MouseEvent): void {
+    const menu = this.socialMenu()?.nativeElement;
+    if (!menu?.open) return;
+    if (event.target instanceof Node && menu.contains(event.target)) return;
+    menu.open = false;
   }
 }
