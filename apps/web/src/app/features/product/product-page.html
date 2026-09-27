@@ -58,6 +58,9 @@
         } @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
         <span>{{ availabilityLabel() }}</span>
       </div>
+      <button type="button" class="basket-cta" (click)="addToBasket()">
+        {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
+      </button>
       @if (contactHref(); as href) {
       <a
         class="availability-cta"

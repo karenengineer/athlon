@@ -2,6 +2,7 @@ import { CurrencyPipe } from "@angular/common";
 import { Component, inject, input } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { Product } from "../../core/api/catalog.models";
+import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 
 @Component({
@@ -14,6 +15,7 @@ export class ProductCard {
   readonly product = input.required<Product>();
   readonly eager = input(false);
   readonly i18n = inject(I18nService);
+  readonly basket = inject(BasketService);
 
   imageUrl(): string {
     return (
@@ -31,5 +33,13 @@ export class ProductCard {
       ON_REQUEST: "onRequest",
     } as const;
     return this.i18n.t(keys[this.product().availability]);
+  }
+
+  addToBasket(): void {
+    this.basket.add(this.product());
+  }
+
+  inBasket(): boolean {
+    return this.basket.items().some((item) => item.id === this.product().id);
   }
 }

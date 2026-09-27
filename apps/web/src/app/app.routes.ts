@@ -50,6 +50,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "basket",
+        loadComponent: () =>
+          import("./features/basket/basket-page").then(
+            (module) => module.BasketPage,
+          ),
+      },
+      {
         path: "**",
         loadComponent: () =>
           import("./features/not-found/not-found-page").then(

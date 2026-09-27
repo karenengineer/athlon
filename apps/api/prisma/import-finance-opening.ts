@@ -61,14 +61,14 @@ export interface OpeningImportResult {
 
 const approvedTotals: OpeningTotals = {
   skuCount: 25,
-  unitsPurchased: 143,
-  unitsSold: 2,
-  currentStock: 141,
-  purchaseCost: "1061840",
-  inventoryValue: "1035840",
-  revenue: "37000",
-  costOfGoodsSold: "26000",
-  grossProfit: "11000",
+  unitsPurchased: 177,
+  unitsSold: 8,
+  currentStock: 169,
+  purchaseCost: "1295840",
+  inventoryValue: "1214340",
+  revenue: "107000",
+  costOfGoodsSold: "81500",
+  grossProfit: "25500",
 };
 
 type ActualLine = {

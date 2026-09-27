@@ -3,7 +3,7 @@
   font-family: Inter, Montserrat, "Arial Narrow", Arial, sans-serif;
   font-synthesis: none;
   --athlon-black: #080809;
-  --athlon-red: #e5001b;
+  --athlon-red: #2b2b2f;
   --athlon-light: #f0f0f2;
   --page-width: 1200px;
 }
@@ -41,13 +41,17 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #ff3149;
+  outline: 3px solid #111;
   outline-offset: 3px;
 }
 
 img {
   display: block;
   max-width: 100%;
+}
+
+img:not(.favicon-logo) {
+  filter: grayscale(1);
 }
 
 .page-width {

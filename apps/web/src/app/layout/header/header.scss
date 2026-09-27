@@ -7,8 +7,9 @@
   min-height: 28px;
   display: grid;
   place-items: center;
-  padding: 4px 20px;
-  background: #e5001b;
+  padding: 4px 16px;
+  background: #0f0f10;
+  border-bottom: 1px solid #2f2f31;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -22,7 +23,7 @@
   min-height: 74px;
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 24px;
   max-width: 1240px;
   margin: auto;
   padding: 8px 24px;
@@ -66,7 +67,7 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
 }
 
 nav {
@@ -98,7 +99,7 @@ nav a:hover {
 }
 
 .search:focus-within {
-  border-color: #e5001b;
+  border-color: #fff;
 }
 
 .search input {
@@ -115,9 +116,17 @@ nav a:hover {
   width: 42px;
   border: 0;
   color: #fff;
-  background: #e5001b;
+  background: #2d2d31;
   cursor: pointer;
   font-size: 1.3rem;
+}
+
+.social-menu {
+  position: relative;
+}
+
+.social-menu summary {
+  display: none;
 }
 
 .social-links {
@@ -135,14 +144,7 @@ nav a:hover {
   border: 1px solid #343438;
   border-radius: 9px;
   color: #f6f6f7;
-  background: linear-gradient(145deg, #222226, #111114), #161618;
-  box-shadow:
-    inset 0 1px 0 #ffffff12,
-    0 8px 20px #0005;
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
+  background: #161618;
 }
 
 .social-link svg {
@@ -166,8 +168,7 @@ nav a:hover {
 }
 
 .social-link:hover {
-  transform: translateY(-1px);
-  border-color: #e5001b;
+  border-color: #fff;
   color: #fff;
 }
 
@@ -191,8 +192,35 @@ nav a:hover {
   background: #2a2a2d;
 }
 
-.menu-button {
+.mobile-language {
   display: none;
+}
+
+.basket-link {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid #343438;
+  border-radius: 999px;
+  color: #fff;
+  background: #171719;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.basket-link b {
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #171719;
+  background: #fff;
+  font-size: 0.72rem;
 }
 
 .mobile-search {
@@ -201,30 +229,102 @@ nav a:hover {
 
 @media (max-width: 860px) {
   .header {
+    min-height: 62px;
+    justify-content: space-between;
     padding-inline: 16px;
   }
 
-  .brand-copy {
+  .brand {
     display: none;
   }
 
-  .menu-button {
+  .header-content {
+    position: static;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .header-content nav,
+  .header-content .search,
+  .languages {
+    display: none;
+  }
+
+  .social-menu {
+    order: 1;
+  }
+
+  .social-menu summary {
     width: 44px;
     height: 44px;
     display: grid;
     place-content: center;
-    gap: 5px;
-    margin-left: auto;
     border: 1px solid #3b3b3f;
-    border-radius: 5px;
+    border-radius: 999px;
     color: #fff;
     background: #171719;
+    font-size: 1.15rem;
+    font-weight: 900;
+    cursor: pointer;
+    list-style: none;
   }
 
-  .menu-button span:not(.sr-only) {
-    width: 20px;
-    height: 2px;
-    background: currentColor;
+  .social-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .social-menu .social-links {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 8px);
+    left: 0;
+    display: none;
+    grid-template-columns: repeat(4, 36px);
+    padding: 8px;
+    border: 1px solid #343438;
+    border-radius: 14px;
+    background: #111113;
+  }
+
+  .social-menu[open] .social-links {
+    display: grid;
+  }
+
+  .mobile-language {
+    order: 2;
+    display: block;
+  }
+
+  .basket-link {
+    order: 3;
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .basket-link span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .mobile-language select {
+    min-height: 42px;
+    padding: 0 12px;
+    border: 1px solid #3b3b3f;
+    border-radius: 999px;
+    color: #fff;
+    background: #171719;
+    font-size: 0.78rem;
+    font-weight: 900;
   }
 
   .mobile-search {
@@ -234,37 +334,5 @@ nav a:hover {
     margin: 0 16px 12px;
     border-color: #2f2f34;
     box-shadow: 0 10px 28px #0005;
-  }
-
-  .header-content {
-    position: absolute;
-    top: 100%;
-    right: 12px;
-    left: 12px;
-    display: none;
-    align-items: stretch;
-    padding: 18px;
-    border: 1px solid #333338;
-    border-radius: 8px;
-    background: #0e0e10;
-    box-shadow: 0 18px 40px #0009;
-  }
-
-  .header-content.open {
-    display: grid;
-  }
-
-  .social-links {
-    justify-content: center;
-    order: 3;
-    padding-top: 6px;
-  }
-
-  nav {
-    display: grid;
-  }
-
-  .header-content .search {
-    display: none;
   }
 }

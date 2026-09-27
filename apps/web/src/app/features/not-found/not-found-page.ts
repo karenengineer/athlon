@@ -21,7 +21,7 @@ import { I18nService } from "../../core/i18n/i18n.service";
       color: #171719;
     }
     b {
-      color: #e5001b;
+      color: #171719;
       font-size: 5rem;
       font-style: italic;
     }

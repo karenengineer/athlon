@@ -36,6 +36,30 @@ describe("Header logo presentation", () => {
     expect(menu.contains(mobileSearch)).toBe(false);
     expect(mobileSearch?.querySelector('input[type="search"]')).not.toBeNull();
     expect(mobileSearch?.querySelector('button[type="submit"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".menu-button")).toBeNull();
+  });
+
+  it("renders language links for desktop and a language dropdown for mobile", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const languageLinks = Array.from(
+      fixture.nativeElement.querySelectorAll("[data-testid=language-link]"),
+    ).map((node) => (node as HTMLElement).textContent?.trim());
+    const mobileLanguage: HTMLSelectElement | null =
+      fixture.nativeElement.querySelector(
+        "[data-testid=mobile-language-select]",
+      );
+
+    expect(languageLinks).toEqual(["HY", "RU", "EN"]);
+    expect(mobileLanguage).not.toBeNull();
+    expect(
+      Array.from(mobileLanguage?.options ?? []).map((option) => option.value),
+    ).toEqual(["hy", "ru", "en"]);
   });
 
   it("renders square placeholder social links in the header", async () => {

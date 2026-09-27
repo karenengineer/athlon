@@ -12,41 +12,9 @@
   width: 130px;
   height: 360px;
   content: "";
-  background: #e5001b;
-  opacity: 0.08;
+  background: #fff;
+  opacity: 0.04;
   transform: skewX(-24deg);
-}
-
-.category-strip {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding-top: 10px;
-}
-
-.category-strip a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid #37373b;
-  border-radius: 5px;
-  color: #fff;
-  background: #151517;
-  font-size: 0.82rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.category-strip a.primary,
-.category-strip a:hover {
-  border-color: #e5001b;
-  background: #e5001b;
 }
 
 .hero {
@@ -74,7 +42,7 @@
 }
 
 .eyebrow.red {
-  color: #e5001b;
+  color: #323236;
 }
 
 h1 {
@@ -102,7 +70,7 @@ h1 {
   padding: 10px 16px;
   border-radius: 4px;
   color: #fff;
-  background: #e5001b;
+  background: #161618;
   font-size: 0.75rem;
   font-weight: 900;
   text-decoration: none;
@@ -124,7 +92,7 @@ h1 {
 }
 
 .showcase {
-  padding: 20px 0 64px;
+  padding: 20px 0 28px;
   color: #171719;
   background: #f0f0f2;
 }
@@ -154,8 +122,14 @@ h1 {
 }
 
 .section-heading > a {
-  padding-bottom: 5px;
-  color: #171719;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 15px;
+  border: 1px solid #171719;
+  border-radius: 999px;
+  color: #fff;
+  background: #171719;
   font-size: 0.8rem;
   font-weight: 900;
   text-decoration: none;
@@ -165,7 +139,7 @@ h1 {
 .showcase-footer {
   display: flex;
   justify-content: center;
-  margin-top: 28px;
+  margin-top: 18px;
 }
 
 .brand-proof {
@@ -173,27 +147,17 @@ h1 {
   grid-template-columns: 1.15fr 0.85fr;
   align-items: center;
   gap: 50px;
-  padding-block: 70px;
+  padding-block: 34px 56px;
 }
 
 .brand-proof img {
   width: 100%;
   height: auto;
   border-radius: 10px;
+  filter: grayscale(1);
 }
 
 @media (max-width: 760px) {
-  .category-strip {
-    gap: 7px;
-    padding-top: 8px;
-  }
-
-  .category-strip a {
-    min-height: 42px;
-    padding-inline: 11px;
-    font-size: 0.68rem;
-  }
-
   .hero {
     height: auto;
     min-height: 270px;
@@ -205,12 +169,11 @@ h1 {
   }
 
   .hero-visual {
-    height: 150px;
-    margin-inline: -16px;
+    height: 186px;
   }
 
   .showcase {
-    padding-top: 24px;
+    padding: 20px 0 18px;
   }
 
   .section-heading {
@@ -221,7 +184,7 @@ h1 {
 
   .brand-proof {
     grid-template-columns: 1fr;
-    gap: 24px;
-    padding-block: 48px;
+    gap: 18px;
+    padding-block: 24px 42px;
   }
 }

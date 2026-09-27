@@ -14,6 +14,7 @@ import {
 } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { Product, PublicSettings } from "../../core/api/catalog.models";
+import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
 
@@ -30,6 +31,7 @@ export class ProductPage {
   readonly relatedProducts = signal<Product[]>([]);
   readonly settings = signal<PublicSettings>({});
   readonly selectedImage = signal(0);
+  readonly basket = inject(BasketService);
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -145,5 +147,17 @@ export class ProductPage {
       return JSON.stringify(value);
     if (typeof value === "boolean") return value ? "✓" : "—";
     return String(value ?? "—");
+  }
+
+  addToBasket(): void {
+    const product = this.product();
+    if (product) this.basket.add(product);
+  }
+
+  inBasket(): boolean {
+    const product = this.product();
+    return (
+      !!product && this.basket.items().some((item) => item.id === product.id)
+    );
   }
 }

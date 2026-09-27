@@ -1,29 +1,4 @@
 <section class="home-top">
-  <div class="category-strip page-width" aria-label="Catalog categories">
-    @if (categories().length) { @for (category of categories(); track
-    category.id) {
-    <a
-      data-testid="category-control"
-      [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
-      [class.primary]="category.code === 'sports-nutrition'"
-    >
-      <span>{{ category.name }}</span><b aria-hidden="true">↗</b>
-    </a>
-    } } @else {
-    <a
-      data-testid="category-control"
-      class="primary"
-      [routerLink]="['/', i18n.locale(), 'catalog', 'sports-nutrition']"
-      ><span>{{ i18n.t("nutrition") }}</span><b aria-hidden="true">↗</b></a
-    >
-    <a
-      data-testid="category-control"
-      [routerLink]="['/', i18n.locale(), 'catalog', 'accessories']"
-      ><span>{{ i18n.t("accessories") }}</span><b aria-hidden="true">↗</b></a
-    >
-    }
-  </div>
-
   <div class="hero page-width">
     <div class="hero-copy">
       <p class="eyebrow">{{ i18n.t("heroEyebrow") }}</p>

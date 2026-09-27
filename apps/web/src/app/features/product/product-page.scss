@@ -63,7 +63,7 @@
 }
 
 .thumbs button.active {
-  border-color: #e5001b;
+  border-color: #171719;
 }
 
 .thumbs img {
@@ -78,7 +78,7 @@
 
 .eyebrow {
   margin: 0 0 10px;
-  color: #e5001b;
+  color: #171719;
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -117,7 +117,7 @@ h1 {
 }
 
 .price strong {
-  color: #e5001b;
+  color: #171719;
   font-size: 1.35rem;
 }
 
@@ -135,12 +135,32 @@ h1 {
   padding: 15px 18px;
   border-radius: 5px;
   color: #fff;
-  background: #e5001b;
+  background: #171719;
   font-size: 0.82rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-decoration: none;
   text-transform: uppercase;
+}
+
+.basket-cta {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 16px;
+  border: 1px solid #171719;
+  border-radius: 999px;
+  color: #171719;
+  background: #fff;
+  font-size: 0.84rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.basket-cta:hover {
+  color: #fff;
+  background: #171719;
 }
 
 .characteristics h2 {
@@ -189,7 +209,7 @@ h1 {
 
 .related header p {
   margin: 0 0 6px;
-  color: #e5001b;
+  color: #171719;
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -233,7 +253,7 @@ h1 {
 }
 
 .related-grid b {
-  color: #e5001b;
+  color: #171719;
 }
 
 @media (max-width: 760px) {

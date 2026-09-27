@@ -1,10 +1,11 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 import {
   I18nService,
   Locale,
   supportedLocales,
 } from "../../core/i18n/i18n.service";
+import { BasketService } from "../../core/basket/basket.service";
 
 @Component({
   selector: "app-header",
@@ -14,8 +15,8 @@ import {
 })
 export class Header {
   readonly i18n = inject(I18nService);
+  readonly basket = inject(BasketService);
   readonly locales = supportedLocales;
-  readonly menuOpen = signal(false);
   private readonly router = inject(Router);
 
   localeHref(locale: Locale): string {
@@ -32,6 +33,10 @@ export class Header {
     void this.router.navigate(["/", this.i18n.locale(), "search"], {
       queryParams: { q: query },
     });
-    this.menuOpen.set(false);
+  }
+
+  onLocaleSelect(event: Event): void {
+    const locale = (event.target as HTMLSelectElement).value as Locale;
+    void this.router.navigateByUrl(this.localeHref(locale));
   }
 }

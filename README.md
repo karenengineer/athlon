@@ -35,7 +35,7 @@ check the 2026-09-20 opening source with a read-only preview:
 pnpm --filter @athlon/api db:import-finance-opening --dry-run
 ```
 
-When all 25 source SKUs exist, import the opening purchase and two historical
+When all 25 source SKUs exist, import the opening purchase and seven historical
 sales:
 
 ```bash

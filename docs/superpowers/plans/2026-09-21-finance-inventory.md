@@ -656,7 +656,7 @@ git commit -m "feat(finance): export accounting reports"
 
 - [ ] **Step 1: Encode the approved spreadsheet rows as typed data**
 
-For every SKU, record `purchaseUnitPrice`, `defaultSalePrice`, `unitsPurchased`, `unitsSold`, and known actual sale price. Include the 25 current SKUs and the two historical sold units shown in the source table. Make the file data-only and reviewable.
+For every SKU, record `purchaseUnitPrice`, `defaultSalePrice`, `unitsPurchased`, `unitsSold`, and known actual sale price. Include the 25 current SKUs and the historical sold units shown in the source table. Make the file data-only and reviewable.
 
 - [ ] **Step 2: Write a failing idempotency/import reconciliation test**
 

@@ -64,7 +64,7 @@ describe("ATHLON public application", () => {
 
   afterEach(() => http.verify());
 
-  it("shows exactly two catalog categories and sports nutrition products on home", async () => {
+  it("shows sports nutrition products on home without category tabs or accessories", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
@@ -73,9 +73,6 @@ describe("ATHLON public application", () => {
       fixture.nativeElement.querySelector("[data-testid=home-loading]"),
     ).toBeTruthy();
 
-    http
-      .expectOne((request) => request.url.endsWith("/categories"))
-      .flush(categories);
     http
       .expectOne(
         (request) =>
@@ -91,9 +88,8 @@ describe("ATHLON public application", () => {
     const categoryControls = fixture.nativeElement.querySelectorAll(
       "[data-testid=category-control]",
     );
-    expect(categoryControls).toHaveLength(2);
-    expect(fixture.nativeElement.textContent).toContain("Спортивное питание");
-    expect(fixture.nativeElement.textContent).toContain("Аксессуары");
+    expect(categoryControls).toHaveLength(0);
+    expect(fixture.nativeElement.textContent).not.toContain("Аксессуары");
     expect(fixture.nativeElement.textContent).toContain("Демо протеин");
     expect(fixture.nativeElement.textContent).toContain("Уточнить цену");
   });
@@ -103,9 +99,6 @@ describe("ATHLON public application", () => {
     await router.navigateByUrl("/en");
     fixture.detectChanges();
 
-    http
-      .expectOne((request) => request.url.endsWith("/categories"))
-      .flush(categories);
     http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({
@@ -136,9 +129,6 @@ describe("ATHLON public application", () => {
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
     http
-      .expectOne((request) => request.url.endsWith("/categories"))
-      .flush(categories);
-    http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({
         items: [],
@@ -155,9 +145,6 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
-    http
-      .expectOne((request) => request.url.endsWith("/categories"))
-      .flush(categories);
     http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush(
@@ -178,9 +165,6 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
-    http
-      .expectOne((request) => request.url.endsWith("/categories"))
-      .flush(categories);
     http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({
