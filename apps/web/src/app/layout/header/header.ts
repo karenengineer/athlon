@@ -11,7 +11,6 @@ import {
   Locale,
   supportedLocales,
 } from "../../core/i18n/i18n.service";
-import { BasketService } from "../../core/basket/basket.service";
 
 @Component({
   selector: "app-header",
@@ -21,7 +20,6 @@ import { BasketService } from "../../core/basket/basket.service";
 })
 export class Header {
   readonly i18n = inject(I18nService);
-  readonly basket = inject(BasketService);
   readonly locales = supportedLocales;
   readonly socialMenu = viewChild<ElementRef<HTMLDetailsElement>>("socialMenu");
   private readonly router = inject(Router);

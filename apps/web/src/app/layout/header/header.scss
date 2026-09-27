@@ -63,6 +63,10 @@
   letter-spacing: 0.16em;
 }
 
+.mobile-brand {
+  display: none;
+}
+
 .header-content {
   flex: 1;
   display: flex;
@@ -166,15 +170,14 @@ nav a:hover {
   text-transform: uppercase;
 }
 
-.basket-link b {
-  min-width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: #171719;
-  background: #fff;
-  font-size: 0.72rem;
+.basket-link svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
 }
 
 .mobile-search {
@@ -197,14 +200,29 @@ nav a:hover {
     display: flex;
     flex: 1;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: flex-start;
+    gap: 8px;
   }
 
   .header-content nav,
   .header-content .search,
   .languages {
     display: none;
+  }
+
+  .mobile-brand {
+    order: 0;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    flex: 0 0 44px;
+    place-items: center;
+    border-radius: 999px;
+  }
+
+  .mobile-brand .favicon-logo {
+    width: 44px;
+    height: 44px;
   }
 
   .mobile-language {
@@ -214,6 +232,7 @@ nav a:hover {
 
   .basket-link {
     order: 3;
+    margin-left: auto;
     min-width: 44px;
     width: 44px;
     height: 44px;

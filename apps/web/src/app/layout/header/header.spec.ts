@@ -120,4 +120,70 @@ describe("Header logo presentation", () => {
 
     expect(menu.open).toBe(false);
   });
+
+  it("renders a mobile home logo before the socials trigger", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const headerContent: HTMLElement =
+      fixture.nativeElement.querySelector(".header-content");
+    const mobileHome = fixture.nativeElement.querySelector(
+      "[data-testid='mobile-home-link']",
+    ) as HTMLAnchorElement;
+    const socialMenu: HTMLElement =
+      fixture.nativeElement.querySelector(".social-menu");
+
+    expect(mobileHome).not.toBeNull();
+    expect(mobileHome.getAttribute("href")).toBe("/hy");
+    expect(mobileHome.querySelector(".favicon-logo")).not.toBeNull();
+    expect(Array.from(headerContent.children).indexOf(mobileHome)).toBeLessThan(
+      Array.from(headerContent.children).indexOf(socialMenu),
+    );
+  });
+
+  it("toggles the social dropdown when tapping the colored social trigger", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const menu: HTMLDetailsElement =
+      fixture.nativeElement.querySelector(".social-menu");
+    const trigger = fixture.nativeElement.querySelector(
+      "[data-testid='social-menu-trigger']",
+    ) as HTMLElement;
+
+    trigger.click();
+    fixture.detectChanges();
+    expect(menu.open).toBe(true);
+
+    trigger.click();
+    fixture.detectChanges();
+    expect(menu.open).toBe(false);
+  });
+
+  it("renders the basket action as an icon without a visible number", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const basketLink = fixture.nativeElement.querySelector(
+      "[data-testid='basket-link']",
+    ) as HTMLAnchorElement;
+
+    expect(basketLink).not.toBeNull();
+    expect(
+      basketLink.querySelector("[data-testid='basket-icon']"),
+    ).not.toBeNull();
+    expect(basketLink.querySelector("b")).toBeNull();
+  });
 });
