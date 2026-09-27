@@ -12,6 +12,21 @@
   </a>
 
   <div class="header-content" id="primary-navigation">
+    <a
+      class="mobile-brand"
+      data-testid="mobile-home-link"
+      [routerLink]="['/', i18n.locale()]"
+      aria-label="ATHLON home"
+    >
+      <img
+        class="favicon-logo"
+        src="/brand/athlon-logo-round.jpeg"
+        width="44"
+        height="44"
+        alt="ATHLON"
+      />
+    </a>
+
     <nav aria-label="Primary navigation">
       <a
         [routerLink]="['/', i18n.locale()]"
@@ -136,9 +151,24 @@
       </select>
     </label>
 
-    <a class="basket-link" [routerLink]="['/', i18n.locale(), 'basket']">
+    <a
+      class="basket-link"
+      data-testid="basket-link"
+      [routerLink]="['/', i18n.locale(), 'basket']"
+      [attr.aria-label]="i18n.t('basket')"
+    >
+      <svg
+        data-testid="basket-icon"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M6.5 8.5h11l-1.1 9.1a2 2 0 0 1-2 1.8H9.6a2 2 0 0 1-2-1.8L6.5 8.5Z"
+        />
+        <path d="M9 8.5a3 3 0 0 1 6 0" />
+      </svg>
       <span>{{ i18n.t("basket") }}</span>
-      <b>{{ basket.totalQuantity() }}</b>
     </a>
   </div>
 </header>
