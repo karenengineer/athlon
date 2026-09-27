@@ -52,7 +52,10 @@
         <h2>{{ i18n.t("showcaseTitle") }}</h2>
         <p>{{ i18n.t("showcaseText") }}</p>
       </div>
-      <a [routerLink]="['/', i18n.locale(), 'catalog', 'sports-nutrition']">
+      <a
+        data-testid="see-all-products"
+        [routerLink]="['/', i18n.locale(), 'catalog']"
+      >
         {{ i18n.t("viewAll") }} <span aria-hidden="true">→</span>
       </a>
     </header>
@@ -65,6 +68,15 @@
     <app-status-panel kind="empty" />
     } @default {
     <app-product-grid [products]="products()" [eagerFirstRow]="true" />
+    <div class="showcase-footer">
+      <a
+        class="primary-button"
+        data-testid="see-all-products"
+        [routerLink]="['/', i18n.locale(), 'catalog']"
+      >
+        {{ i18n.t("viewAll") }} <span aria-hidden="true">→</span>
+      </a>
+    </div>
     } }
   </div>
 </section>
