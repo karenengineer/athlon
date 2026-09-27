@@ -7,14 +7,14 @@ export interface FinanceOpeningRow {
   actualSalePrice: string | null;
 }
 
-// Approved screenshot, 2026-09-21 12:53:40. Values are AMD.
+// Approved screenshot, 2026-09-27 18:10:10. Values are AMD.
 export const financeOpeningData: readonly FinanceOpeningRow[] = [
   {
     sku: "TRPRCH",
     purchaseUnitPrice: "19000",
     defaultSalePrice: "24000",
     unitsPurchased: 4,
-    unitsSold: 1,
+    unitsSold: 2,
     actualSalePrice: "24000",
   },
   {
@@ -54,8 +54,8 @@ export const financeOpeningData: readonly FinanceOpeningRow[] = [
     purchaseUnitPrice: "12000",
     defaultSalePrice: "16500",
     unitsPurchased: 5,
-    unitsSold: 0,
-    actualSalePrice: null,
+    unitsSold: 1,
+    actualSalePrice: "16500",
   },
   {
     sku: "TRGAIN",
@@ -77,7 +77,7 @@ export const financeOpeningData: readonly FinanceOpeningRow[] = [
     sku: "TRBCA",
     purchaseUnitPrice: "5500",
     defaultSalePrice: "9000",
-    unitsPurchased: 6,
+    unitsPurchased: 5,
     unitsSold: 0,
     actualSalePrice: null,
   },
@@ -109,7 +109,7 @@ export const financeOpeningData: readonly FinanceOpeningRow[] = [
     sku: "TRLCARCOMP",
     purchaseUnitPrice: "7000",
     defaultSalePrice: "13000",
-    unitsPurchased: 2,
+    unitsPurchased: 3,
     unitsSold: 1,
     actualSalePrice: "13000",
   },
@@ -134,8 +134,8 @@ export const financeOpeningData: readonly FinanceOpeningRow[] = [
     purchaseUnitPrice: "5000",
     defaultSalePrice: "9900",
     unitsPurchased: 5,
-    unitsSold: 0,
-    actualSalePrice: null,
+    unitsSold: 1,
+    actualSalePrice: "0",
   },
   {
     sku: "TRVITFWM",
@@ -147,19 +147,19 @@ export const financeOpeningData: readonly FinanceOpeningRow[] = [
   },
   {
     sku: "TROMG",
-    purchaseUnitPrice: "5500",
+    purchaseUnitPrice: "5000",
     defaultSalePrice: "9000",
     unitsPurchased: 5,
-    unitsSold: 0,
-    actualSalePrice: null,
+    unitsSold: 1,
+    actualSalePrice: "9000",
   },
   {
     sku: "TRMAGNE",
     purchaseUnitPrice: "4000",
     defaultSalePrice: "6500",
-    unitsPurchased: 4,
-    unitsSold: 0,
-    actualSalePrice: null,
+    unitsPurchased: 5,
+    unitsSold: 1,
+    actualSalePrice: "6500",
   },
   {
     sku: "TRBOOG100",
@@ -181,7 +181,7 @@ export const financeOpeningData: readonly FinanceOpeningRow[] = [
     sku: "1RCRE",
     purchaseUnitPrice: "7000",
     defaultSalePrice: "13000",
-    unitsPurchased: 17,
+    unitsPurchased: 50,
     unitsSold: 0,
     actualSalePrice: null,
   },
@@ -198,8 +198,8 @@ export const financeOpeningData: readonly FinanceOpeningRow[] = [
     purchaseUnitPrice: "10500",
     defaultSalePrice: "14000",
     unitsPurchased: 3,
-    unitsSold: 0,
-    actualSalePrice: null,
+    unitsSold: 1,
+    actualSalePrice: "14000",
   },
   {
     sku: "TRGLUT",

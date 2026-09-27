@@ -58,7 +58,7 @@ import { I18nService } from "../../core/i18n/i18n.service";
       place-items: center;
       border-radius: 50%;
       color: #fff;
-      background: #e5001b;
+      background: #171719;
       font-weight: 900;
     }
     button {
@@ -67,7 +67,7 @@ import { I18nService } from "../../core/i18n/i18n.service";
       border: 0;
       border-radius: 5px;
       color: #fff;
-      background: #e5001b;
+      background: #171719;
       font-weight: 800;
       cursor: pointer;
     }

@@ -48,5 +48,8 @@
         {{ i18n.t("details") }} <span aria-hidden="true">→</span>
       </a>
     </div>
+    <button type="button" class="basket-button" (click)="addToBasket()">
+      {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
+    </button>
   </div>
 </article>

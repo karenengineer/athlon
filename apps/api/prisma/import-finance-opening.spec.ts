@@ -146,37 +146,37 @@ describe("opening finance import", () => {
 
     expect(result.totals).toMatchObject({
       skuCount: 25,
-      unitsPurchased: 143,
-      unitsSold: 2,
-      currentStock: 141,
-      purchaseCost: "1061840",
-      inventoryValue: "1035840",
-      revenue: "37000",
-      costOfGoodsSold: "26000",
-      grossProfit: "11000",
+      unitsPurchased: 177,
+      unitsSold: 8,
+      currentStock: 169,
+      purchaseCost: "1295840",
+      inventoryValue: "1214340",
+      revenue: "107000",
+      costOfGoodsSold: "81500",
+      grossProfit: "25500",
     });
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it("creates one opening purchase and two sales only once and reconciles stored entries", async () => {
+  it("creates one opening purchase and seven sales only once and reconciles stored entries", async () => {
     const db = statefulDatabase();
     const first = await importFinanceOpening(db.prisma as never);
     const second = await importFinanceOpening(db.prisma as never);
 
     expect(first.createdPurchases).toBe(1);
-    expect(first.createdSales).toBe(2);
+    expect(first.createdSales).toBe(7);
     expect(second.createdPurchases).toBe(0);
     expect(second.createdSales).toBe(0);
     expect(db.purchases.size).toBe(1);
-    expect(db.sales.size).toBe(2);
+    expect(db.sales.size).toBe(7);
     expect(second.totals).toMatchObject({
-      unitsPurchased: 143,
-      unitsSold: 2,
-      currentStock: 141,
-      inventoryValue: "1035840",
-      revenue: "37000",
-      costOfGoodsSold: "26000",
-      grossProfit: "11000",
+      unitsPurchased: 177,
+      unitsSold: 8,
+      currentStock: 169,
+      inventoryValue: "1214340",
+      revenue: "107000",
+      costOfGoodsSold: "81500",
+      grossProfit: "25500",
     });
     expect(second.mismatches).toEqual([]);
     expect(db.products[0]?.price.toString()).toBe("24000");
@@ -210,7 +210,7 @@ describe("opening finance import", () => {
     const db = statefulDatabase();
     await importFinanceOpening(db.prisma as never);
     const sale = db.sales.get("opening-sale-TRPRCH-2026-09-20");
-    sale!.items[0]!.quantity = 2;
+    sale!.items[0]!.quantity = 1;
 
     const result = await importFinanceOpening(db.prisma as never);
 

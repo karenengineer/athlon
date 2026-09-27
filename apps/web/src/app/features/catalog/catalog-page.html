@@ -20,22 +20,6 @@
     <span>{{ meta().total }} {{ i18n.t("productsFound") }}</span>
   </header>
 
-  <nav class="category-links" aria-label="Categories">
-    <a
-      [routerLink]="['/', i18n.locale(), 'catalog']"
-      [class.active]="!activeCategorySlug()"
-      >{{ i18n.t("allCategories") }}</a
-    >
-    @for (category of categories(); track category.id) {
-    <a
-      [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
-      [queryParamsHandling]="'preserve'"
-      [class.active]="activeCategorySlug() === category.slug"
-      >{{ category.name }}</a
-    >
-    }
-  </nav>
-
   <form class="filters" (ngSubmit)="applyFilters()">
     <strong>{{ i18n.t("filters") }}</strong>
     <label>

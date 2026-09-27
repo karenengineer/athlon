@@ -1,6 +1,6 @@
 .catalog-page {
   min-height: 70vh;
-  padding-block: 46px 80px;
+  padding-block: 34px 70px;
 }
 
 .breadcrumbs {
@@ -37,7 +37,7 @@
   position: absolute;
   top: -8px;
   margin: 0;
-  color: #e5001b;
+  color: #45454a;
   font-size: 0.66rem;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -57,34 +57,6 @@ h1 {
   margin-bottom: 5px;
   color: #76767c;
   font-size: 0.78rem;
-}
-
-.category-links {
-  display: flex;
-  gap: 8px;
-  margin: -8px 0 18px;
-  overflow-x: auto;
-  padding-block: 8px;
-}
-
-.category-links a {
-  flex: 0 0 auto;
-  padding: 9px 13px;
-  border: 1px solid #cfcfd4;
-  border-radius: 4px;
-  color: #35353a;
-  background: #fff;
-  font-size: 0.72rem;
-  font-weight: 900;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.category-links a.active,
-.category-links a:hover {
-  border-color: #171719;
-  color: #fff;
-  background: #171719;
 }
 
 .filters {
@@ -119,9 +91,9 @@ select,
 }
 
 .filters button {
-  border-color: #e5001b;
+  border-color: #171719;
   color: #fff;
-  background: #e5001b;
+  background: #171719;
   font-weight: 900;
   cursor: pointer;
 }

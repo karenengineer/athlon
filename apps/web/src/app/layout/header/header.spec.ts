@@ -36,5 +36,61 @@ describe("Header logo presentation", () => {
     expect(menu.contains(mobileSearch)).toBe(false);
     expect(mobileSearch?.querySelector('input[type="search"]')).not.toBeNull();
     expect(mobileSearch?.querySelector('button[type="submit"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector(".menu-button")).toBeNull();
+  });
+
+  it("renders language links for desktop and a language dropdown for mobile", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const languageLinks = Array.from(
+      fixture.nativeElement.querySelectorAll("[data-testid=language-link]"),
+    ).map((node) => (node as HTMLElement).textContent?.trim());
+    const mobileLanguage: HTMLSelectElement | null =
+      fixture.nativeElement.querySelector(
+        "[data-testid=mobile-language-select]",
+      );
+
+    expect(languageLinks).toEqual(["HY", "RU", "EN"]);
+    expect(mobileLanguage).not.toBeNull();
+    expect(
+      Array.from(mobileLanguage?.options ?? []).map((option) => option.value),
+    ).toEqual(["hy", "ru", "en"]);
+  });
+
+  it("renders square placeholder social links in the header", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const links: HTMLAnchorElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        "[data-testid='header-social-link']",
+      ),
+    );
+
+    expect(links.length).toBe(4);
+    expect(links.map((link) => link.dataset["social"])).toEqual([
+      "instagram",
+      "facebook",
+      "whatsapp",
+      "telegram",
+    ]);
+    expect(links.every((link) => link.hasAttribute("href"))).toBe(false);
+    expect(
+      links.every((link) => link.getAttribute("aria-disabled") === "true"),
+    ).toBe(true);
+    expect(links.every((link) => link.querySelector("svg"))).toBe(true);
+
+    const firstStyle = getComputedStyle(links[0]);
+    expect(firstStyle.width).toBe("36px");
+    expect(firstStyle.height).toBe("36px");
   });
 });

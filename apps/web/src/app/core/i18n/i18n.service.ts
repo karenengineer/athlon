@@ -51,6 +51,17 @@ type Copy = {
   relatedProducts: string;
   backToCatalog: string;
   footerText: string;
+  basket: string;
+  addToBasket: string;
+  inBasket: string;
+  quantity: string;
+  remove: string;
+  clearBasket: string;
+  emptyBasket: string;
+  continueShopping: string;
+  orderInstagram: string;
+  orderCopied: string;
+  basketTotal: string;
 };
 
 const copy: Record<Locale, Copy> = {
@@ -102,6 +113,17 @@ const copy: Record<Locale, Copy> = {
     relatedProducts: "Похожие товары",
     backToCatalog: "Вернуться в каталог",
     footerText: "Спортивное питание и аксессуары в Армении.",
+    basket: "Корзина",
+    addToBasket: "В корзину",
+    inBasket: "В корзине",
+    quantity: "Количество",
+    remove: "Удалить",
+    clearBasket: "Очистить корзину",
+    emptyBasket: "Корзина пуста",
+    continueShopping: "Продолжить покупки",
+    orderInstagram: "Скопировать заказ и открыть Instagram",
+    orderCopied: "Заказ скопирован. Вставьте текст в Instagram DM.",
+    basketTotal: "Итого",
   },
   hy: {
     announcement: "Ուժը սկսվում է ճիշտ ընտրությունից",
@@ -151,6 +173,17 @@ const copy: Record<Locale, Copy> = {
     relatedProducts: "Նմանատիպ ապրանքներ",
     backToCatalog: "Վերադառնալ կատալոգ",
     footerText: "Սպորտային սնունդ և աքսեսուարներ Հայաստանում։",
+    basket: "Զամբյուղ",
+    addToBasket: "Ավելացնել",
+    inBasket: "Զամբյուղում",
+    quantity: "Քանակ",
+    remove: "Հեռացնել",
+    clearBasket: "Մաքրել զամբյուղը",
+    emptyBasket: "Զամբյուղը դատարկ է",
+    continueShopping: "Շարունակել գնումները",
+    orderInstagram: "Պատճենել պատվերը և բացել Instagram-ը",
+    orderCopied: "Պատվերը պատճենված է։ Տեղադրեք տեքստը Instagram DM-ում։",
+    basketTotal: "Ընդամենը",
   },
   en: {
     announcement: "Strength starts with the right choice",
@@ -200,6 +233,17 @@ const copy: Record<Locale, Copy> = {
     relatedProducts: "Related products",
     backToCatalog: "Back to catalog",
     footerText: "Sports nutrition and accessories in Armenia.",
+    basket: "Basket",
+    addToBasket: "Add to basket",
+    inBasket: "In basket",
+    quantity: "Quantity",
+    remove: "Remove",
+    clearBasket: "Clear basket",
+    emptyBasket: "Basket is empty",
+    continueShopping: "Continue shopping",
+    orderInstagram: "Copy order and open Instagram",
+    orderCopied: "Order copied. Paste it into Instagram DM.",
+    basketTotal: "Total",
   },
 };
 
