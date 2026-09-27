@@ -37,4 +37,36 @@ describe("Header logo presentation", () => {
     expect(mobileSearch?.querySelector('input[type="search"]')).not.toBeNull();
     expect(mobileSearch?.querySelector('button[type="submit"]')).not.toBeNull();
   });
+
+  it("renders square placeholder social links in the header", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+
+    const links: HTMLAnchorElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        "[data-testid='header-social-link']",
+      ),
+    );
+
+    expect(links.length).toBe(4);
+    expect(links.map((link) => link.dataset["social"])).toEqual([
+      "instagram",
+      "facebook",
+      "whatsapp",
+      "telegram",
+    ]);
+    expect(links.every((link) => link.hasAttribute("href"))).toBe(false);
+    expect(
+      links.every((link) => link.getAttribute("aria-disabled") === "true"),
+    ).toBe(true);
+    expect(links.every((link) => link.querySelector("svg"))).toBe(true);
+
+    const firstStyle = getComputedStyle(links[0]);
+    expect(firstStyle.width).toBe("36px");
+    expect(firstStyle.height).toBe("36px");
+  });
 });
