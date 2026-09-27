@@ -50,10 +50,6 @@ img {
   max-width: 100%;
 }
 
-img:not(.favicon-logo) {
-  filter: grayscale(1);
-}
-
 .page-width {
   width: min(var(--page-width), calc(100% - 48px));
   margin-inline: auto;
@@ -70,9 +66,128 @@ img:not(.favicon-logo) {
   border: 0;
 }
 
+.social-menu {
+  position: relative;
+}
+
+.social-menu summary {
+  display: none;
+  color: #fff;
+  background: linear-gradient(135deg, #833ab4, #fd1d1d 55%, #fcb045);
+}
+
+.social-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.social-link {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 1px solid #343438;
+  border-radius: 9px;
+  color: #f6f6f7;
+  background: #161618;
+}
+
+.social-link[data-social="instagram"] {
+  background: #fd1d1d;
+}
+
+.social-link[data-social="facebook"] {
+  background: #1877f2;
+}
+
+.social-link[data-social="whatsapp"] {
+  background: #25d366;
+}
+
+.social-link[data-social="telegram"] {
+  background: #229ed9;
+}
+
+.social-link svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.social-link[data-social="facebook"] svg,
+.social-link[data-social="telegram"] svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+.social-link--placeholder {
+  cursor: default;
+}
+
+.social-link:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
 @media (max-width: 700px) {
   .page-width {
     width: min(100% - 32px, var(--page-width));
+  }
+}
+
+@media (max-width: 860px) {
+  .social-menu {
+    order: 1;
+  }
+
+  .social-menu summary {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-content: center;
+    border: 1px solid #3b3b3f;
+    border-radius: 999px;
+    font-size: 1.15rem;
+    font-weight: 900;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .social-menu summary svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+  }
+
+  .social-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .social-menu .social-links {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 8px);
+    left: 0;
+    display: none;
+    grid-template-columns: repeat(4, 36px);
+    padding: 8px;
+    border: 1px solid #343438;
+    border-radius: 14px;
+    background: #111113;
+  }
+
+  .social-menu[open] .social-links {
+    display: grid;
   }
 }
 

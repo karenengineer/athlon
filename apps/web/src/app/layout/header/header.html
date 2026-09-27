@@ -42,8 +42,16 @@
       <button type="submit" [attr.aria-label]="i18n.t('search')">⌕</button>
     </form>
 
-    <details class="social-menu">
-      <summary aria-label="Social links">•••</summary>
+    <details class="social-menu" #socialMenu>
+      <summary data-testid="social-menu-trigger" aria-label="Social links">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M7.8 2.8h8.4a5 5 0 0 1 5 5v8.4a5 5 0 0 1-5 5H7.8a5 5 0 0 1-5-5V7.8a5 5 0 0 1 5-5Z"
+          />
+          <path d="M8.4 12a3.6 3.6 0 1 0 7.2 0 3.6 3.6 0 0 0-7.2 0Z" />
+          <path d="M17.4 6.9h.01" />
+        </svg>
+      </summary>
       <div class="social-links" aria-label="Social links">
         <a
           class="social-link social-link--placeholder"
