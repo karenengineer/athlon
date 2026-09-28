@@ -1,5 +1,5 @@
 import { CurrencyPipe } from "@angular/common";
-import { Component, inject, input } from "@angular/core";
+import { Component, computed, inject, input } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { Product } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
@@ -16,6 +16,11 @@ export class ProductCard {
   readonly eager = input(false);
   readonly i18n = inject(I18nService);
   readonly basket = inject(BasketService);
+  readonly quantityInBasket = computed(
+    () =>
+      this.basket.items().find((item) => item.id === this.product().id)
+        ?.quantity ?? 0,
+  );
 
   imageUrl(): string {
     return (
@@ -39,7 +44,15 @@ export class ProductCard {
     this.basket.add(this.product());
   }
 
+  incrementBasket(): void {
+    this.basket.add(this.product());
+  }
+
+  decrementBasket(): void {
+    this.basket.update(this.product().id, this.quantityInBasket() - 1);
+  }
+
   inBasket(): boolean {
-    return this.basket.items().some((item) => item.id === this.product().id);
+    return this.quantityInBasket() > 0;
   }
 }

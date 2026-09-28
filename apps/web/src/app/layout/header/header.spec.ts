@@ -62,7 +62,7 @@ describe("Header logo presentation", () => {
     ).toEqual(["hy", "ru", "en"]);
   });
 
-  it("renders square placeholder social links in the header", async () => {
+  it("keeps social links out of the header because they live in the footer", async () => {
     await TestBed.configureTestingModule({
       imports: [Header],
       providers: [provideRouter([])],
@@ -70,31 +70,15 @@ describe("Header logo presentation", () => {
     const fixture = TestBed.createComponent(Header);
     fixture.detectChanges();
 
-    const links: HTMLAnchorElement[] = Array.from(
+    expect(fixture.nativeElement.querySelector(".social-menu")).toBeNull();
+    expect(
       fixture.nativeElement.querySelectorAll(
         "[data-testid='header-social-link']",
-      ),
-    );
-
-    expect(links.length).toBe(4);
-    expect(links.map((link) => link.dataset["social"])).toEqual([
-      "instagram",
-      "facebook",
-      "whatsapp",
-      "telegram",
-    ]);
-    expect(links.every((link) => link.hasAttribute("href"))).toBe(false);
-    expect(
-      links.every((link) => link.getAttribute("aria-disabled") === "true"),
-    ).toBe(true);
-    expect(links.every((link) => link.querySelector("svg"))).toBe(true);
-
-    const firstStyle = getComputedStyle(links[0]);
-    expect(firstStyle.width).toBe("36px");
-    expect(firstStyle.height).toBe("36px");
+      ).length,
+    ).toBe(0);
   });
 
-  it("shows a colored social trigger and closes the mobile socials on outside click", async () => {
+  it("renders mobile home and language controls without header basket or social controls", async () => {
     await TestBed.configureTestingModule({
       imports: [Header],
       providers: [provideRouter([])],
@@ -102,108 +86,19 @@ describe("Header logo presentation", () => {
     const fixture = TestBed.createComponent(Header);
     fixture.detectChanges();
 
-    const menu: HTMLDetailsElement =
-      fixture.nativeElement.querySelector(".social-menu");
-    const trigger = fixture.nativeElement.querySelector(
-      "[data-testid='social-menu-trigger']",
-    ) as HTMLElement;
-
-    expect(trigger.textContent?.trim()).not.toBe("•••");
-    expect(trigger.querySelector("svg")).not.toBeNull();
-    expect(getComputedStyle(trigger).backgroundColor).not.toBe(
-      "rgb(23, 23, 25)",
-    );
-
-    menu.open = true;
-    document.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    fixture.detectChanges();
-
-    expect(menu.open).toBe(false);
-  });
-
-  it("renders a mobile home logo before the socials trigger", async () => {
-    await TestBed.configureTestingModule({
-      imports: [Header],
-      providers: [provideRouter([])],
-    }).compileComponents();
-    const fixture = TestBed.createComponent(Header);
-    fixture.detectChanges();
-
-    const headerContent: HTMLElement =
-      fixture.nativeElement.querySelector(".header-content");
     const mobileHome = fixture.nativeElement.querySelector(
       "[data-testid='mobile-home-link']",
     ) as HTMLAnchorElement;
-    const socialMenu: HTMLElement =
-      fixture.nativeElement.querySelector(".social-menu");
+    const mobileLanguage = fixture.nativeElement.querySelector(
+      "[data-testid='mobile-language-select']",
+    ) as HTMLSelectElement;
 
     expect(mobileHome).not.toBeNull();
     expect(mobileHome.getAttribute("href")).toBe("/hy");
     expect(mobileHome.querySelector(".favicon-logo")).not.toBeNull();
-    expect(Array.from(headerContent.children).indexOf(mobileHome)).toBeLessThan(
-      Array.from(headerContent.children).indexOf(socialMenu),
-    );
-  });
-
-  it("toggles the social dropdown when tapping the colored social trigger", async () => {
-    await TestBed.configureTestingModule({
-      imports: [Header],
-      providers: [provideRouter([])],
-    }).compileComponents();
-    const fixture = TestBed.createComponent(Header);
-    fixture.detectChanges();
-
-    const menu: HTMLDetailsElement =
-      fixture.nativeElement.querySelector(".social-menu");
-    const trigger = fixture.nativeElement.querySelector(
-      "[data-testid='social-menu-trigger']",
-    ) as HTMLElement;
-
-    trigger.click();
-    fixture.detectChanges();
-    expect(menu.open).toBe(true);
-
-    trigger.click();
-    fixture.detectChanges();
-    expect(menu.open).toBe(false);
-  });
-
-  it("renders the basket action as an icon without a visible number", async () => {
-    await TestBed.configureTestingModule({
-      imports: [Header],
-      providers: [provideRouter([])],
-    }).compileComponents();
-    const fixture = TestBed.createComponent(Header);
-    fixture.detectChanges();
-
-    const basketLink = fixture.nativeElement.querySelector(
-      "[data-testid='basket-link']",
-    ) as HTMLAnchorElement;
-
-    expect(basketLink).not.toBeNull();
+    expect(mobileLanguage).not.toBeNull();
     expect(
-      basketLink.querySelector("[data-testid='basket-icon']"),
-    ).not.toBeNull();
-    expect(basketLink.querySelector("b")).toBeNull();
-  });
-
-  it("uses a shopping cart style basket icon instead of a bin-like bag", async () => {
-    await TestBed.configureTestingModule({
-      imports: [Header],
-      providers: [provideRouter([])],
-    }).compileComponents();
-    const fixture = TestBed.createComponent(Header);
-    fixture.detectChanges();
-
-    const basketIcon = fixture.nativeElement.querySelector(
-      "[data-testid='basket-icon']",
-    ) as SVGElement;
-
-    expect(basketIcon.querySelectorAll("circle").length).toBe(2);
-    expect(
-      Array.from(basketIcon.querySelectorAll("path")).some((path) =>
-        path.getAttribute("d")?.includes("M3 4"),
-      ),
-    ).toBe(true);
+      fixture.nativeElement.querySelector("[data-testid='basket-link']"),
+    ).toBeNull();
   });
 });

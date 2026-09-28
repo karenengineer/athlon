@@ -48,8 +48,51 @@
         {{ i18n.t("details") }} <span aria-hidden="true">→</span>
       </a>
     </div>
-    <button type="button" class="basket-button" (click)="addToBasket()">
-      {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
+    @if (quantityInBasket() > 0) {
+    <div class="basket-controls" data-testid="product-card-quantity">
+      <button
+        type="button"
+        class="quantity-button"
+        data-testid="product-card-decrement"
+        aria-label="Decrease quantity"
+        (click)="decrementBasket()"
+      >
+        −
+      </button>
+      <span data-testid="product-card-quantity-value"
+        >{{ quantityInBasket() }}</span
+      >
+      <button
+        type="button"
+        class="quantity-button"
+        data-testid="product-card-increment"
+        aria-label="Increase quantity"
+        (click)="incrementBasket()"
+      >
+        +
+      </button>
+    </div>
+    } @else {
+    <button
+      type="button"
+      class="basket-button basket-button--icon"
+      data-testid="product-card-add-basket"
+      [attr.aria-label]="i18n.t('addToBasket')"
+      (click)="addToBasket()"
+    >
+      <svg
+        data-testid="product-card-cart-icon"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M3 4h2.2l2.1 10.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4l1.4-5.4H6.2"
+        />
+        <circle cx="9.2" cy="20" r="1.3" />
+        <circle cx="17.2" cy="20" r="1.3" />
+      </svg>
     </button>
+    }
   </div>
 </article>

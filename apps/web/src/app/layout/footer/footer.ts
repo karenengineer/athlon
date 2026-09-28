@@ -14,6 +14,44 @@ import { I18nService } from "../../core/i18n/i18n.service";
       <a [routerLink]="['/', i18n.locale(), 'catalog']">{{
         i18n.t("catalog")
       }}</a>
+      <div class="footer-socials" aria-label="Social links">
+        <a
+          class="footer-social"
+          data-testid="footer-social-link"
+          data-social="instagram"
+          aria-label="Instagram link placeholder"
+          aria-disabled="true"
+        >
+          <img src="/social/instagram.svg" width="36" height="36" alt="" />
+        </a>
+        <a
+          class="footer-social"
+          data-testid="footer-social-link"
+          data-social="facebook"
+          aria-label="Facebook link placeholder"
+          aria-disabled="true"
+        >
+          <img src="/social/facebook.svg" width="36" height="36" alt="" />
+        </a>
+        <a
+          class="footer-social"
+          data-testid="footer-social-link"
+          data-social="whatsapp"
+          aria-label="WhatsApp link placeholder"
+          aria-disabled="true"
+        >
+          <img src="/social/whatsapp.svg" width="36" height="36" alt="" />
+        </a>
+        <a
+          class="footer-social"
+          data-testid="footer-social-link"
+          data-social="telegram"
+          aria-label="Telegram link placeholder"
+          aria-disabled="true"
+        >
+          <img src="/social/telegram.svg" width="36" height="36" alt="" />
+        </a>
+      </div>
       <small>© {{ year }} ATHLON</small>
     </footer>
   `,
@@ -42,6 +80,25 @@ import { I18nService } from "../../core/i18n/i18n.service";
       color: #fff;
       font-weight: 700;
       text-decoration: none;
+    }
+    .footer-socials {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .footer-social {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      margin-left: 0;
+      place-items: center;
+      border-radius: 12px;
+      background: transparent;
+    }
+    .footer-social img {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
     }
     small {
       color: #737379;
