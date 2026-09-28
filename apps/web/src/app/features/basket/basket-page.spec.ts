@@ -78,4 +78,16 @@ describe("BasketPage", () => {
     expect(style.backgroundColor).toBe("rgb(255, 255, 255)");
     expect(style.color).toBe("rgb(23, 23, 25)");
   });
+
+  it("opens the ATHLON Instagram profile for orders by default", () => {
+    const fixture = TestBed.createComponent(BasketPage);
+    fixture.detectChanges();
+    http
+      .expectOne((request) => request.url.endsWith("/public/settings"))
+      .flush({});
+
+    expect(fixture.componentInstance.instagramUrl()).toBe(
+      "https://www.instagram.com/__athlon__/",
+    );
+  });
 });
