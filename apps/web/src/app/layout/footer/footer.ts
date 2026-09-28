@@ -1,6 +1,10 @@
 import { Component, inject } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { I18nService } from "../../core/i18n/i18n.service";
+import {
+  FACEBOOK_PROFILE_URL,
+  INSTAGRAM_PROFILE_URL,
+} from "../../core/social-links";
 
 @Component({
   selector: "app-footer",
@@ -19,8 +23,10 @@ import { I18nService } from "../../core/i18n/i18n.service";
           class="footer-social"
           data-testid="footer-social-link"
           data-social="instagram"
-          aria-label="Instagram link placeholder"
-          aria-disabled="true"
+          aria-label="Instagram"
+          [href]="instagramUrl"
+          target="_blank"
+          rel="noopener noreferrer"
         >
           <img src="/social/instagram.svg" width="36" height="36" alt="" />
         </a>
@@ -28,8 +34,10 @@ import { I18nService } from "../../core/i18n/i18n.service";
           class="footer-social"
           data-testid="footer-social-link"
           data-social="facebook"
-          aria-label="Facebook link placeholder"
-          aria-disabled="true"
+          aria-label="Facebook"
+          [href]="facebookUrl"
+          target="_blank"
+          rel="noopener noreferrer"
         >
           <img src="/social/facebook.svg" width="36" height="36" alt="" />
         </a>
@@ -117,5 +125,7 @@ import { I18nService } from "../../core/i18n/i18n.service";
 })
 export class Footer {
   readonly i18n = inject(I18nService);
+  readonly instagramUrl = INSTAGRAM_PROFILE_URL;
+  readonly facebookUrl = FACEBOOK_PROFILE_URL;
   readonly year = new Date().getFullYear();
 }

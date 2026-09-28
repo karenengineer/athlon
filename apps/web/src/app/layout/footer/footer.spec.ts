@@ -31,5 +31,11 @@ describe("Footer social links", () => {
       "/social/whatsapp.svg",
       "/social/telegram.svg",
     ]);
+    expect(links[0].href).toBe("https://www.instagram.com/__athlon__/");
+    expect(links[0].getAttribute("aria-disabled")).toBeNull();
+    expect(links[1].href).toBe(
+      "https://www.facebook.com/profile.php?id=61594888554559",
+    );
+    expect(links[1].getAttribute("aria-disabled")).toBeNull();
   });
 });
