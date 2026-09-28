@@ -30,18 +30,20 @@
             }
           </strong>
         </div>
-        <label>
-          <span>{{ i18n.t("quantity") }}</span>
-          <input
-            type="number"
-            min="1"
-            [value]="item.quantity"
-            (change)="update(item.id, $any($event.target).value)"
-          />
-        </label>
-        <button type="button" (click)="basket.remove(item.id)">
-          {{ i18n.t("remove") }}
-        </button>
+        <div class="basket-item-actions">
+          <label>
+            <span>{{ i18n.t("quantity") }}</span>
+            <input
+              type="number"
+              min="1"
+              [value]="item.quantity"
+              (change)="update(item.id, $any($event.target).value)"
+            />
+          </label>
+          <button type="button" (click)="basket.remove(item.id)">
+            {{ i18n.t("remove") }}
+          </button>
+        </div>
       </article>
       }
     </div>
@@ -70,7 +72,7 @@
   } @else {
   <div class="empty-basket">
     <h2>{{ i18n.t("emptyBasket") }}</h2>
-    <a [routerLink]="['/', i18n.locale(), 'catalog']"
+    <a class="continue-shopping" [routerLink]="['/', i18n.locale(), 'catalog']"
       >{{ i18n.t("continueShopping") }}</a
     >
   </div>
