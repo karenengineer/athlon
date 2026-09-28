@@ -61,7 +61,9 @@ h1 {
 
 .filters {
   display: grid;
-  grid-template-columns: auto repeat(5, minmax(120px, 1fr)) auto;
+  grid-template-columns:
+    auto minmax(180px, 1.5fr) minmax(130px, 1fr) minmax(130px, 1fr)
+    auto;
   align-items: center;
   gap: 10px;
   margin-bottom: 24px;

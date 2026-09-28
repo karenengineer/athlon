@@ -27,7 +27,9 @@
       </span>
     </div>
     <h3>
-      <a [routerLink]="['/', i18n.locale(), 'product', product().slug]"
+      <a
+        [routerLink]="['/', i18n.locale(), 'product', product().slug]"
+        [title]="product().name"
         >{{ product().name }}</a
       >
     </h3>

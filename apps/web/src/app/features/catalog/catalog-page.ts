@@ -11,8 +11,6 @@ import {
 } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import {
-  Availability,
-  Brand,
   Category,
   Product,
   ProductPageResponse,
@@ -22,6 +20,8 @@ import { ProductGrid } from "../../shared/product-grid/product-grid";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
 
 type CatalogState = "loading" | "ready" | "empty" | "error";
+type CategoryOption = Pick<Category, "id" | "slug" | "name" | "displayOrder">;
+const DEFAULT_CATEGORY_SLUG = "sports-nutrition";
 
 @Component({
   selector: "app-catalog-page",
@@ -34,18 +34,15 @@ export class CatalogPage {
   readonly state = signal<CatalogState>("loading");
   readonly products = signal<Product[]>([]);
   readonly categories = signal<Category[]>([]);
-  readonly brands = signal<Brand[]>([]);
   readonly meta = signal<ProductPageResponse["meta"]>({
     page: 1,
     pageSize: 24,
     total: 0,
     totalPages: 0,
   });
-  brand = "";
-  availability: "" | Availability = "";
+  categoryFilter = "";
   minPrice: number | null = null;
   maxPrice: number | null = null;
-  sort: "displayOrder" | "priceAsc" | "priceDesc" | "newest" = "displayOrder";
 
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
@@ -81,18 +78,13 @@ export class CatalogPage {
 
   applyFilters(): void {
     const query = this.route.snapshot.queryParamMap.get("q") || undefined;
-    void this.router.navigate([], {
-      relativeTo: this.route,
+    const category = this.categoryFilter || DEFAULT_CATEGORY_SLUG;
+    void this.router.navigate(["/", this.i18n.locale(), "catalog", category], {
       queryParams: {
         q: query,
-        brand: this.brand || undefined,
-        availability: this.availability || undefined,
         minPrice: this.minPrice ?? undefined,
         maxPrice: this.maxPrice ?? undefined,
-        sort: this.sort === "displayOrder" ? undefined : this.sort,
-        page: undefined,
       },
-      queryParamsHandling: "merge",
     });
   }
 
@@ -116,52 +108,46 @@ export class CatalogPage {
     const query = this.route.snapshot.queryParamMap.get("q");
     if (query) return `${this.i18n.t("searchResults")}: “${query}”`;
     const category = this.route.snapshot.paramMap.get("categorySlug");
-    return (
-      this.categories().find((item) => item.slug === category)?.name ??
-      this.i18n.t("catalog")
-    );
+    return this.findCategoryName(category) ?? this.i18n.t("catalog");
   }
 
   activeCategorySlug(): string | null {
     return this.route.snapshot.paramMap.get("categorySlug");
   }
 
+  categoryOptions(): CategoryOption[] {
+    const sportsNutrition = this.categories().find(
+      (item) => item.slug === DEFAULT_CATEGORY_SLUG,
+    );
+    const options = sportsNutrition?.children.length
+      ? sportsNutrition.children
+      : this.categories().filter((item) => item.slug !== DEFAULT_CATEGORY_SLUG);
+
+    return [...options].sort((left, right) => {
+      const order = left.displayOrder - right.displayOrder;
+      return order || left.name.localeCompare(right.name);
+    });
+  }
+
   private load(locale: string, routeParams: ParamMap, params: ParamMap): void {
     this.loadSubscription?.unsubscribe();
-    const category = routeParams.get("categorySlug") || undefined;
+    const category = routeParams.get("categorySlug") || DEFAULT_CATEGORY_SLUG;
     const q = params.get("q") || undefined;
     const parsedPage = Number(params.get("page") ?? "1");
     const page =
       Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-    const availability = params.get("availability");
-    this.brand = params.get("brand") ?? "";
+    this.categoryFilter = category === DEFAULT_CATEGORY_SLUG ? "" : category;
     this.minPrice = this.parsePrice(params.get("minPrice"));
     this.maxPrice = this.parsePrice(params.get("maxPrice"));
-    this.availability = [
-      "IN_STOCK",
-      "OUT_OF_STOCK",
-      "PREORDER",
-      "ON_REQUEST",
-    ].includes(availability ?? "")
-      ? (availability as Availability)
-      : "";
-    const sort = params.get("sort");
-    this.sort = ["priceAsc", "priceDesc", "newest"].includes(sort ?? "")
-      ? (sort as typeof this.sort)
-      : "displayOrder";
     this.state.set("loading");
 
     this.loadSubscription = forkJoin({
       categories: this.api.categories(locale),
-      brands: this.api.brands(locale),
       products: this.api.products({
         locale,
         category,
-        brand: this.brand || undefined,
-        availability: this.availability || undefined,
         minPrice: this.minPrice ?? undefined,
         maxPrice: this.maxPrice ?? undefined,
-        sort: this.sort,
         page,
         pageSize: 24,
         q,
@@ -171,7 +157,6 @@ export class CatalogPage {
       .subscribe({
         next: (response) => {
           this.categories.set(response.categories);
-          this.brands.set(response.brands);
           this.products.set(response.products.items);
           this.meta.set(response.products.meta);
           this.state.set(response.products.items.length ? "ready" : "empty");
@@ -184,5 +169,15 @@ export class CatalogPage {
     if (value === null || value.trim() === "") return null;
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+
+  private findCategoryName(slug: string | null): string | undefined {
+    if (!slug) return undefined;
+    for (const category of this.categories()) {
+      if (category.slug === slug) return category.name;
+      const child = category.children.find((item) => item.slug === slug);
+      if (child) return child.name;
+    }
+    return undefined;
   }
 }
