@@ -161,7 +161,57 @@ p {
   text-transform: uppercase;
 }
 
+.basket-button--icon {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: #171719;
+}
+
+.basket-button--icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
 .basket-button:hover {
+  color: #fff;
+  background: #171719;
+}
+
+.basket-controls {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid #d8d8de;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.basket-controls span {
+  color: #171719;
+  font-weight: 900;
+  text-align: center;
+}
+
+.quantity-button {
+  height: 42px;
+  border: 0;
+  color: #475569;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.quantity-button:hover {
   color: #fff;
   background: #171719;
 }

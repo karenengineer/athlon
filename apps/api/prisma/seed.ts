@@ -74,17 +74,24 @@ async function main(): Promise<void> {
     });
   }
 
+  await prisma.product.updateMany({
+    where: {
+      sku: {
+        in: ["DEMO-GLOVE-01", "DEMO-BAND-01", "DEMO-SHAKER-01", "DEMO-BELT-01"],
+      },
+    },
+    data: { published: false },
+  });
+  await prisma.category.updateMany({
+    where: { code: { in: ["accessories", "training-accessories"] } },
+    data: { published: false },
+  });
+
   const sportsNutritionId = await upsertCategory(
     "sports-nutrition",
     "sports-nutrition",
     names("Սպորտային սնունդ", "Спортивное питание", "Sports nutrition"),
     0,
-  );
-  const accessoriesId = await upsertCategory(
-    "accessories",
-    "accessories",
-    names("Աքսեսուարներ", "Аксессуары", "Accessories"),
-    1,
   );
   const proteinId = await upsertCategory(
     "protein",
@@ -104,18 +111,6 @@ async function main(): Promise<void> {
     1,
     sportsNutritionId,
   );
-  const trainingAccessoriesId = await upsertCategory(
-    "training-accessories",
-    "training-accessories",
-    names(
-      "Մարզման աքսեսուարներ",
-      "Аксессуары для тренировок",
-      "Training accessories",
-    ),
-    0,
-    accessoriesId,
-  );
-
   const brand = await prisma.brand.upsert({
     where: { slug: "demo-athletics" },
     create: { slug: "demo-athletics", name: "Demo Athletics" },
@@ -199,38 +194,6 @@ async function main(): Promise<void> {
       "Դեմո գեյներ",
       "Демо гейнер",
       "Demo gainer",
-    ],
-    [
-      "DEMO-GLOVE-01",
-      "demo-training-gloves",
-      trainingAccessoriesId,
-      "Դեմո մարզման ձեռնոցներ",
-      "Демо тренировочные перчатки",
-      "Demo training gloves",
-    ],
-    [
-      "DEMO-BAND-01",
-      "demo-resistance-band",
-      trainingAccessoriesId,
-      "Դեմո դիմադրության ժապավեն",
-      "Демо эспандер",
-      "Demo resistance band",
-    ],
-    [
-      "DEMO-SHAKER-01",
-      "demo-shaker",
-      trainingAccessoriesId,
-      "Դեմո շեյքեր",
-      "Демо шейкер",
-      "Demo shaker",
-    ],
-    [
-      "DEMO-BELT-01",
-      "demo-training-belt",
-      trainingAccessoriesId,
-      "Դեմո մարզման գոտի",
-      "Демо тренировочный пояс",
-      "Demo training belt",
     ],
   ] as const;
 

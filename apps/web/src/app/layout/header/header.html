@@ -57,75 +57,6 @@
       <button type="submit" [attr.aria-label]="i18n.t('search')">⌕</button>
     </form>
 
-    <details class="social-menu" #socialMenu>
-      <summary data-testid="social-menu-trigger" aria-label="Social links">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path
-            d="M7.8 2.8h8.4a5 5 0 0 1 5 5v8.4a5 5 0 0 1-5 5H7.8a5 5 0 0 1-5-5V7.8a5 5 0 0 1 5-5Z"
-          />
-          <path d="M8.4 12a3.6 3.6 0 1 0 7.2 0 3.6 3.6 0 0 0-7.2 0Z" />
-          <path d="M17.4 6.9h.01" />
-        </svg>
-      </summary>
-      <div class="social-links" aria-label="Social links">
-        <a
-          class="social-link social-link--placeholder"
-          data-testid="header-social-link"
-          data-social="instagram"
-          aria-label="Instagram link placeholder"
-          aria-disabled="true"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M7.8 2.8h8.4a5 5 0 0 1 5 5v8.4a5 5 0 0 1-5 5H7.8a5 5 0 0 1-5-5V7.8a5 5 0 0 1 5-5Z"
-            />
-            <path d="M8.4 12a3.6 3.6 0 1 0 7.2 0 3.6 3.6 0 0 0-7.2 0Z" />
-            <path d="M17.4 6.9h.01" />
-          </svg>
-        </a>
-        <a
-          class="social-link social-link--placeholder"
-          data-testid="header-social-link"
-          data-social="facebook"
-          aria-label="Facebook link placeholder"
-          aria-disabled="true"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M14 8.2V6.9c0-.9.6-1.1 1-1.1h2V2.6L14.2 2.6c-3.1 0-4.1 1.9-4.1 4.3v1.3H7.6v3.6h2.5V22H14V11.8h2.8l.4-3.6H14Z"
-            />
-          </svg>
-        </a>
-        <a
-          class="social-link social-link--placeholder"
-          data-testid="header-social-link"
-          data-social="whatsapp"
-          aria-label="WhatsApp link placeholder"
-          aria-disabled="true"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M4.4 19.6 5.5 16A8.4 8.4 0 1 1 8 18.4l-3.6 1.2Z" />
-            <path
-              d="M9.5 8.3c-.2-.5-.4-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.4-1.1 1.1-1.1 2.6s1.1 3 1.3 3.2c.2.3 2.2 3.4 5.4 4.6 2.7 1.1 3.2.8 3.8.8.6-.1 1.9-.8 2.1-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.7-.5l-2.2-1c-.3-.1-.6-.2-.8.2l-1 1.2c-.2.2-.4.3-.8.1-.3-.1-1.5-.5-2.8-1.7-1-1-1.7-2.1-1.9-2.4-.2-.4 0-.6.2-.8l.5-.6c.2-.2.2-.4.4-.7.1-.2.1-.5 0-.7l-1-2.2Z"
-            />
-          </svg>
-        </a>
-        <a
-          class="social-link social-link--placeholder"
-          data-testid="header-social-link"
-          data-social="telegram"
-          aria-label="Telegram link placeholder"
-          aria-disabled="true"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-              d="M21.5 4.3 18.3 20c-.2 1-.8 1.2-1.6.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6 13.7l-4.8-1.5c-1-.3-1-1 .2-1.4L20.2 3.6c.8-.3 1.6.2 1.3.7Z"
-            />
-          </svg>
-        </a>
-      </div>
-    </details>
-
     <div class="languages" aria-label="Language">
       @for (locale of locales; track locale) {
       <a
@@ -150,27 +81,6 @@
         }
       </select>
     </label>
-
-    <a
-      class="basket-link"
-      data-testid="basket-link"
-      [routerLink]="['/', i18n.locale(), 'basket']"
-      [attr.aria-label]="i18n.t('basket')"
-    >
-      <svg
-        data-testid="basket-icon"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path
-          d="M3 4h2.2l2.1 10.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4l1.4-5.4H6.2"
-        />
-        <circle cx="9.2" cy="20" r="1.3" />
-        <circle cx="17.2" cy="20" r="1.3" />
-      </svg>
-      <span>{{ i18n.t("basket") }}</span>
-    </a>
   </div>
 </header>
 
