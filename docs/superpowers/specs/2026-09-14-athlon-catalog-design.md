@@ -2,7 +2,7 @@
 
 ## 1. Purpose and scope
 
-ATHLON is a multilingual catalog for sports nutrition and accessories. The first release is a product showcase: visitors can browse, search, filter, and inspect products, then use configured contact links to ask about availability. It does not include a cart, checkout, online payment, customer accounts, orders, or shipment tracking.
+ATHLON is a multilingual catalog for sports nutrition. The first release is a product showcase: visitors can browse, search, filter, and inspect products, then use configured contact links to ask about availability. It does not include a cart, checkout, online payment, customer accounts, orders, or shipment tracking.
 
 The domain and service boundaries must allow those commerce capabilities to be added later without rewriting the product catalog. The first release will therefore retain product fields such as SKU, price, currency, and availability, while postponing inventory transactions, variants, carts, orders, and payments.
 
@@ -11,8 +11,7 @@ The domain and service boundaries must allow those commerce capabilities to be a
 - The repository is empty and the entire project will be created from scratch.
 - The public catalog has two top-level categories:
   - Sports nutrition.
-  - Accessories.
-- The public site supports Armenian, Russian, and English.
+  - The public site supports Armenian, Russian, and English.
 - Russian is the fallback locale and the administration interface may remain Russian-only.
 - Prices use AMD and may be absent. When absent, the UI displays a localized “Contact for price” message.
 - Sports-nutrition products are visible within the first desktop viewport of the home page.
@@ -124,7 +123,7 @@ The desktop first viewport contains:
 
 1. A compact announcement strip.
 2. Header with logo, public navigation, search, and HY/RU/EN selector.
-3. Two visible category controls: Sports nutrition and Accessories.
+3. Two visible category controls: Sports nutrition.
 4. A compact brand hero, rather than a full-height hero.
 5. A prominent sports-nutrition product row containing protein, creatine, amino-acid/BCAA, and pre-workout examples.
 
@@ -204,7 +203,7 @@ Each stage ends with relevant lint, tests, and builds. Failures are fixed before
 - A fresh checkout can be configured using `.env.example` and started using documented pnpm and Docker Compose commands.
 - PostgreSQL starts locally, migrations apply, and demonstrative seed data loads.
 - The public catalog works in Armenian, Russian, and English with locale-prefixed URLs.
-- Only Sports nutrition and Accessories appear as top-level categories.
+- Only Sports nutrition appear as top-level categories.
 - Sports-nutrition products are clearly visible within the initial desktop home-page viewport.
 - Search, filters, sorting, pagination, category pages, product pages, and related products use the real API.
 - The administrator can manage the full catalog and its translations and images.

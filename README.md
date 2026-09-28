@@ -1,6 +1,6 @@
 # ATHLON
 
-Production-oriented monorepo foundation for the ATHLON sports nutrition and accessories catalog.
+Production-oriented monorepo foundation for the ATHLON sports nutrition catalog.
 
 ## Requirements
 

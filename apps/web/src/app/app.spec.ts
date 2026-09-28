@@ -8,27 +8,6 @@ import { provideRouter, Router } from "@angular/router";
 import { App } from "./app";
 import { routes } from "./app.routes";
 
-const categories = [
-  {
-    id: "sports",
-    code: "sports-nutrition",
-    slug: "sports-nutrition",
-    name: "Спортивное питание",
-    description: null,
-    displayOrder: 0,
-    children: [],
-  },
-  {
-    id: "accessories",
-    code: "accessories",
-    slug: "accessories",
-    name: "Аксессуары",
-    description: null,
-    displayOrder: 1,
-    children: [],
-  },
-];
-
 const product = {
   id: "product-1",
   sku: "DEMO-WHEY",
@@ -43,6 +22,16 @@ const product = {
   category: { slug: "sports-nutrition", name: "Спортивное питание" },
   brand: { slug: "demo-brand", name: "Demo Brand" },
   images: [],
+};
+
+const sportsNutritionCategory = {
+  id: "sports",
+  code: "sports-nutrition",
+  slug: "sports-nutrition",
+  name: "Sports nutrition",
+  description: null,
+  displayOrder: 0,
+  children: [],
 };
 
 describe("ATHLON public application", () => {
@@ -64,7 +53,7 @@ describe("ATHLON public application", () => {
 
   afterEach(() => http.verify());
 
-  it("shows sports nutrition products on home without category tabs or accessories", async () => {
+  it("shows sports nutrition products on home without category tabs", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
@@ -188,10 +177,7 @@ describe("ATHLON public application", () => {
 
     http
       .expectOne((request) => request.url.endsWith("/categories"))
-      .flush([
-        { ...categories[0], name: "Sports nutrition" },
-        { ...categories[1], name: "Accessories" },
-      ]);
+      .flush([sportsNutritionCategory]);
     http
       .expectOne((request) => request.url.endsWith("/brands"))
       .flush([{ id: "brand-1", slug: "demo-brand", name: "Demo Brand" }]);
@@ -245,7 +231,7 @@ describe("ATHLON public application", () => {
 
     http
       .expectOne((request) => request.url.endsWith("/categories"))
-      .flush(categories);
+      .flush([sportsNutritionCategory]);
     http.expectOne((request) => request.url.endsWith("/brands")).flush([]);
     http
       .expectOne(
