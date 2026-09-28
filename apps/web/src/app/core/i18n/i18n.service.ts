@@ -30,6 +30,7 @@ type Copy = {
   allBrands: string;
   allAvailability: string;
   allCategories: string;
+  allProductTypes: string;
   priceFrom: string;
   priceTo: string;
   available: string;
@@ -91,6 +92,7 @@ const copy: Record<Locale, Copy> = {
     allBrands: "Все бренды",
     allAvailability: "Любая доступность",
     allCategories: "Все категории",
+    allProductTypes: "Все типы продуктов",
     priceFrom: "Цена от",
     priceTo: "Цена до",
     available: "В наличии",
@@ -150,6 +152,7 @@ const copy: Record<Locale, Copy> = {
     allBrands: "Բոլոր ապրանքանիշերը",
     allAvailability: "Ցանկացած հասանելիություն",
     allCategories: "Բոլոր կատեգորիաները",
+    allProductTypes: "Բոլոր տեսակները",
     priceFrom: "Գինը՝ սկսած",
     priceTo: "Գինը՝ մինչև",
     available: "Առկա է",
@@ -209,6 +212,7 @@ const copy: Record<Locale, Copy> = {
     allBrands: "All brands",
     allAvailability: "Any availability",
     allCategories: "All categories",
+    allProductTypes: "All product types",
     priceFrom: "Price from",
     priceTo: "Price to",
     available: "In stock",

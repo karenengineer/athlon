@@ -58,4 +58,25 @@ describe("ProductCard basket controls", () => {
       ),
     ).toBeNull();
   });
+
+  it("keeps long product names accessible while the card layout can clamp them", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductCard],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ProductCard);
+    fixture.componentRef.setInput("product", {
+      ...product,
+      name: "Very long product name that should be visually clamped with ellipsis inside the card",
+    });
+    fixture.detectChanges();
+
+    const cardCopy = fixture.nativeElement.querySelector(".card-copy");
+    const titleLink = fixture.nativeElement.querySelector("h3 a");
+
+    expect(getComputedStyle(cardCopy).display).toBe("flex");
+    expect(titleLink.getAttribute("title")).toBe(
+      "Very long product name that should be visually clamped with ellipsis inside the card",
+    );
+  });
 });

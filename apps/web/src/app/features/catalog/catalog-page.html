@@ -23,33 +23,15 @@
   <form class="filters" (ngSubmit)="applyFilters()">
     <strong>{{ i18n.t("filters") }}</strong>
     <label>
-      <span class="sr-only">{{ i18n.t("allBrands") }}</span>
-      <select name="brand" [(ngModel)]="brand">
-        <option value="">{{ i18n.t("allBrands") }}</option>
-        @for (item of brands(); track item.id) {
+      <span class="sr-only">{{ i18n.t("allProductTypes") }}</span>
+      <select name="category" [(ngModel)]="categoryFilter">
+        <option value="">{{ i18n.t("allProductTypes") }}</option>
+        @for (item of categoryOptions(); track item.id) {
         <option [value]="item.slug">{{ item.name }}</option>
         }
       </select>
     </label>
-    <label>
-      <span class="sr-only">{{ i18n.t("allAvailability") }}</span>
-      <select name="availability" [(ngModel)]="availability">
-        <option value="">{{ i18n.t("allAvailability") }}</option>
-        <option value="IN_STOCK">{{ i18n.t("available") }}</option>
-        <option value="PREORDER">{{ i18n.t("preorder") }}</option>
-        <option value="ON_REQUEST">{{ i18n.t("onRequest") }}</option>
-        <option value="OUT_OF_STOCK">{{ i18n.t("unavailable") }}</option>
-      </select>
-    </label>
-    <label>
-      <span class="sr-only">Sort</span>
-      <select name="sort" [(ngModel)]="sort">
-        <option value="displayOrder">{{ i18n.t("recommended") }}</option>
-        <option value="newest">{{ i18n.t("newest") }}</option>
-        <option value="priceAsc">{{ i18n.t("priceAsc") }}</option>
-        <option value="priceDesc">{{ i18n.t("priceDesc") }}</option>
-      </select>
-    </label>
+    <!-- Brand, availability and sort filters are intentionally hidden until the catalog grows. -->
     <label>
       <span class="sr-only">{{ i18n.t("priceFrom") }}</span>
       <input

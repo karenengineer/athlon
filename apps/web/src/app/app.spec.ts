@@ -31,7 +31,16 @@ const sportsNutritionCategory = {
   name: "Sports nutrition",
   description: null,
   displayOrder: 0,
-  children: [],
+  children: [
+    {
+      id: "protein",
+      code: "protein",
+      slug: "protein",
+      name: "Protein",
+      description: null,
+      displayOrder: 1,
+    },
+  ],
 };
 
 describe("ATHLON public application", () => {
@@ -168,7 +177,7 @@ describe("ATHLON public application", () => {
     expect(languages).toEqual(["HY", "RU", "EN"]);
   });
 
-  it("keeps catalog filters in URL parameters and renders the category context", async () => {
+  it("uses only product type and price filters in the catalog", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl(
       "/en/catalog/sports-nutrition?brand=demo-brand&availability=IN_STOCK&minPrice=5000&maxPrice=25000&sort=priceAsc&page=2&q=whey",
@@ -178,20 +187,17 @@ describe("ATHLON public application", () => {
     http
       .expectOne((request) => request.url.endsWith("/categories"))
       .flush([sportsNutritionCategory]);
-    http
-      .expectOne((request) => request.url.endsWith("/brands"))
-      .flush([{ id: "brand-1", slug: "demo-brand", name: "Demo Brand" }]);
     const productsRequest = http.expectOne((request) =>
       request.url.endsWith("/products"),
     );
     expect(productsRequest.request.params.get("category")).toBe(
       "sports-nutrition",
     );
-    expect(productsRequest.request.params.get("brand")).toBe("demo-brand");
-    expect(productsRequest.request.params.get("availability")).toBe("IN_STOCK");
+    expect(productsRequest.request.params.has("brand")).toBe(false);
+    expect(productsRequest.request.params.has("availability")).toBe(false);
     expect(productsRequest.request.params.get("minPrice")).toBe("5000");
     expect(productsRequest.request.params.get("maxPrice")).toBe("25000");
-    expect(productsRequest.request.params.get("sort")).toBe("priceAsc");
+    expect(productsRequest.request.params.has("sort")).toBe(false);
     expect(productsRequest.request.params.get("page")).toBe("2");
     expect(productsRequest.request.params.get("q")).toBe("whey");
     productsRequest.flush({
@@ -201,6 +207,16 @@ describe("ATHLON public application", () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain("Sports nutrition");
+    const filterControls = Array.from(
+      fixture.nativeElement.querySelectorAll(".filters select, .filters input"),
+    ) as HTMLInputElement[];
+    expect(
+      filterControls.map((control) => control.getAttribute("name")),
+    ).toEqual(["category", "minPrice", "maxPrice"]);
+    expect(fixture.nativeElement.textContent).toContain("All product types");
+    expect(fixture.nativeElement.textContent).not.toContain("All brands");
+    expect(fixture.nativeElement.textContent).not.toContain("Any availability");
+    expect(fixture.nativeElement.textContent).not.toContain("Recommended");
     expect(
       fixture.nativeElement.querySelector("[data-testid=catalog-breadcrumbs]"),
     ).toBeTruthy();
@@ -214,9 +230,6 @@ describe("ATHLON public application", () => {
     const oldCategories = http.expectOne((request) =>
       request.url.endsWith("/categories"),
     );
-    const oldBrands = http.expectOne((request) =>
-      request.url.endsWith("/brands"),
-    );
     const oldProducts = http.expectOne(
       (request) =>
         request.url.endsWith("/products") && request.params.get("page") === "1",
@@ -226,13 +239,11 @@ describe("ATHLON public application", () => {
     fixture.detectChanges();
 
     expect(oldCategories.cancelled).toBe(true);
-    expect(oldBrands.cancelled).toBe(true);
     expect(oldProducts.cancelled).toBe(true);
 
     http
       .expectOne((request) => request.url.endsWith("/categories"))
       .flush([sportsNutritionCategory]);
-    http.expectOne((request) => request.url.endsWith("/brands")).flush([]);
     http
       .expectOne(
         (request) =>
