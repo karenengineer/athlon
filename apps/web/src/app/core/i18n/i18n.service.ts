@@ -66,7 +66,7 @@ type Copy = {
 
 const copy: Record<Locale, Copy> = {
   ru: {
-    announcement: "Сила начинается с правильного выбора",
+    announcement: "Создай тело под стать своему духу",
     home: "Главная",
     catalog: "Каталог",
     nutrition: "Спортивное питание",
@@ -126,7 +126,7 @@ const copy: Record<Locale, Copy> = {
     basketTotal: "Итого",
   },
   hy: {
-    announcement: "Ուժը սկսվում է ճիշտ ընտրությունից",
+    announcement: "Կառուցիր մարմինդ հոգուդ համապատասխան",
     home: "Գլխավոր",
     catalog: "Կատալոգ",
     nutrition: "Սպորտային սնունդ",
@@ -186,7 +186,7 @@ const copy: Record<Locale, Copy> = {
     basketTotal: "Ընդամենը",
   },
   en: {
-    announcement: "Strength starts with the right choice",
+    announcement: "Build a body to match your spirit",
     home: "Home",
     catalog: "Catalog",
     nutrition: "Sports nutrition",
