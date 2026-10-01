@@ -122,6 +122,35 @@ describe("ATHLON public application", () => {
     ).toBe(true);
   });
 
+  for (const [locale, title] of [
+    ["hy", "Կառուցիր մարմինդ հոգուդ համապատասխան"],
+    ["ru", "Создай тело под стать своему духу"],
+    ["en", "Build a body to match your spirit"],
+  ]) {
+    it(`shows the updated homepage slogan in ${locale}`, async () => {
+      const fixture = TestBed.createComponent(App);
+      await router.navigateByUrl(`/${locale}`);
+      fixture.detectChanges();
+
+      http
+        .expectOne((request) => request.url.endsWith("/products"))
+        .flush({
+          items: [],
+          meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+        });
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(".hero h1").textContent.trim(),
+      ).toBe(title);
+      expect(
+        fixture.nativeElement
+          .querySelector(".brand-proof h2")
+          .textContent.trim(),
+      ).toBe(title);
+    });
+  }
+
   it("renders a useful empty state when the nutrition category has no products", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
