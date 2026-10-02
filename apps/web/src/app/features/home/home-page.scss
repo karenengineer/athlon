@@ -49,9 +49,11 @@ h1 {
   max-width: 610px;
   margin: 0;
   font-size: clamp(2rem, 4vw, 3.5rem);
-  font-weight: 950;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  font-family: var(--font-slogan);
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
   text-transform: uppercase;
 }
 
@@ -112,6 +114,14 @@ h1 {
   font-style: italic;
   letter-spacing: -0.035em;
   text-transform: uppercase;
+}
+
+.brand-proof h2 {
+  font-family: var(--font-slogan);
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
 }
 
 .section-heading p:not(.eyebrow),

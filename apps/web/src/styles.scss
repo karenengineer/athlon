@@ -1,3 +1,20 @@
+@font-face {
+  font-family: "Noto Sans Armenian Display";
+  src: url("/fonts/noto-sans-armenian-condensed-black.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  unicode-range: U+0530-058F, U+FB13-FB17;
+}
+
+@font-face {
+  font-family: "Oswald";
+  src: url("/fonts/oswald-bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   font-family: Inter, Montserrat, "Arial Narrow", Arial, sans-serif;
@@ -6,6 +23,8 @@
   --athlon-red: #2b2b2f;
   --athlon-light: #f0f0f2;
   --page-width: 1200px;
+  --font-slogan:
+    "Noto Sans Armenian Display", "Oswald", "Arial Narrow", Arial, sans-serif;
 }
 
 * {
