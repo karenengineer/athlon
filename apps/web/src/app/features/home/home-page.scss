@@ -116,6 +116,14 @@ h1 {
   text-transform: uppercase;
 }
 
+.brand-proof h2 {
+  font-family: var(--font-slogan);
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+
 .section-heading p:not(.eyebrow),
 .brand-proof p:not(.eyebrow) {
   margin: 5px 0 0;

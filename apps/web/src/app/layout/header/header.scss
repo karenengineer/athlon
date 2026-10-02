@@ -10,9 +10,12 @@
   padding: 4px 16px;
   background: #0f0f10;
   border-bottom: 1px solid #2f2f31;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-family: var(--font-slogan);
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
   text-align: center;
   text-transform: uppercase;
 }
