@@ -23,6 +23,8 @@ type Copy = {
   loading: string;
   emptyTitle: string;
   emptyText: string;
+  noResultsTitle: string;
+  noResultsText: string;
   errorTitle: string;
   errorText: string;
   retry: string;
@@ -85,6 +87,8 @@ const copy: Record<Locale, Copy> = {
     loading: "Загружаем товары…",
     emptyTitle: "Товары скоро появятся",
     emptyText: "Каталог обновляется. Загляните немного позже.",
+    noResultsTitle: "Товары не найдены",
+    noResultsText: "Попробуйте другой запрос или измените фильтры.",
     errorTitle: "Не удалось загрузить каталог",
     errorText: "Проверьте соединение и попробуйте ещё раз.",
     retry: "Повторить",
@@ -145,6 +149,8 @@ const copy: Record<Locale, Copy> = {
     loading: "Բեռնում ենք ապրանքները…",
     emptyTitle: "Ապրանքները շուտով կլինեն",
     emptyText: "Կատալոգը թարմացվում է։ Այցելեք մի փոքր ուշ։",
+    noResultsTitle: "Ապրանքներ չեն գտնվել",
+    noResultsText: "Փորձեք այլ որոնում կամ փոխեք զտիչները։",
     errorTitle: "Չհաջողվեց բեռնել կատալոգը",
     errorText: "Ստուգեք կապը և կրկին փորձեք։",
     retry: "Կրկնել",
@@ -205,6 +211,8 @@ const copy: Record<Locale, Copy> = {
     loading: "Loading products…",
     emptyTitle: "Products are coming soon",
     emptyText: "The catalog is being updated. Please check again later.",
+    noResultsTitle: "No products found",
+    noResultsText: "Try a different search or adjust the filters.",
     errorTitle: "Could not load the catalog",
     errorText: "Check your connection and try again.",
     retry: "Try again",
@@ -261,5 +269,25 @@ export class I18nService {
 
   t<K extends keyof Copy>(key: K): Copy[K] {
     return copy[this.locale()][key];
+  }
+
+  productCountLabel(count: number): string {
+    if (this.locale() === "ru") {
+      const lastTwo = count % 100;
+      const lastDigit = count % 10;
+      const noun =
+        lastTwo >= 11 && lastTwo <= 14
+          ? "товаров"
+          : lastDigit === 1
+            ? "товар"
+            : lastDigit >= 2 && lastDigit <= 4
+              ? "товара"
+              : "товаров";
+      return `${count} ${noun}`;
+    }
+    if (this.locale() === "en") {
+      return `${count} ${count === 1 ? "product" : "products"}`;
+    }
+    return `${count} ${this.t("productsFound")}`;
   }
 }

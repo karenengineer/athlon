@@ -238,8 +238,35 @@ p {
   }
 
   h3 {
-    min-height: 2.7em;
+    min-height: 4.88em;
     font-size: 1rem;
+  }
+
+  h3 a {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+  }
+
+  .product-base,
+  .product-variant {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .has-variant .product-base,
+  .product-variant {
+    -webkit-line-clamp: 2;
+  }
+
+  .product-separator {
+    display: none;
+  }
+
+  .product-variant {
+    margin-top: 3px;
   }
 
   p {

@@ -79,7 +79,7 @@ describe("BasketPage", () => {
     expect(style.color).toBe("rgb(23, 23, 25)");
   });
 
-  it("opens the ATHLON Instagram profile for orders by default", () => {
+  it("opens the ATHLON Instagram conversation for orders by default", () => {
     const fixture = TestBed.createComponent(BasketPage);
     fixture.detectChanges();
     http
@@ -87,7 +87,19 @@ describe("BasketPage", () => {
       .flush({});
 
     expect(fixture.componentInstance.instagramUrl()).toBe(
-      "https://www.instagram.com/__athlon__/",
+      "https://ig.me/m/__athlon__",
+    );
+  });
+
+  it("opens the configured Instagram account's conversation instead of its profile", () => {
+    const fixture = TestBed.createComponent(BasketPage);
+    fixture.detectChanges();
+    http
+      .expectOne((request) => request.url.endsWith("/public/settings"))
+      .flush({ instagram: "https://www.instagram.com/__athlon__/?hl=en" });
+
+    expect(fixture.componentInstance.instagramUrl()).toBe(
+      "https://ig.me/m/__athlon__",
     );
   });
 });
