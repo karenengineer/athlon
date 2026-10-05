@@ -17,7 +17,7 @@
   <header class="catalog-heading">
     <p>ATHLON CATALOG</p>
     <h1>{{ heading() }}</h1>
-    <span>{{ meta().total }} {{ i18n.t("productsFound") }}</span>
+    <span>{{ i18n.productCountLabel(meta().total) }}</span>
   </header>
 
   <form class="filters" (ngSubmit)="applyFilters()">
@@ -59,9 +59,10 @@
 
   @switch (state()) { @case ("loading") { <app-status-panel kind="loading" /> }
   @case ("error") { <app-status-panel kind="error" (retry)="retry()" /> } @case
-  ("empty") { <app-status-panel kind="empty" /> } @default {
-  <app-product-grid [products]="products()" /> } } @if (state() === "ready" &&
-  meta().totalPages > 1) {
+  ("empty") {
+  <app-status-panel [kind]="hasActiveFilters() ? 'no-results' : 'empty'" /> }
+  @default { <app-product-grid [products]="products()" /> } } @if (state() ===
+  "ready" && meta().totalPages > 1) {
   <nav class="pagination" aria-label="Pagination">
     <button
       type="button"

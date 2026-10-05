@@ -79,4 +79,28 @@ describe("ProductCard basket controls", () => {
       "Very long product name that should be visually clamped with ellipsis inside the card",
     );
   });
+
+  it("renders the whey flavor separately so the shared product prefix cannot hide it", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductCard],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ProductCard);
+    fixture.componentRef.setInput("product", {
+      ...product,
+      name: "Trec Whey 100 New Formula — Կրկնակի շոկոլադ",
+    });
+    fixture.detectChanges();
+
+    const title = fixture.nativeElement.querySelector("h3 a");
+    expect(title.querySelector(".product-base")?.textContent).toBe(
+      "Trec Whey 100 New Formula",
+    );
+    expect(title.querySelector(".product-variant")?.textContent).toBe(
+      "Կրկնակի շոկոլադ",
+    );
+    expect(title.getAttribute("title")).toBe(
+      "Trec Whey 100 New Formula — Կրկնակի շոկոլադ",
+    );
+  });
 });

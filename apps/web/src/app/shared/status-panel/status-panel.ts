@@ -21,8 +21,28 @@ import { I18nService } from "../../core/i18n/i18n.service";
         <span class="mark" aria-hidden="true">{{
           kind() === "error" ? "!" : "·"
         }}</span>
-        <h2>{{ i18n.t(kind() === "error" ? "errorTitle" : "emptyTitle") }}</h2>
-        <p>{{ i18n.t(kind() === "error" ? "errorText" : "emptyText") }}</p>
+        <h2>
+          {{
+            i18n.t(
+              kind() === "error"
+                ? "errorTitle"
+                : kind() === "no-results"
+                  ? "noResultsTitle"
+                  : "emptyTitle"
+            )
+          }}
+        </h2>
+        <p>
+          {{
+            i18n.t(
+              kind() === "error"
+                ? "errorText"
+                : kind() === "no-results"
+                  ? "noResultsText"
+                  : "emptyText"
+            )
+          }}
+        </p>
         @if (kind() === "error") {
           <button type="button" data-testid="retry-home" (click)="retry.emit()">
             {{ i18n.t("retry") }}
@@ -117,7 +137,9 @@ import { I18nService } from "../../core/i18n/i18n.service";
   `,
 })
 export class StatusPanel {
-  readonly kind = input.required<"loading" | "empty" | "error">();
+  readonly kind = input.required<
+    "loading" | "empty" | "no-results" | "error"
+  >();
   readonly retry = output<void>();
   readonly i18n = inject(I18nService);
 

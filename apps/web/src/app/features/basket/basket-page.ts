@@ -52,9 +52,23 @@ export class BasketPage {
 
   instagramUrl(): string {
     const instagram = this.settings().instagram?.trim();
-    if (instagram?.startsWith("http")) return instagram;
-    if (instagram)
-      return `https://www.instagram.com/${instagram.replace(/^@/, "")}/`;
-    return INSTAGRAM_PROFILE_URL;
+    const profileUrl = instagram?.startsWith("http")
+      ? instagram
+      : instagram
+        ? `https://www.instagram.com/${instagram.replace(/^@/, "")}/`
+        : INSTAGRAM_PROFILE_URL;
+    try {
+      const profile = new URL(profileUrl);
+      const username = profile.pathname.split("/").filter(Boolean)[0];
+      if (
+        ["instagram.com", "www.instagram.com"].includes(profile.hostname) &&
+        username
+      ) {
+        return `https://ig.me/m/${username}`;
+      }
+    } catch {
+      // Ignore an invalid configured profile URL and use the ATHLON account.
+    }
+    return "https://ig.me/m/__athlon__";
   }
 }

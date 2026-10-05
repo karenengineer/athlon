@@ -204,14 +204,17 @@ h1 {
   }
 
   .basket-item-actions {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: end;
+    gap: 10px;
   }
 
-  .basket-item-actions label,
+  .basket-item-actions label {
+    flex: 0 1 110px;
+    min-width: 82px;
+  }
+
   .basket-item-actions button {
-    flex: none;
-    width: 100%;
+    flex: 1 1 auto;
     min-width: 0;
   }
 }
