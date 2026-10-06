@@ -1,0 +1,225 @@
+import { INestApplication } from "@nestjs/common";
+import { Test } from "@nestjs/testing";
+import type { Express } from "express";
+import request from "supertest";
+import { AppModule } from "../src/app.module";
+import { configureApplication } from "../src/bootstrap";
+import { PrismaService } from "../src/database/prisma.service";
+
+describe("Public orders", () => {
+  let app: INestApplication;
+  const originalFetch = global.fetch;
+  const fetchMock = jest.fn();
+  const product = {
+    id: "4ebeb944-3503-47a2-9843-d37f1eb34768",
+    sku: "SKU-ONE",
+    published: true,
+    availability: "IN_STOCK",
+    price: "24000",
+    translations: [{ locale: "HY", name: "Պրոտեին" }],
+  };
+  const prisma = {
+    product: {
+      findMany: jest.fn(),
+    },
+  };
+
+  beforeEach(async () => {
+    process.env.RESEND_API_KEY = "test-only-key";
+    process.env.ORDER_FROM_EMAIL = "orders@example.test";
+    fetchMock
+      .mockReset()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ id: "email_test_1" }), { status: 200 }),
+      );
+    prisma.product.findMany.mockReset().mockResolvedValue([product]);
+    global.fetch = fetchMock as typeof fetch;
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(PrismaService)
+      .useValue(prisma)
+      .compile();
+    app = configureApplication(moduleRef.createNestApplication());
+    await app.init();
+    await app.listen(0, "127.0.0.1");
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  afterAll(() => {
+    delete process.env.RESEND_API_KEY;
+    delete process.env.ORDER_FROM_EMAIL;
+    global.fetch = originalFetch;
+  });
+
+  it("accepts a valid basket and sends an order notification", async () => {
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .send({
+        locale: "hy",
+        customer: {
+          name: "Անի",
+          phone: "+374 91 123456",
+          address: "Երևան, Աբովյան 1",
+        },
+        items: [
+          {
+            productId: product.id,
+            quantity: 2,
+            expectedUnitPrice: "24000",
+          },
+        ],
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          accepted: true,
+          orderReference: expect.any(String),
+        });
+      });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://api.resend.com/emails");
+    const email = JSON.parse(init.body as string);
+    expect(email).toEqual(
+      expect.objectContaining({
+        to: ["athlonsportgoods@gmail.com"],
+        from: "orders@athlonsport.am",
+      }),
+    );
+    expect(email.text).toContain("Պրոտեին");
+    expect(email.text).toContain("48,000");
+  });
+
+  it("rejects missing customer details before trying to send email", async () => {
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .send({ locale: "hy", customer: {}, items: [] })
+      .expect(400);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a stale basket price without sending an email", async () => {
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .send({
+        locale: "hy",
+        customer: { name: "Անի", phone: "091123456", address: "Երևան" },
+        items: [
+          { productId: product.id, quantity: 1, expectedUnitPrice: "100" },
+        ],
+      })
+      .expect(409);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not trust a browser-supplied product name or total", async () => {
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .send({
+        locale: "hy",
+        customer: { name: "Անի", phone: "091123456", address: "Երևան" },
+        items: [
+          {
+            productId: product.id,
+            quantity: 1,
+            expectedUnitPrice: "24000",
+            name: "Injected item",
+            lineTotal: "1",
+          },
+        ],
+        total: "1",
+      })
+      .expect(400);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not send an email if the transactional provider fails", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "secret provider details" }), {
+        status: 500,
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .send({
+        locale: "hy",
+        customer: { name: "Անի", phone: "091123456", address: "Երևան" },
+        items: [
+          {
+            productId: product.id,
+            quantity: 1,
+            expectedUnitPrice: "24000",
+          },
+        ],
+      })
+      .expect(503)
+      .expect(({ body }) => {
+        expect(JSON.stringify(body)).not.toContain("secret provider details");
+        expect(JSON.stringify(body)).not.toContain("test-only-key");
+      });
+  });
+
+  it("rejects invalid products and does not contact the email provider", async () => {
+    prisma.product.findMany.mockResolvedValueOnce([]);
+
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .send({
+        locale: "hy",
+        customer: { name: "Անի", phone: "091123456", address: "Երևան" },
+        items: [
+          {
+            productId: product.id,
+            quantity: 1,
+            expectedUnitPrice: "24000",
+          },
+        ],
+      })
+      .expect(400);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rate limits repeated order submissions", async () => {
+    const express = app.getHttpAdapter().getInstance() as Express;
+    expect(express.get("trust proxy")).toBe(1);
+    const payload = {
+      locale: "hy",
+      customer: { name: "Անի", phone: "091123456", address: "Երևան" },
+      items: [
+        {
+          productId: product.id,
+          quantity: 1,
+          expectedUnitPrice: "24000",
+        },
+      ],
+    };
+
+    for (let index = 0; index < 5; index++) {
+      await request(app.getHttpServer())
+        .post("/api/v1/public/orders")
+        .set("x-forwarded-for", "198.51.100.10")
+        .send(payload)
+        .expect(201);
+    }
+
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .set("x-forwarded-for", "198.51.100.10")
+      .send(payload)
+      .expect(429);
+
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .set("x-forwarded-for", "198.51.100.11")
+      .send(payload)
+      .expect(201);
+  });
+});

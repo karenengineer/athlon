@@ -61,8 +61,16 @@ type Copy = {
   clearBasket: string;
   emptyBasket: string;
   continueShopping: string;
-  orderInstagram: string;
-  orderCopied: string;
+  orderCustomerName: string;
+  orderCustomerPhone: string;
+  orderDeliveryAddress: string;
+  orderPaymentOnDelivery: string;
+  orderPlace: string;
+  orderSending: string;
+  orderSuccess: string;
+  orderFailure: string;
+  orderConflict: string;
+  orderRequired: string;
   basketTotal: string;
 };
 
@@ -125,8 +133,18 @@ const copy: Record<Locale, Copy> = {
     clearBasket: "Очистить корзину",
     emptyBasket: "Корзина пуста",
     continueShopping: "Продолжить покупки",
-    orderInstagram: "Скопировать заказ и открыть Instagram",
-    orderCopied: "Заказ скопирован. Вставьте текст в Instagram DM.",
+    orderCustomerName: "Имя и фамилия",
+    orderCustomerPhone: "Номер телефона",
+    orderDeliveryAddress: "Адрес доставки",
+    orderPaymentOnDelivery:
+      "Оплата при получении заказа — наличными или картой.",
+    orderPlace: "Оформить заказ",
+    orderSending: "Отправляем…",
+    orderSuccess: "Ваш заказ зарегистрирован.",
+    orderFailure: "Не удалось отправить заказ. Попробуйте ещё раз.",
+    orderConflict:
+      "Цена или наличие товара изменились. Проверьте корзину и повторите попытку.",
+    orderRequired: "Укажите имя, телефон и адрес доставки.",
     basketTotal: "Итого",
   },
   hy: {
@@ -187,8 +205,17 @@ const copy: Record<Locale, Copy> = {
     clearBasket: "Մաքրել զամբյուղը",
     emptyBasket: "Զամբյուղը դատարկ է",
     continueShopping: "Շարունակել գնումները",
-    orderInstagram: "Պատճենել պատվերը և բացել Instagram-ը",
-    orderCopied: "Պատվերը պատճենված է։ Տեղադրեք տեքստը Instagram DM-ում։",
+    orderCustomerName: "Անուն Ազգանուն",
+    orderCustomerPhone: "Հեռախոսահամար",
+    orderDeliveryAddress: "Առաքման հասցե",
+    orderPaymentOnDelivery: "Վճարումը՝ պատվերը ստանալիս․ կանխիկ կամ քարտով։",
+    orderPlace: "Պատվիրել",
+    orderSending: "Ուղարկվում է…",
+    orderSuccess: "Ձեր պատվերը գրանցված է",
+    orderFailure: "Չհաջողվեց ուղարկել պատվերը։ Խնդրում ենք կրկին փորձել։",
+    orderConflict:
+      "Ապրանքի գինը կամ առկայությունը փոխվել է։ Ստուգեք զամբյուղը և կրկին փորձեք։",
+    orderRequired: "Լրացրեք անունը, հեռախոսահամարը և առաքման հասցեն։",
     basketTotal: "Ընդամենը",
   },
   en: {
@@ -249,8 +276,17 @@ const copy: Record<Locale, Copy> = {
     clearBasket: "Clear basket",
     emptyBasket: "Basket is empty",
     continueShopping: "Continue shopping",
-    orderInstagram: "Copy order and open Instagram",
-    orderCopied: "Order copied. Paste it into Instagram DM.",
+    orderCustomerName: "Full name",
+    orderCustomerPhone: "Phone number",
+    orderDeliveryAddress: "Delivery address",
+    orderPaymentOnDelivery: "Pay the courier on delivery by cash or card.",
+    orderPlace: "Place order",
+    orderSending: "Sending…",
+    orderSuccess: "Your order has been registered.",
+    orderFailure: "Could not submit your order. Please try again.",
+    orderConflict:
+      "An item’s price or availability changed. Review your basket and try again.",
+    orderRequired: "Enter your name, phone number, and delivery address.",
     basketTotal: "Total",
   },
 };

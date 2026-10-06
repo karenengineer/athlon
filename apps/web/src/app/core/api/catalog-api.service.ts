@@ -5,6 +5,8 @@ import { API_BASE_URL } from "./api-base-url";
 import {
   Brand,
   Category,
+  CreateOrderRequest,
+  CreateOrderResponse,
   Product,
   ProductPageResponse,
   ProductQuery,
@@ -48,5 +50,12 @@ export class CatalogApiService {
 
   settings(): Observable<PublicSettings> {
     return this.http.get<PublicSettings>(`${this.baseUrl}/public/settings`);
+  }
+
+  submitOrder(order: CreateOrderRequest): Observable<CreateOrderResponse> {
+    return this.http.post<CreateOrderResponse>(
+      `${this.baseUrl}/public/orders`,
+      order,
+    );
   }
 }

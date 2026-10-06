@@ -42,15 +42,11 @@ describe("BasketService", () => {
     expect(restored.totalQuantity()).toBe(2);
   });
 
-  it("formats a copy-ready Instagram order text with names and counts", () => {
+  it("does not display a misleading partial total when a price is unavailable", () => {
     const basket = TestBed.inject(BasketService);
-    basket.add(product, 2);
+    basket.add(product);
+    basket.add({ ...product, id: "unpriced-product", price: null });
 
-    expect(basket.orderText("en")).toContain("Hello ATHLON");
-    expect(basket.orderText("en")).toContain("1. Trec Mass XXL Gainer × 2");
-    expect(basket.orderText("en")).toContain("Total:");
-    expect(basket.orderText("en")).toContain("60");
-    expect(basket.orderText("en")).toContain("000");
-    expect(basket.orderText("en")).toContain("Please confirm availability.");
+    expect(basket.total()).toBeNull();
   });
 });
