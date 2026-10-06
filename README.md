@@ -56,6 +56,28 @@ Uploaded image variants are stored under `UPLOAD_DIR` (local development default
 `./uploads`). The application uses a storage adapter so an object-storage implementation
 can replace local disk storage later without changing the catalog domain.
 
+### Email order requests (no online payment)
+
+Basket checkout emails order requests to the fixed ATHLON address
+`athlonsportgoods@gmail.com`. The customer pays the courier on delivery by cash or card.
+Checkout reports `Ձեր պատվերը գրանցված է` only after the email provider accepts the
+request; provider acceptance does not guarantee inbox placement. The site does not
+take card details or mark an order as paid.
+
+Before enabling checkout on a deployment, configure Resend and verify the sender
+address/domain there. Set `RESEND_API_KEY` and `ORDER_FROM_EMAIL` privately in the API
+environment (`.env` locally, or the protected `/opt/athlon/.env` on production), then
+restart/redeploy the API. Never put the API key in source control, chat, build arguments,
+or logs. The notification recipient is fixed in API code and cannot be supplied by a
+browser request. Do not use the production inbox for test orders; automated tests mock
+the provider and database.
+
+The production API is reached through one Caddy reverse-proxy hop. Keep
+`TRUST_PROXY_HOPS=1` in the protected production environment so per-IP throttling uses
+the customer address forwarded by Caddy. For direct local API access, leave it at `0`;
+only configure trusted proxy hops when the API is not directly reachable by untrusted
+clients around that proxy.
+
 ## Verification
 
 ```bash

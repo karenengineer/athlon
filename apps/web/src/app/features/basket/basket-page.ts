@@ -1,13 +1,11 @@
 import { CurrencyPipe } from "@angular/common";
+import { HttpErrorResponse } from "@angular/common/http";
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { catchError, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
-import { PublicSettings } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
-import { INSTAGRAM_PROFILE_URL } from "../../core/social-links";
 
 @Component({
   selector: "app-basket-page",
@@ -18,57 +16,81 @@ import { INSTAGRAM_PROFILE_URL } from "../../core/social-links";
 export class BasketPage {
   readonly basket = inject(BasketService);
   readonly i18n = inject(I18nService);
-  readonly copied = signal(false);
-  readonly settings = signal<PublicSettings>({});
+  readonly submitting = signal(false);
+  readonly orderSuccess = signal(false);
+  readonly orderError = signal("");
+  readonly customer = { name: "", phone: "", address: "" };
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     this.i18n.setLocale(this.route.parent?.snapshot.paramMap.get("locale"));
-    this.api
-      .settings()
-      .pipe(
-        catchError(() => of({})),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((settings) => this.settings.set(settings));
   }
 
   update(id: string, value: string): void {
+    if (this.submitting()) return;
     this.basket.update(id, Number(value));
   }
 
-  async copyAndOpenInstagram(): Promise<void> {
-    const text = this.basket.orderText(this.i18n.locale());
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(text);
-    }
-    this.copied.set(true);
-    if (typeof window !== "undefined") {
-      window.open(this.instagramUrl(), "_blank", "noopener,noreferrer");
-    }
+  remove(id: string): void {
+    if (this.submitting()) return;
+    this.basket.remove(id);
   }
 
-  instagramUrl(): string {
-    const instagram = this.settings().instagram?.trim();
-    const profileUrl = instagram?.startsWith("http")
-      ? instagram
-      : instagram
-        ? `https://www.instagram.com/${instagram.replace(/^@/, "")}/`
-        : INSTAGRAM_PROFILE_URL;
-    try {
-      const profile = new URL(profileUrl);
-      const username = profile.pathname.split("/").filter(Boolean)[0];
-      if (
-        ["instagram.com", "www.instagram.com"].includes(profile.hostname) &&
-        username
-      ) {
-        return `https://ig.me/m/${username}`;
-      }
-    } catch {
-      // Ignore an invalid configured profile URL and use the ATHLON account.
+  clear(): void {
+    if (this.submitting()) return;
+    this.basket.clear();
+  }
+
+  submitOrder(event: SubmitEvent): void {
+    event.preventDefault();
+    this.orderError.set("");
+    this.orderSuccess.set(false);
+
+    const name = this.customer.name.trim();
+    const phone = this.customer.phone.trim();
+    const address = this.customer.address.trim();
+    if (!name || !phone || !address) {
+      this.orderError.set(this.i18n.t("orderRequired"));
+      return;
     }
-    return "https://ig.me/m/__athlon__";
+    if (this.submitting() || !this.basket.items().length) return;
+
+    this.submitting.set(true);
+    this.api
+      .submitOrder({
+        locale: this.i18n.locale(),
+        customer: { name, phone, address },
+        items: this.basket.items().map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          expectedUnitPrice: item.price,
+        })),
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          if (response?.accepted !== true) {
+            this.orderError.set(this.i18n.t("orderFailure"));
+            this.submitting.set(false);
+            return;
+          }
+          this.basket.clear();
+          this.orderSuccess.set(true);
+          this.submitting.set(false);
+          if (typeof window !== "undefined") {
+            window.setTimeout(() => this.orderSuccess.set(false), 5_000);
+          }
+        },
+        error: (error: unknown) => {
+          const key =
+            error instanceof HttpErrorResponse && error.status === 409
+              ? "orderConflict"
+              : "orderFailure";
+          this.orderError.set(this.i18n.t(key));
+          this.submitting.set(false);
+        },
+      });
   }
 }

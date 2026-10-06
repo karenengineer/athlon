@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
+import type { Express } from "express";
 import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { ApiExceptionFilter } from "./common/filters/api-exception.filter";
@@ -13,6 +14,11 @@ export function configureApplication(app: INestApplication): INestApplication {
   app.use(helmet());
   app.use(cookieParser());
   const config = app.get(ConfigService);
+  const trustedProxyHops = config.get<number>("TRUST_PROXY_HOPS", 0);
+  if (trustedProxyHops > 0) {
+    const express = app.getHttpAdapter().getInstance() as Express;
+    express.set("trust proxy", trustedProxyHops);
+  }
   app.enableCors({
     origin: config
       .getOrThrow<string>("CORS_ORIGINS")
