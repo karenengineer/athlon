@@ -36,11 +36,16 @@
             <input
               type="number"
               min="1"
+              [disabled]="submitting()"
               [value]="item.quantity"
               (change)="update(item.id, $any($event.target).value)"
             />
           </label>
-          <button type="button" (click)="basket.remove(item.id)">
+          <button
+            type="button"
+            [disabled]="submitting()"
+            (click)="remove(item.id)"
+          >
             {{ i18n.t("remove") }}
           </button>
         </div>
@@ -51,20 +56,61 @@
     <aside class="basket-summary">
       <p>{{ i18n.t("basketTotal") }}</p>
       <strong
-        >{{ basket.total() | currency: "AMD" : "symbol-narrow" : "1.0-0"
-        }}</strong
+        >@if (basket.total() !== null) { {{ basket.total() | currency: "AMD" :
+        "symbol-narrow" : "1.0-0" }} } @else { {{ i18n.t("contactPrice") }}
+        }</strong
       >
+      <form class="order-form" (submit)="submitOrder($event)">
+        <label>
+          <span>{{ i18n.t("orderCustomerName") }}</span>
+          <input
+            name="customerName"
+            type="text"
+            autocomplete="name"
+            maxlength="120"
+            required
+            [disabled]="submitting()"
+            [value]="customer.name"
+            (input)="customer.name = $any($event.target).value"
+          />
+        </label>
+        <label>
+          <span>{{ i18n.t("orderCustomerPhone") }}</span>
+          <input
+            name="customerPhone"
+            type="tel"
+            autocomplete="tel"
+            maxlength="24"
+            required
+            [disabled]="submitting()"
+            [value]="customer.phone"
+            (input)="customer.phone = $any($event.target).value"
+          />
+        </label>
+        <label>
+          <span>{{ i18n.t("orderDeliveryAddress") }}</span>
+          <textarea
+            name="deliveryAddress"
+            autocomplete="street-address"
+            maxlength="300"
+            required
+            rows="3"
+            [disabled]="submitting()"
+            [value]="customer.address"
+            (input)="customer.address = $any($event.target).value"
+          ></textarea>
+        </label>
+        <p class="payment-note">{{ i18n.t("orderPaymentOnDelivery") }}</p>
+        <button type="submit" class="order-button" [disabled]="submitting()">
+          {{ submitting() ? i18n.t("orderSending") : i18n.t("orderPlace") }}
+        </button>
+      </form>
       <button
         type="button"
-        class="order-button"
-        (click)="copyAndOpenInstagram()"
+        class="clear-button"
+        [disabled]="submitting()"
+        (click)="clear()"
       >
-        {{ i18n.t("orderInstagram") }}
-      </button>
-      @if (copied()) {
-      <small>{{ i18n.t("orderCopied") }}</small>
-      }
-      <button type="button" class="clear-button" (click)="basket.clear()">
         {{ i18n.t("clearBasket") }}
       </button>
     </aside>
@@ -76,5 +122,13 @@
       >{{ i18n.t("continueShopping") }}</a
     >
   </div>
+  } @if (orderSuccess()) {
+  <p class="order-feedback order-success" role="status" aria-live="polite">
+    {{ i18n.t("orderSuccess") }}
+  </p>
+  } @if (orderError()) {
+  <p class="order-feedback order-error" role="alert" aria-live="assertive">
+    {{ orderError() }}
+  </p>
   }
 </section>

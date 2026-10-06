@@ -157,6 +157,73 @@ h1 {
   line-height: 1.45;
 }
 
+.order-form {
+  display: grid;
+  gap: 12px;
+}
+
+.order-form label {
+  display: grid;
+  gap: 6px;
+  color: #44444a;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.order-form input,
+.order-form textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d5d5d9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #171719;
+  background: #fff;
+  font: inherit;
+}
+
+.order-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.payment-note {
+  margin: 0 !important;
+  color: #45454a !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  line-height: 1.45;
+  text-transform: none !important;
+}
+
+.order-form .order-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.order-feedback {
+  margin: 16px 0 0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-weight: 800;
+}
+
+.order-success {
+  position: fixed;
+  z-index: 1000;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  max-width: min(420px, calc(100vw - 40px));
+  color: #155e45;
+  background: #eaf7f1;
+  box-shadow: 0 10px 28px rgb(16 16 18 / 20%);
+}
+
+.order-error {
+  color: #9e2020;
+  background: #fff0f0;
+}
+
 .clear-button {
   color: #171719 !important;
   background: #fff !important;
@@ -204,14 +271,17 @@ h1 {
   }
 
   .basket-item-actions {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: end;
+    gap: 10px;
   }
 
-  .basket-item-actions label,
+  .basket-item-actions label {
+    flex: 0 1 110px;
+    min-width: 82px;
+  }
+
   .basket-item-actions button {
-    flex: none;
-    width: 100%;
+    flex: 1 1 auto;
     min-width: 0;
   }
 }

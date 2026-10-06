@@ -30,8 +30,11 @@
       <a
         [routerLink]="['/', i18n.locale(), 'product', product().slug]"
         [title]="product().name"
-        >{{ product().name }}</a
-      >
+        [class.has-variant]="nameParts().variant"
+        ><span class="product-base">{{ nameParts().base }}</span>@if
+        (nameParts().variant) {<span class="product-separator"> — </span
+        ><span class="product-variant">{{ nameParts().variant }}</span>}
+      </a>
     </h3>
     <p>{{ product().shortDescription || product().category.name }}</p>
     <div class="card-bottom">

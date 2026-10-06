@@ -88,6 +88,43 @@ describe("default public locale", () => {
     });
   }
 
+  it("uses the correct Russian noun form for product counts", () => {
+    const service = TestBed.inject(I18nService);
+    service.setLocale("ru");
+
+    for (const [count, expected] of [
+      [0, "0 товаров"],
+      [1, "1 товар"],
+      [2, "2 товара"],
+      [5, "5 товаров"],
+      [11, "11 товаров"],
+      [21, "21 товар"],
+      [22, "22 товара"],
+      [25, "25 товаров"],
+    ] as const) {
+      expect(service.productCountLabel(count)).toBe(expected);
+    }
+  });
+
+  it("uses singular and plural English product counts", () => {
+    const service = TestBed.inject(I18nService);
+    service.setLocale("en");
+
+    expect(service.productCountLabel(1)).toBe("1 product");
+    expect(service.productCountLabel(2)).toBe("2 products");
+  });
+
+  it("shows a no-results message instead of an empty-catalog message for search misses", async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl("/en/search?q=zzzz-nonexistent");
+    flushCatalog("en");
+    harness.detectChanges();
+
+    const text = harness.routeNativeElement?.textContent ?? "";
+    expect(text).toContain("No products found");
+    expect(text).not.toContain("Products are coming soon");
+  });
+
   describe("page requests when the parent locale is absent", () => {
     beforeEach(() => {
       const publicRoute = routes.find((route) => route.path === ":locale")!;

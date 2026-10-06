@@ -115,6 +115,15 @@ export class CatalogPage {
     return this.route.snapshot.paramMap.get("categorySlug");
   }
 
+  hasActiveFilters(): boolean {
+    return (
+      Boolean(this.route.snapshot.queryParamMap.get("q")) ||
+      this.minPrice !== null ||
+      this.maxPrice !== null ||
+      Boolean(this.categoryFilter)
+    );
+  }
+
   categoryOptions(): CategoryOption[] {
     const sportsNutrition = this.categories().find(
       (item) => item.slug === DEFAULT_CATEGORY_SLUG,

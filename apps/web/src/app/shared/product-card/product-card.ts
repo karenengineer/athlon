@@ -21,6 +21,16 @@ export class ProductCard {
       this.basket.items().find((item) => item.id === this.product().id)
         ?.quantity ?? 0,
   );
+  readonly nameParts = computed(() => {
+    const name = this.product().name;
+    const separator = name.lastIndexOf(" — ");
+    return separator < 0
+      ? { base: name, variant: "" }
+      : {
+          base: name.slice(0, separator),
+          variant: name.slice(separator + 3),
+        };
+  });
 
   imageUrl(): string {
     return (
