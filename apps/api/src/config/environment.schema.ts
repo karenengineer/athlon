@@ -1,5 +1,27 @@
 import Joi from "joi";
 
+const ameriaRequiredWhenEnabled = Joi.string()
+  .trim()
+  .min(1)
+  .when("AMERIA_PAYMENTS_ENABLED", {
+    is: true,
+    then: Joi.required(),
+    otherwise: Joi.optional().allow(""),
+  });
+
+const ameriaHttpsUrl = Joi.string()
+  .uri({ scheme: ["https"] })
+  .custom((value, helpers) => {
+    const url = new URL(value);
+    if (url.username || url.password) return helpers.error("string.uri");
+    return value;
+  })
+  .when("AMERIA_PAYMENTS_ENABLED", {
+    is: true,
+    then: Joi.required(),
+    otherwise: Joi.optional().allow(""),
+  });
+
 export const environmentSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid("development", "test", "production")
@@ -25,4 +47,10 @@ export const environmentSchema = Joi.object({
     .email()
     .empty("")
     .default("orders@athlonsport.am"),
+  AMERIA_PAYMENTS_ENABLED: Joi.boolean().default(false),
+  AMERIA_API_BASE_URL: ameriaHttpsUrl,
+  AMERIA_CHECKOUT_BASE_URL: ameriaHttpsUrl,
+  AMERIA_MERCHANT_ID: ameriaRequiredWhenEnabled,
+  AMERIA_USERNAME: ameriaRequiredWhenEnabled,
+  AMERIA_PASSWORD: ameriaRequiredWhenEnabled,
 });

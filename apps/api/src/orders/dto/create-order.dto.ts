@@ -4,8 +4,10 @@ import {
   ArrayMinSize,
   ArrayUnique,
   IsArray,
+  IsEmail,
   IsIn,
   IsInt,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -30,6 +32,11 @@ export class OrderCustomerDto {
   @MaxLength(120)
   @Matches(/\S/)
   name!: string;
+
+  @Transform(trimString)
+  @IsEmail()
+  @MaxLength(320)
+  email!: string;
 
   @Transform(trimString)
   @IsString()
@@ -64,6 +71,10 @@ export class OrderItemDto {
 export class CreateOrderDto {
   @IsIn(["hy", "ru", "en"])
   locale!: "hy" | "ru" | "en";
+
+  @IsOptional()
+  @IsIn(["CARD", "CASH_ON_DELIVERY"])
+  paymentMethod?: "CARD" | "CASH_ON_DELIVERY";
 
   @ValidateNested()
   @Type(() => OrderCustomerDto)

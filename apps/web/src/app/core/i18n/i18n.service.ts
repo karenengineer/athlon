@@ -62,9 +62,19 @@ type Copy = {
   emptyBasket: string;
   continueShopping: string;
   orderCustomerName: string;
+  orderCustomerEmail: string;
   orderCustomerPhone: string;
   orderDeliveryAddress: string;
+  orderPaymentMethod: string;
+  orderPayOnDelivery: string;
+  orderPayByCard: string;
   orderPaymentOnDelivery: string;
+  orderPaymentPending: string;
+  orderPaymentConfirmed: string;
+  orderPaymentFailed: string;
+  orderPaymentCancelled: string;
+  orderPaymentExpired: string;
+  orderPaymentTimeout: string;
   orderPlace: string;
   orderSending: string;
   orderSuccess: string;
@@ -134,17 +144,29 @@ const copy: Record<Locale, Copy> = {
     emptyBasket: "Корзина пуста",
     continueShopping: "Продолжить покупки",
     orderCustomerName: "Имя и фамилия",
+    orderCustomerEmail: "Электронная почта",
     orderCustomerPhone: "Номер телефона",
     orderDeliveryAddress: "Адрес доставки",
+    orderPaymentMethod: "Способ оплаты",
+    orderPayOnDelivery: "Наличными или картой курьеру при доставке",
+    orderPayByCard: "Оплатить банковской картой сейчас",
     orderPaymentOnDelivery:
       "Оплата при получении заказа — наличными или картой.",
+    orderPaymentPending: "Открываем защищённую страницу оплаты банка…",
+    orderPaymentConfirmed: "Оплата подтверждена.",
+    orderPaymentFailed:
+      "Оплата не прошла. Корзина сохранена — попробуйте ещё раз.",
+    orderPaymentCancelled: "Оплата отменена. Корзина сохранена.",
+    orderPaymentExpired: "Срок оплаты истёк. Корзина сохранена.",
+    orderPaymentTimeout:
+      "Статус оплаты пока не подтверждён. Корзина сохранена.",
     orderPlace: "Оформить заказ",
     orderSending: "Отправляем…",
     orderSuccess: "Ваш заказ зарегистрирован.",
     orderFailure: "Не удалось отправить заказ. Попробуйте ещё раз.",
     orderConflict:
       "Цена или наличие товара изменились. Проверьте корзину и повторите попытку.",
-    orderRequired: "Укажите имя, телефон и адрес доставки.",
+    orderRequired: "Укажите имя, корректный email, телефон и адрес доставки.",
     basketTotal: "Итого",
   },
   hy: {
@@ -206,16 +228,29 @@ const copy: Record<Locale, Copy> = {
     emptyBasket: "Զամբյուղը դատարկ է",
     continueShopping: "Շարունակել գնումները",
     orderCustomerName: "Անուն Ազգանուն",
+    orderCustomerEmail: "Էլ. փոստ",
     orderCustomerPhone: "Հեռախոսահամար",
     orderDeliveryAddress: "Առաքման հասցե",
+    orderPaymentMethod: "Վճարման եղանակը",
+    orderPayOnDelivery: "Կանխիկ կամ քարտով՝ առաքման պահին",
+    orderPayByCard: "Վճարել բանկային քարտով հիմա",
     orderPaymentOnDelivery: "Վճարումը՝ պատվերը ստանալիս․ կանխիկ կամ քարտով։",
+    orderPaymentPending: "Բացում ենք բանկի անվտանգ վճարման էջը…",
+    orderPaymentConfirmed: "Վճարումը հաստատվել է։",
+    orderPaymentFailed:
+      "Վճարումը չկատարվեց։ Զամբյուղը պահպանված է․ կրկին փորձեք։",
+    orderPaymentCancelled: "Վճարումը չեղարկվել է։ Զամբյուղը պահպանված է։",
+    orderPaymentExpired: "Վճարման ժամկետը լրացել է։ Զամբյուղը պահպանված է։",
+    orderPaymentTimeout:
+      "Վճարման կարգավիճակը դեռ հաստատված չէ։ Զամբյուղը պահպանված է։",
     orderPlace: "Պատվիրել",
     orderSending: "Ուղարկվում է…",
     orderSuccess: "Ձեր պատվերը գրանցված է",
     orderFailure: "Չհաջողվեց ուղարկել պատվերը։ Խնդրում ենք կրկին փորձել։",
     orderConflict:
       "Ապրանքի գինը կամ առկայությունը փոխվել է։ Ստուգեք զամբյուղը և կրկին փորձեք։",
-    orderRequired: "Լրացրեք անունը, հեռախոսահամարը և առաքման հասցեն։",
+    orderRequired:
+      "Լրացրեք անունը, ճիշտ էլ. փոստը, հեռախոսահամարը և առաքման հասցեն։",
     basketTotal: "Ընդամենը",
   },
   en: {
@@ -277,16 +312,28 @@ const copy: Record<Locale, Copy> = {
     emptyBasket: "Basket is empty",
     continueShopping: "Continue shopping",
     orderCustomerName: "Full name",
+    orderCustomerEmail: "Email address",
     orderCustomerPhone: "Phone number",
     orderDeliveryAddress: "Delivery address",
+    orderPaymentMethod: "Payment method",
+    orderPayOnDelivery: "Cash or card when the courier delivers",
+    orderPayByCard: "Pay by bank card now",
     orderPaymentOnDelivery: "Pay the courier on delivery by cash or card.",
+    orderPaymentPending: "Opening the bank’s secure payment page…",
+    orderPaymentConfirmed: "Payment confirmed.",
+    orderPaymentFailed:
+      "Payment failed. Your basket is saved—please try again.",
+    orderPaymentCancelled: "Payment was cancelled. Your basket is saved.",
+    orderPaymentExpired: "The payment session expired. Your basket is saved.",
+    orderPaymentTimeout: "Payment is not confirmed yet. Your basket is saved.",
     orderPlace: "Place order",
     orderSending: "Sending…",
     orderSuccess: "Your order has been registered.",
     orderFailure: "Could not submit your order. Please try again.",
     orderConflict:
       "An item’s price or availability changed. Review your basket and try again.",
-    orderRequired: "Enter your name, phone number, and delivery address.",
+    orderRequired:
+      "Enter your name, a valid email, phone number, and delivery address.",
     basketTotal: "Total",
   },
 };

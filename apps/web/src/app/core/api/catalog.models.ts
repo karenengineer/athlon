@@ -68,6 +68,7 @@ export interface ProductQuery {
 }
 
 export interface PublicSettings {
+  cardPaymentsEnabled?: boolean;
   phone?: string;
   email?: string;
   instagram?: string;
@@ -77,7 +78,8 @@ export interface PublicSettings {
 
 export interface CreateOrderRequest {
   locale: "hy" | "ru" | "en";
-  customer: { name: string; phone: string; address: string };
+  paymentMethod: "CARD" | "CASH_ON_DELIVERY";
+  customer: { name: string; email: string; phone: string; address: string };
   items: {
     productId: string;
     quantity: number;
@@ -85,7 +87,26 @@ export interface CreateOrderRequest {
   }[];
 }
 
-export interface CreateOrderResponse {
+export interface CashOnDeliveryOrderResponse {
+  kind: "COD_ACCEPTED";
   accepted: true;
   orderReference: string;
+}
+
+export interface CardPaymentPendingResponse {
+  kind: "CARD_PAYMENT_PENDING";
+  accepted: true;
+  orderReference: string;
+  paymentStatus: "PENDING";
+  checkoutUrl: string;
+}
+
+export type CreateOrderResponse =
+  | CashOnDeliveryOrderResponse
+  | CardPaymentPendingResponse;
+
+export interface PaymentStatusResponse {
+  orderReference: string;
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "EXPIRED";
+  locale: "HY" | "RU" | "EN";
 }
