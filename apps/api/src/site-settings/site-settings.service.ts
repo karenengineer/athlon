@@ -1,4 +1,6 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { AMERIA_PAYMENT_FLOW_READY } from "../orders/ameria-vpos.client";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../database/prisma.service";
 
 export const PUBLIC_SETTING_KEYS = [
@@ -11,9 +13,12 @@ export const PUBLIC_SETTING_KEYS = [
 
 @Injectable()
 export class SiteSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
-  async publicSettings(): Promise<Record<string, string>> {
+  async publicSettings(): Promise<Record<string, string | boolean>> {
     const settings = await this.prisma.siteSetting.findMany({
       where: {
         public: true,
@@ -22,11 +27,17 @@ export class SiteSettingsService {
       },
       select: { key: true, value: true },
     });
-    return Object.fromEntries(
+    const values = Object.fromEntries(
       settings
         .filter((setting) => setting.value)
         .map((setting) => [setting.key, setting.value!]),
     );
+    return {
+      ...values,
+      cardPaymentsEnabled:
+        AMERIA_PAYMENT_FLOW_READY &&
+        this.config.get<boolean>("AMERIA_PAYMENTS_ENABLED") === true,
+    };
   }
 
   async adminSettings(): Promise<Record<string, string | null>> {

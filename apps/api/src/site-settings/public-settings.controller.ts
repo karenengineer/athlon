@@ -8,7 +8,7 @@ export class PublicSettingsController {
   constructor(private readonly settings: SiteSettingsService) {}
 
   @Get()
-  list(): Promise<Record<string, string>> {
+  list(): Promise<Record<string, string | boolean>> {
     return this.settings.publicSettings();
   }
 }

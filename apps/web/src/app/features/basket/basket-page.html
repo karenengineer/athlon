@@ -71,7 +71,20 @@
             required
             [disabled]="submitting()"
             [value]="customer.name"
-            (input)="customer.name = $any($event.target).value"
+            (input)="updateCustomerField('name', $any($event.target).value)"
+          />
+        </label>
+        <label>
+          <span>{{ i18n.t("orderCustomerEmail") }}</span>
+          <input
+            name="customerEmail"
+            type="email"
+            autocomplete="email"
+            maxlength="320"
+            required
+            [disabled]="submitting()"
+            [value]="customer.email"
+            (input)="updateCustomerField('email', $any($event.target).value)"
           />
         </label>
         <label>
@@ -84,7 +97,7 @@
             required
             [disabled]="submitting()"
             [value]="customer.phone"
-            (input)="customer.phone = $any($event.target).value"
+            (input)="updateCustomerField('phone', $any($event.target).value)"
           />
         </label>
         <label>
@@ -97,10 +110,41 @@
             rows="3"
             [disabled]="submitting()"
             [value]="customer.address"
-            (input)="customer.address = $any($event.target).value"
+            (input)="updateCustomerField('address', $any($event.target).value)"
           ></textarea>
         </label>
+        <fieldset class="payment-methods" [disabled]="submitting()">
+          <legend>{{ i18n.t("orderPaymentMethod") }}</legend>
+          <label>
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="CASH_ON_DELIVERY"
+              [checked]="paymentMethod() === 'CASH_ON_DELIVERY'"
+              (change)="setPaymentMethod('CASH_ON_DELIVERY')"
+            />
+            <span>{{ i18n.t("orderPayOnDelivery") }}</span>
+          </label>
+          @if (cardPaymentsEnabled()) {
+          <label>
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="CARD"
+              [checked]="paymentMethod() === 'CARD'"
+              (change)="setPaymentMethod('CARD')"
+            />
+            <span>{{ i18n.t("orderPayByCard") }}</span>
+          </label>
+          }
+        </fieldset>
+        @if (paymentMethod() === 'CASH_ON_DELIVERY') {
         <p class="payment-note">{{ i18n.t("orderPaymentOnDelivery") }}</p>
+        } @if (paymentPending()) {
+        <p class="payment-note" role="status" aria-live="polite">
+          {{ i18n.t("orderPaymentPending") }}
+        </p>
+        }
         <button type="submit" class="order-button" [disabled]="submitting()">
           {{ submitting() ? i18n.t("orderSending") : i18n.t("orderPlace") }}
         </button>
