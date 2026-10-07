@@ -54,7 +54,7 @@ describe("CatalogApiService payment status", () => {
     api
       .paymentStatus("ATH-1234ABCD1234ABCD1234ABCD1234ABCD?status=PAID")
       .subscribe({
-      error: (error) => (failure = error),
+        error: (error) => (failure = error),
       });
 
     expect(failure).toBeInstanceOf(Error);

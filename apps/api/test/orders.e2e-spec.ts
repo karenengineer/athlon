@@ -51,33 +51,33 @@ describe("Public orders", () => {
       .mockReset()
       .mockImplementation(
         (input: Parameters<OrderPersistenceService["createPendingOrder"]>[0]) =>
-        Promise.resolve({
-          created: true,
-          order: {
-            id: "order-test-id",
-            reference: input.reference,
-            paymentAttempts: [],
-            locale: input.locale,
-            customerName: input.customerName,
-            customerEmail: input.customerEmail,
-            customerPhone: input.customerPhone,
-            deliveryAddress: input.deliveryAddress,
-            total: input.total,
-            items: input.items,
-            notifications: [
-              {
-                id: "e2e-merchant-notification",
-                status: "PENDING",
-                recipientType: "MERCHANT",
-              },
-              {
-                id: "e2e-customer-notification",
-                status: "PENDING",
-                recipientType: "CUSTOMER",
-              },
-            ],
-          },
-        }),
+          Promise.resolve({
+            created: true,
+            order: {
+              id: "order-test-id",
+              reference: input.reference,
+              paymentAttempts: [],
+              locale: input.locale,
+              customerName: input.customerName,
+              customerEmail: input.customerEmail,
+              customerPhone: input.customerPhone,
+              deliveryAddress: input.deliveryAddress,
+              total: input.total,
+              items: input.items,
+              notifications: [
+                {
+                  id: "e2e-merchant-notification",
+                  status: "PENDING",
+                  recipientType: "MERCHANT",
+                },
+                {
+                  id: "e2e-customer-notification",
+                  status: "PENDING",
+                  recipientType: "CUSTOMER",
+                },
+              ],
+            },
+          }),
       );
     global.fetch = fetchMock as typeof fetch;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })

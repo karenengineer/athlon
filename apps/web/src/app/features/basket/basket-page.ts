@@ -62,10 +62,7 @@ export class BasketPage {
     this.basket.clear();
   }
 
-  updateCustomerField(
-    field: keyof typeof this.customer,
-    value: string,
-  ): void {
+  updateCustomerField(field: keyof typeof this.customer, value: string): void {
     if (this.customer[field] === value) return;
     this.customer[field] = value;
     this.clearIdempotencyKey();
@@ -99,16 +96,19 @@ export class BasketPage {
     }
     this.submitting.set(true);
     this.api
-      .submitOrder({
-        locale: this.i18n.locale(),
-        paymentMethod: this.paymentMethod(),
-        customer: { name, email, phone, address },
-        items: this.basket.items().map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-          expectedUnitPrice: item.price,
-        })),
-      }, this.idempotencyKey)
+      .submitOrder(
+        {
+          locale: this.i18n.locale(),
+          paymentMethod: this.paymentMethod(),
+          customer: { name, email, phone, address },
+          items: this.basket.items().map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+            expectedUnitPrice: item.price,
+          })),
+        },
+        this.idempotencyKey,
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
@@ -190,8 +190,7 @@ function loadCustomerDraft() {
     const value = JSON.parse(stored) as Partial<typeof empty>;
     return {
       name: typeof value.name === "string" ? value.name.slice(0, 120) : "",
-      email:
-        typeof value.email === "string" ? value.email.slice(0, 320) : "",
+      email: typeof value.email === "string" ? value.email.slice(0, 320) : "",
       phone: typeof value.phone === "string" ? value.phone.slice(0, 24) : "",
       address:
         typeof value.address === "string" ? value.address.slice(0, 300) : "",
@@ -282,8 +281,10 @@ function clearStoredIdempotencyKey(): void {
 }
 
 function createIdempotencyKey(): string {
-  return globalThis.crypto?.randomUUID?.() ??
-    `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
 }
 
 function isSecureCheckoutUrl(value: string): boolean {

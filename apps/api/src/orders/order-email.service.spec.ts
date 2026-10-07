@@ -86,7 +86,9 @@ describe("OrderEmailService", () => {
       }),
     );
 
-    await expect(service.send(message, "order-notification/rejected")).rejects.toMatchObject({
+    await expect(
+      service.send(message, "order-notification/rejected"),
+    ).rejects.toMatchObject({
       constructor: ServiceUnavailableException,
       message: "Order email service unavailable",
     });
@@ -99,20 +101,23 @@ describe("OrderEmailService", () => {
   ] as const)(
     "uses the localized price fallback for %s orders",
     async (locale, fallback) => {
-      await service.send({
-        ...message,
-        locale,
-        items: [
-          {
-            sku: "SKU1",
-            name: "Item",
-            quantity: 1,
-            unitPrice: null,
-            lineTotal: null,
-          },
-        ],
-        total: null,
-      }, `order-notification/${locale}`);
+      await service.send(
+        {
+          ...message,
+          locale,
+          items: [
+            {
+              sku: "SKU1",
+              name: "Item",
+              quantity: 1,
+              unitPrice: null,
+              lineTotal: null,
+            },
+          ],
+          total: null,
+        },
+        `order-notification/${locale}`,
+      );
 
       const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
       const email = JSON.parse(init.body as string) as {
@@ -127,7 +132,9 @@ describe("OrderEmailService", () => {
   it("maps network and timeout errors to a sanitized unavailable response", async () => {
     fetchSpy.mockRejectedValueOnce(new Error("socket and secret details"));
 
-    await expect(service.send(message, "order-notification/network")).rejects.toMatchObject({
+    await expect(
+      service.send(message, "order-notification/network"),
+    ).rejects.toMatchObject({
       constructor: ServiceUnavailableException,
       message: "Order email service unavailable",
     });

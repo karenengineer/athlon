@@ -46,9 +46,8 @@ export class OrdersService {
       input.paymentMethod ?? "CASH_ON_DELIVERY";
     const locale = parseLocale(input.locale);
     const requestFingerprint = createOrderRequestFingerprint(input);
-    const existingOrder = await this.persistence.findByIdempotencyKey(
-      idempotencyKey,
-    );
+    const existingOrder =
+      await this.persistence.findByIdempotencyKey(idempotencyKey);
     if (existingOrder) {
       if (existingOrder.requestFingerprint !== requestFingerprint) {
         throw new ConflictException(
@@ -187,9 +186,8 @@ export class OrdersService {
       // Another request may have initialized the same idempotency key between
       // the initial lookup and this transaction. Reload once and recover its
       // already-created hosted checkout instead of making the client retry.
-      const racedOrder = await this.persistence.findByIdempotencyKey(
-        idempotencyKey,
-      );
+      const racedOrder =
+        await this.persistence.findByIdempotencyKey(idempotencyKey);
       if (racedOrder?.requestFingerprint === requestFingerprint) {
         const recoveredCheckout = this.recoverCardCheckout(racedOrder);
         if (recoveredCheckout) return recoveredCheckout;
@@ -255,7 +253,10 @@ export class OrdersService {
       checkoutUrl?: string | null;
     }>;
   }): OrderSubmissionResult | null {
-    if (!this.paymentInitializer?.isEnabled || order.status !== "PAYMENT_PENDING") {
+    if (
+      !this.paymentInitializer?.isEnabled ||
+      order.status !== "PAYMENT_PENDING"
+    ) {
       return null;
     }
     const pendingAttempt = order.paymentAttempts?.find(
@@ -384,9 +385,11 @@ function isCardCheckoutInitializing(order: {
   if (order.paymentMethod !== "CARD" || order.status !== "PAYMENT_PENDING") {
     return false;
   }
-  return order.paymentAttempts?.some(
-    (attempt) => attempt.status === "PENDING" && !attempt.checkoutUrl,
-  ) ?? false;
+  return (
+    order.paymentAttempts?.some(
+      (attempt) => attempt.status === "PENDING" && !attempt.checkoutUrl,
+    ) ?? false
+  );
 }
 
 function isValidHostedCheckoutUrl(value: string): boolean {

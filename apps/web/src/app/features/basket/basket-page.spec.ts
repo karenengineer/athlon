@@ -184,9 +184,13 @@ describe("BasketPage", () => {
       customerPhone: "+374 91 123456",
       deliveryAddress: "Yerevan",
     });
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
 
-    const req = http.expectOne((request) => request.url.endsWith("/public/orders"));
+    const req = http.expectOne((request) =>
+      request.url.endsWith("/public/orders"),
+    );
     expect(req.request.body.paymentMethod).toBe("CARD");
     req.flush({
       kind: "CARD_PAYMENT_PENDING",
@@ -197,11 +201,13 @@ describe("BasketPage", () => {
     });
     fixture.detectChanges();
 
-    expect(redirect).toHaveBeenCalledWith("https://bank.example.test/checkout/1");
-    expect(basket.items()).toHaveLength(1);
-    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain(
-      "Opening the bank’s secure payment page",
+    expect(redirect).toHaveBeenCalledWith(
+      "https://bank.example.test/checkout/1",
     );
+    expect(basket.items()).toHaveLength(1);
+    expect(
+      fixture.nativeElement.querySelector('[role="status"]').textContent,
+    ).toContain("Opening the bank’s secure payment page");
   });
 
   it("does not submit a form with blank required fields", () => {
@@ -365,7 +371,9 @@ describe("BasketPage", () => {
       customerPhone: "+374 91 123456",
       deliveryAddress: "Yerevan",
     });
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
     const first = http.expectOne((request) =>
       request.url.endsWith("/public/orders"),
     );
@@ -405,7 +413,9 @@ describe("BasketPage", () => {
       customerPhone: "+374 91 123456",
       deliveryAddress: "Yerevan",
     });
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
     const first = http.expectOne((request) =>
       request.url.endsWith("/public/orders"),
     );
@@ -445,7 +455,9 @@ describe("BasketPage", () => {
       customerPhone: "+374 91 123456",
       deliveryAddress: "Yerevan",
     });
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
     const firstRequest = http.expectOne((request) =>
       request.url.endsWith("/public/orders"),
     );
@@ -457,7 +469,9 @@ describe("BasketPage", () => {
     )!;
     address.value = "Yerevan, new address";
     address.dispatchEvent(new Event("input", { bubbles: true }));
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
     const retry = http.expectOne((request) =>
       request.url.endsWith("/public/orders"),
     );

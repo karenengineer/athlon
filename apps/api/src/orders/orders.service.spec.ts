@@ -40,8 +40,16 @@ const persistedOrder = {
   ],
   paymentAttempts: [{ id: "attempt-id", ameriaOrderId: "1760000000001" }],
   notifications: [
-    { id: "merchant-notification", status: "PENDING", recipientType: "MERCHANT" },
-    { id: "customer-notification", status: "PENDING", recipientType: "CUSTOMER" },
+    {
+      id: "merchant-notification",
+      status: "PENDING",
+      recipientType: "MERCHANT",
+    },
+    {
+      id: "customer-notification",
+      status: "PENDING",
+      recipientType: "CUSTOMER",
+    },
   ],
 };
 
@@ -218,7 +226,10 @@ describe("OrdersService", () => {
 
     await expect(
       service.submit(
-        { ...orderInput, customer: { ...orderInput.customer, address: "Other" } },
+        {
+          ...orderInput,
+          customer: { ...orderInput.customer, address: "Other" },
+        },
         "web-req-edited-1234",
       ),
     ).rejects.toThrow(ConflictException);
@@ -317,10 +328,12 @@ describe("OrdersService", () => {
     let requestFingerprint = "";
     findOrderByIdempotencyKey
       .mockResolvedValueOnce(null)
-      .mockImplementationOnce(() => Promise.resolve({
-        ...fingerprintOrder,
-        requestFingerprint,
-      }));
+      .mockImplementationOnce(() =>
+        Promise.resolve({
+          ...fingerprintOrder,
+          requestFingerprint,
+        }),
+      );
     createPendingOrder.mockImplementationOnce(
       (order: { requestFingerprint: string }) => {
         requestFingerprint = order.requestFingerprint;
@@ -367,13 +380,17 @@ describe("OrdersService", () => {
   });
 
   it("records a failed notification for retry without losing the accepted order", async () => {
-    sendEmail.mockRejectedValueOnce(new Error("provider details must not escape"));
+    sendEmail.mockRejectedValueOnce(
+      new Error("provider details must not escape"),
+    );
 
     await expect(
       service.submit(orderInput, "web-req-notification-fail"),
     ).rejects.toThrow(ServiceUnavailableException);
 
-    expect(markNotificationFailed).toHaveBeenCalledWith("merchant-notification");
+    expect(markNotificationFailed).toHaveBeenCalledWith(
+      "merchant-notification",
+    );
     expect(sendCustomerEmail).not.toHaveBeenCalled();
   });
 
@@ -390,9 +407,9 @@ describe("OrdersService", () => {
       paymentStatus: "PENDING",
       checkoutUrl: "https://payments.example.test/checkout/1",
     });
-    expect(
-      createPendingOrder.mock.calls[0]![0].requestFingerprint,
-    ).toMatch(/^[a-f0-9]{64}$/);
+    expect(createPendingOrder.mock.calls[0]![0].requestFingerprint).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
     expect(createPendingOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         paymentMethod: "CARD",

@@ -45,10 +45,14 @@ describe("AmeriaVposClient", () => {
       client.isTrustedCheckoutUrl("https://evil.example/checkout/session/123"),
     ).toBe(false);
     expect(
-      client.isTrustedCheckoutUrl("https://bank.example.test.evil/checkout/123"),
+      client.isTrustedCheckoutUrl(
+        "https://bank.example.test.evil/checkout/123",
+      ),
     ).toBe(false);
     expect(
-      client.isTrustedCheckoutUrl("https://user@bank.example.test/checkout/123"),
+      client.isTrustedCheckoutUrl(
+        "https://user@bank.example.test/checkout/123",
+      ),
     ).toBe(false);
     expect(
       client.isTrustedCheckoutUrl("https://bank.example.test/elsewhere/123"),
