@@ -11,6 +11,7 @@ import { SiteSettingsModule } from "./site-settings/site-settings.module";
 import { AuthModule } from "./auth/auth.module";
 import { MediaModule } from "./media/media.module";
 import { FinanceModule } from "./finance/finance.module";
+import { OrdersModule } from "./orders/orders.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { FinanceModule } from "./finance/finance.module";
     AuthModule,
     MediaModule,
     FinanceModule,
+    OrdersModule,
   ],
 })
 export class AppModule {}

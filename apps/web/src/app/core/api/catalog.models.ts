@@ -74,3 +74,18 @@ export interface PublicSettings {
   facebook?: string;
   whatsapp?: string;
 }
+
+export interface CreateOrderRequest {
+  locale: "hy" | "ru" | "en";
+  customer: { name: string; phone: string; address: string };
+  items: {
+    productId: string;
+    quantity: number;
+    expectedUnitPrice: string | null;
+  }[];
+}
+
+export interface CreateOrderResponse {
+  accepted: true;
+  orderReference: string;
+}

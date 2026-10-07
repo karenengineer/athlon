@@ -6,3 +6,5 @@ process.env.ACCESS_TOKEN_SECRET =
 process.env.REFRESH_TOKEN_SECRET =
   "test-refresh-secret-with-at-least-32-characters";
 process.env.CORS_ORIGINS = "http://localhost:4200";
+// Match the production Caddy -> API single trusted-proxy hop in E2E tests.
+process.env.TRUST_PROXY_HOPS = "1";

@@ -10,6 +10,7 @@ export const environmentSchema = Joi.object({
     .uri({ scheme: ["postgresql", "postgres"] })
     .required(),
   CORS_ORIGINS: Joi.string().default("http://localhost:4200"),
+  TRUST_PROXY_HOPS: Joi.number().integer().min(0).max(3).empty("").default(0),
   ACCESS_TOKEN_SECRET: Joi.string().min(32).required(),
   REFRESH_TOKEN_SECRET: Joi.string().min(32).required(),
   ACCESS_TOKEN_TTL_SECONDS: Joi.number().integer().min(60).default(900),
@@ -19,4 +20,9 @@ export const environmentSchema = Joi.object({
   MAX_UPLOAD_BYTES: Joi.number().integer().min(1024).default(5242880),
   ADMIN_EMAIL: Joi.string().email().allow("").optional(),
   ADMIN_PASSWORD: Joi.string().min(12).allow("").optional(),
+  RESEND_API_KEY: Joi.string().min(1).empty("").optional(),
+  ORDER_FROM_EMAIL: Joi.string()
+    .email()
+    .empty("")
+    .default("orders@athlonsport.am"),
 });
