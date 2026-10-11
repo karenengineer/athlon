@@ -1,6 +1,6 @@
 # Isolated Card-Payment Test Flow Design
 
-**Status:** Draft for user review. Implementation has not started.
+**Status:** Approved by user on 2026-10-11. Implementation has not started.
 
 ## Goal
 
@@ -72,4 +72,4 @@ Choose the test session storage model (in-memory versus isolated persistence) af
 
 ## Approval gate
 
-User approved the in-chat design on 2026-10-11. This written specification is awaiting review. After user approval, write and review a task-level implementation plan before changing application code. Do not merge, deploy, enable production payment credentials, or run real payments as part of this work.
+User approved the in-chat design and this written specification on 2026-10-11. A task-level implementation plan is now ready for user review. Do not change application code until the plan is approved. Do not merge, deploy, enable production payment credentials, or run real payments as part of this work.
