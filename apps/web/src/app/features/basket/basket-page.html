@@ -1,10 +1,22 @@
-<section class="basket-page page-width">
+<section
+  class="basket-page page-width"
+  [class.card-payment-test]="cardPaymentTestMode"
+>
   <header>
     <p>ATHLON ORDER</p>
     <h1>{{ i18n.t("basket") }}</h1>
   </header>
 
-  @if (basket.items().length) {
+  @if (cardPaymentTestMode) {
+  <p class="order-feedback" role="note">
+    <strong>{{ i18n.t("paymentTestMockLabel") }}</strong>
+    <span>{{ i18n.t("paymentTestNoCharge") }}</span>
+  </p>
+  } @if (cardPaymentTestResult()) {
+  <p class="order-feedback" role="status" aria-live="polite">
+    {{ cardPaymentTestResult() }}
+  </p>
+  } @if (basket.items().length) {
   <div class="basket-layout">
     <div class="basket-list">
       @for (item of basket.items(); track item.id) {
@@ -113,6 +125,21 @@
             (input)="updateCustomerField('address', $any($event.target).value)"
           ></textarea>
         </label>
+        @if (cardPaymentTestMode) {
+        <fieldset class="payment-methods" [disabled]="submitting()">
+          <legend>{{ i18n.t("orderPaymentMethod") }}</legend>
+          <label>
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="CARD"
+              checked
+              (change)="setPaymentMethod('CARD')"
+            />
+            <span>{{ i18n.t("orderPayByCard") }}</span>
+          </label>
+        </fieldset>
+        } @else {
         <fieldset class="payment-methods" [disabled]="submitting()">
           <legend>{{ i18n.t("orderPaymentMethod") }}</legend>
           <label>
@@ -138,7 +165,9 @@
           </label>
           }
         </fieldset>
-        @if (paymentMethod() === 'CASH_ON_DELIVERY') {
+        } @if (cardPaymentTestMode) {
+        <p class="payment-note">{{ i18n.t("paymentTestNoCharge") }}</p>
+        } @else if (paymentMethod() === 'CASH_ON_DELIVERY') {
         <p class="payment-note">{{ i18n.t("orderPaymentOnDelivery") }}</p>
         } @if (paymentPending()) {
         <p class="payment-note" role="status" aria-live="polite">

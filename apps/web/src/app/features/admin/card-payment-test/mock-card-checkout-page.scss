@@ -1,0 +1,92 @@
+.mock-checkout {
+  min-height: 70vh;
+  padding-block: clamp(2rem, 6vw, 5rem);
+}
+
+.mock-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid #a45a00;
+  border-radius: 12px;
+  background: #fff4df;
+  color: #3b2400;
+}
+
+header {
+  margin-block: 2rem;
+}
+
+header p {
+  color: #6b6b70;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.session-card {
+  max-width: 48rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid #d9d9de;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.status {
+  font-weight: 700;
+}
+
+.session-card ul {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.session-card li,
+.total {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.total {
+  padding-top: 1rem;
+  border-top: 1px solid #dddde2;
+  font-size: 1.2rem;
+}
+
+.outcomes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+button {
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 10px;
+  background: #171719;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.error {
+  color: #a31d1d;
+}
+
+@media (max-width: 520px) {
+  .mock-checkout {
+    padding-inline: 1rem;
+  }
+}

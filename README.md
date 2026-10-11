@@ -101,6 +101,35 @@ flow is implemented and independently verified. Sandbox activation/transactions 
 production activation/charges require explicit approval. A browser redirect is never
 proof of payment; only the documented server-authenticated bank result can confirm it.
 
+### Isolated card-checkout test flow (mock only)
+
+The separate card-checkout test flow is an authenticated-admin-only simulator. It does
+not contact Ameriabank, create an order, send order emails, or charge a card. It is
+disabled by default and has no link in public navigation. After enabling the feature
+flag in a private API environment and restarting the API, open one of these URLs while
+signed in as an administrator:
+
+| Locale   | Test checkout URL             |
+| -------- | ----------------------------- |
+| Armenian | `/admin/card-payment-test/hy` |
+| Russian  | `/admin/card-payment-test/ru` |
+| English  | `/admin/card-payment-test/en` |
+
+Set `CARD_PAYMENT_TEST_FLOW_ENABLED=true` only in a private local or deployment
+environment (for local development, `.env`); keep the committed examples and
+production configuration disabled unless an administrator intentionally enables this
+test. Restart the API after changing it. The test checkout uses the current catalog
+prices and lets an administrator simulate success, decline, cancellation, and timeout.
+Its persistent `TEST / MOCK` notice means no money moves; it is neither an Ameria
+sandbox nor production payment. No card-number or CVV fields are shown.
+
+Mock sessions are held in API process memory for 15 minutes and are lost when that API
+process restarts. The current production Compose topology runs one API container. If
+API replicas are introduced, keep this flow disabled or move sessions to shared,
+short-lived storage before enabling it across replicas. Ameria sandbox testing remains
+unavailable until ATHLON has the merchant agreement, official integration manual, and
+sandbox credentials; this test flow does not substitute for those prerequisites.
+
 The production API is reached through one Caddy reverse-proxy hop. Keep
 `TRUST_PROXY_HOPS=1` in the protected production environment so per-IP throttling uses
 the customer address forwarded by Caddy. For direct local API access, leave it at `0`;

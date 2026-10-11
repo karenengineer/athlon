@@ -2,11 +2,15 @@ import { CurrencyPipe } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { ActivatedRoute, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { catchError, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
+import {
+  CardPaymentTestApiService,
+  MockPaymentSession,
+} from "../admin/card-payment-test/card-payment-test-api.service";
 
 @Component({
   selector: "app-basket-page",
@@ -22,6 +26,8 @@ export class BasketPage {
   readonly paymentPending = signal(false);
   readonly orderError = signal("");
   readonly cardPaymentsEnabled = signal(false);
+  readonly cardPaymentTestMode: boolean;
+  readonly cardPaymentTestResult = signal("");
   readonly paymentMethod = signal<"CARD" | "CASH_ON_DELIVERY">(
     loadPaymentMethod(),
   );
@@ -29,10 +35,19 @@ export class BasketPage {
   private idempotencyKey = loadIdempotencyKey();
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly cardPaymentTestApi = inject(CardPaymentTestApiService);
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     this.i18n.setLocale(this.route.parent?.snapshot.paramMap.get("locale"));
+    this.cardPaymentTestMode =
+      this.route.snapshot.data["cardPaymentTestMode"] === true;
+    if (this.cardPaymentTestMode) {
+      this.paymentMethod.set("CARD");
+      this.verifyCardPaymentTestReturn();
+      return;
+    }
     this.api
       .settings()
       .pipe(
@@ -89,6 +104,11 @@ export class BasketPage {
       return;
     }
     if (this.submitting() || !this.basket.items().length) return;
+
+    if (this.cardPaymentTestMode) {
+      this.submitCardPaymentTest();
+      return;
+    }
 
     if (!this.idempotencyKey) {
       this.idempotencyKey = createIdempotencyKey();
@@ -158,6 +178,10 @@ export class BasketPage {
   }
 
   setPaymentMethod(value: string): void {
+    if (this.cardPaymentTestMode) {
+      this.paymentMethod.set("CARD");
+      return;
+    }
     if (value === "CARD" && this.cardPaymentsEnabled()) {
       this.paymentMethod.set("CARD");
       savePaymentMethod("CARD");
@@ -174,6 +198,80 @@ export class BasketPage {
   private clearIdempotencyKey(): void {
     this.idempotencyKey = "";
     clearStoredIdempotencyKey();
+  }
+
+  private submitCardPaymentTest(): void {
+    this.submitting.set(true);
+    this.cardPaymentTestResult.set("");
+    this.cardPaymentTestApi
+      .createSession({
+        locale: this.i18n.locale(),
+        items: this.basket.items().map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          expectedUnitPrice: item.price,
+        })),
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (session) => {
+          if (session.mode !== "MOCK" || session.status !== "PENDING") {
+            this.orderError.set(this.i18n.t("paymentTestError"));
+            this.submitting.set(false);
+            return;
+          }
+          void this.router.navigate([
+            "/admin/card-payment-test",
+            this.i18n.locale(),
+            "payment",
+            session.reference,
+          ]);
+        },
+        error: () => {
+          this.orderError.set(this.i18n.t("paymentTestError"));
+          this.submitting.set(false);
+        },
+      });
+  }
+
+  private verifyCardPaymentTestReturn(): void {
+    const reference = this.route.snapshot.queryParamMap.get("session");
+    if (!reference) return;
+    this.cardPaymentTestApi
+      .getSession(reference)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (session) => {
+          if (session.mode !== "MOCK") {
+            this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
+            return;
+          }
+          this.cardPaymentTestResult.set(this.returnMessage(session));
+          void this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { session: null },
+            queryParamsHandling: "merge",
+            replaceUrl: true,
+          });
+        },
+        error: () =>
+          this.cardPaymentTestResult.set(this.i18n.t("paymentTestError")),
+      });
+  }
+
+  private returnMessage(session: MockPaymentSession): string {
+    switch (session.status) {
+      case "SUCCEEDED":
+        return this.i18n.t("paymentTestReturnSuccess");
+      case "FAILED":
+        return this.i18n.t("paymentTestReturnDeclined");
+      case "CANCELLED":
+        return this.i18n.t("paymentTestReturnCancelled");
+      case "EXPIRED":
+        return this.i18n.t("paymentTestReturnExpired");
+      case "PENDING":
+        return this.i18n.t("paymentTestPending");
+    }
   }
 }
 

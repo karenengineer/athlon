@@ -62,6 +62,7 @@ services:
       AMERIA_MERCHANT_ID: ${AMERIA_MERCHANT_ID:-}
       AMERIA_USERNAME: ${AMERIA_USERNAME:-}
       AMERIA_PASSWORD: ${AMERIA_PASSWORD:-}
+      CARD_PAYMENT_TEST_FLOW_ENABLED: ${CARD_PAYMENT_TEST_FLOW_ENABLED:-false}
     volumes:
       - athlon_uploads:/app/uploads
     healthcheck:

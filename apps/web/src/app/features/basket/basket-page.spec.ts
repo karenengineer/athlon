@@ -4,7 +4,12 @@ import {
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
 import { TestBed } from "@angular/core/testing";
-import { provideRouter } from "@angular/router";
+import {
+  ActivatedRoute,
+  convertToParamMap,
+  provideRouter,
+  Router,
+} from "@angular/router";
 import { vi } from "vitest";
 import { BasketService } from "../../core/basket/basket.service";
 import { BasketPage } from "./basket-page";
@@ -27,12 +32,37 @@ function addBasketProduct(basket: BasketService): void {
   });
 }
 
-function createBasketFixture(cardPaymentsEnabled = false) {
+const basketRouteStub = {
+  snapshot: {
+    data: {} as Record<string, unknown>,
+    paramMap: convertToParamMap({ locale: "hy" }),
+    queryParamMap: convertToParamMap({}),
+  },
+  parent: { snapshot: { paramMap: convertToParamMap({ locale: "hy" }) } },
+};
+
+function useCardPaymentTestRoute(session?: string): void {
+  basketRouteStub.snapshot.data = { cardPaymentTestMode: true };
+  basketRouteStub.snapshot.paramMap = convertToParamMap({ locale: "en" });
+  basketRouteStub.snapshot.queryParamMap = convertToParamMap(
+    session ? { session } : {},
+  );
+  basketRouteStub.parent.snapshot.paramMap = convertToParamMap({
+    locale: "en",
+  });
+}
+
+function createBasketFixture(
+  cardPaymentsEnabled = false,
+  testSession?: string,
+) {
+  const testMode = arguments.length > 1;
+  if (testMode) useCardPaymentTestRoute(testSession);
   const basket = TestBed.inject(BasketService);
   addBasketProduct(basket);
   const fixture = TestBed.createComponent(BasketPage);
   fixture.detectChanges();
-  flushSettings(cardPaymentsEnabled);
+  if (!testMode) flushSettings(cardPaymentsEnabled);
   fixture.detectChanges();
   return { fixture, basket };
 }
@@ -69,10 +99,17 @@ describe("BasketPage", () => {
   beforeEach(async () => {
     localStorage.clear();
     sessionStorage.clear();
+    basketRouteStub.snapshot.data = {};
+    basketRouteStub.snapshot.paramMap = convertToParamMap({ locale: "hy" });
+    basketRouteStub.snapshot.queryParamMap = convertToParamMap({});
+    basketRouteStub.parent.snapshot.paramMap = convertToParamMap({
+      locale: "hy",
+    });
     await TestBed.configureTestingModule({
       imports: [BasketPage],
       providers: [
         provideRouter([]),
+        { provide: ActivatedRoute, useValue: basketRouteStub },
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
@@ -80,7 +117,13 @@ describe("BasketPage", () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    try {
+      http.verify();
+    } finally {
+      TestBed.resetTestingModule();
+    }
+  });
 
   it("keeps quantity and remove controls on one row", () => {
     const basket = TestBed.inject(BasketService);
@@ -135,6 +178,129 @@ describe("BasketPage", () => {
     const { fixture } = createBasketFixture();
     expect(fixture.nativeElement.querySelector("form")).not.toBeNull();
   });
+
+  it("shows an isolated mock banner and a card-only option without public settings", () => {
+    const { fixture } = createBasketFixture(false, undefined);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("TEST / MOCK");
+    expect(fixture.nativeElement.textContent).toContain("no card is charged");
+    expect(
+      fixture.nativeElement.querySelectorAll('input[name="paymentMethod"]'),
+    ).toHaveLength(1);
+    expect(
+      fixture.nativeElement.querySelector('input[value="CARD"]')?.checked,
+    ).toBe(true);
+    http.expectNone((request) => request.url.endsWith("/public/settings"));
+  });
+
+  it("creates a mock session from basket data only and opens the simulator", () => {
+    const { fixture, basket } = createBasketFixture(false, undefined);
+    const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
+    fillOrderForm(form, {
+      customerName: "Ani Private",
+      customerEmail: "ani@example.com",
+      customerPhone: "+374 91 123456",
+      deliveryAddress: "Private address",
+    });
+    const navigate = vi.spyOn(TestBed.inject(Router), "navigate");
+
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+    const request = http.expectOne("/api/v1/admin/card-payment-test/sessions");
+    expect(request.request.body).toEqual({
+      locale: "en",
+      items: [
+        {
+          productId: "4ebeb944-3503-47a2-9843-d37f1eb34768",
+          quantity: 1,
+          expectedUnitPrice: "24000",
+        },
+      ],
+    });
+    expect(JSON.stringify(request.request.body)).not.toContain(
+      "ani@example.com",
+    );
+    expect(JSON.stringify(request.request.body)).not.toContain(
+      "Private address",
+    );
+    request.flush({ reference: "mock-ref", mode: "MOCK", status: "PENDING" });
+
+    expect(navigate).toHaveBeenCalledWith([
+      "/admin/card-payment-test",
+      "en",
+      "payment",
+      "mock-ref",
+    ]);
+    expect(basket.items()).toHaveLength(1);
+    expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toContain(
+      "ani@example.com",
+    );
+  });
+
+  it.each([
+    [
+      "SUCCEEDED",
+      "Payment simulation succeeded. No order was placed; the basket is preserved.",
+    ],
+    [
+      "FAILED",
+      "Decline simulated. No order was placed; the basket is preserved.",
+    ],
+    [
+      "CANCELLED",
+      "Cancellation simulated. No order was placed; the basket is preserved.",
+    ],
+    [
+      "EXPIRED",
+      "Timeout simulated. No order was placed; the basket is preserved.",
+    ],
+  ] as const)(
+    "verifies returned %s status from the server and preserves checkout state",
+    (status, message) => {
+      sessionStorage.setItem(
+        "athlon_checkout_customer_v1",
+        JSON.stringify({
+          name: "Ani Private",
+          email: "ani@example.com",
+          phone: "+374 91 123456",
+          address: "Private address",
+        }),
+      );
+      const { fixture, basket } = createBasketFixture(false, "mock-ref");
+      const navigate = vi.spyOn(TestBed.inject(Router), "navigate");
+      const resultRequest = http.expectOne(
+        "/api/v1/admin/card-payment-test/sessions/mock-ref",
+      );
+      resultRequest.flush({
+        reference: "mock-ref",
+        mode: "MOCK",
+        status,
+        locale: "EN",
+        currency: "AMD",
+        total: "24000",
+        items: [],
+        expiresAt: "2026-10-11T12:15:00.000Z",
+      });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain(message);
+      expect(basket.items()).toHaveLength(1);
+      expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toContain(
+        "ani@example.com",
+      );
+      expect(
+        fixture.nativeElement.querySelector('[role="status"]'),
+      ).not.toBeNull();
+      expect(navigate).toHaveBeenCalledWith([], {
+        relativeTo: TestBed.inject(ActivatedRoute),
+        queryParams: { session: null },
+        queryParamsHandling: "merge",
+        replaceUrl: true,
+      });
+    },
+  );
 
   it("defaults to pay on delivery and only offers card when the public flag is true", () => {
     const { fixture } = createBasketFixture(false);

@@ -19,6 +19,20 @@ describe("environmentSchema", () => {
     expect(value.TRUST_PROXY_HOPS).toBe(0);
     expect(value.RESEND_API_KEY).toBeUndefined();
     expect(value.ORDER_FROM_EMAIL).toBe("orders@athlonsport.am");
+    expect(value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(false);
+  });
+
+  it("defaults the isolated card-payment test flow to disabled", () => {
+    const defaults = environmentSchema.validate(requiredEnvironment);
+    expect(defaults.error).toBeUndefined();
+    expect(defaults.value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(false);
+
+    const enabled = environmentSchema.validate({
+      ...requiredEnvironment,
+      CARD_PAYMENT_TEST_FLOW_ENABLED: "true",
+    });
+    expect(enabled.error).toBeUndefined();
+    expect(enabled.value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(true);
   });
 
   it("still validates explicitly configured values", () => {

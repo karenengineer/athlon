@@ -8,3 +8,4 @@ process.env.REFRESH_TOKEN_SECRET =
 process.env.CORS_ORIGINS = "http://localhost:4200";
 // Match the production Caddy -> API single trusted-proxy hop in E2E tests.
 process.env.TRUST_PROXY_HOPS = "1";
+process.env.CARD_PAYMENT_TEST_FLOW_ENABLED = "false";

@@ -53,4 +53,5 @@ export const environmentSchema = Joi.object({
   AMERIA_MERCHANT_ID: ameriaRequiredWhenEnabled,
   AMERIA_USERNAME: ameriaRequiredWhenEnabled,
   AMERIA_PASSWORD: ameriaRequiredWhenEnabled,
+  CARD_PAYMENT_TEST_FLOW_ENABLED: Joi.boolean().default(false),
 });
