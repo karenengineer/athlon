@@ -478,6 +478,8 @@ describe("admin cookie sessions", () => {
   it.each([
     ["/admin/products?page=2", "/admin/products?page=2"],
     ["/admin", "/admin"],
+    ["/card-payment-test/hy", "/card-payment-test/hy"],
+    ["/card-payment-test/en/payment/abc-123?session=abc-123", "/card-payment-test/en/payment/abc-123?session=abc-123"],
     ["https://untrusted.example/admin", "/admin"],
     ["//untrusted.example/admin", "/admin"],
     ["/hy", "/admin"],
@@ -489,6 +491,10 @@ describe("admin cookie sessions", () => {
     ["/admin/login;mode=other", "/admin"],
     ["/admin/(login)", "/admin"],
     ["/admin/%00products", "/admin"],
+    ["/card-payment-test/fr", "/admin"],
+    ["/card-payment-test/hy/other", "/admin"],
+    ["/card-payment-test/hy/payment/../x", "/admin"],
+    ["/catalog", "/admin"],
   ])("restricts return path %s", (value, expected) => {
     expect(safeAdminReturnUrl(value)).toBe(expected);
   });

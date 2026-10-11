@@ -1,5 +1,7 @@
 import { Routes } from "@angular/router";
 import { localeGuard } from "./core/i18n/locale.guard";
+import { adminAuthGuard } from "./features/admin/auth/admin-auth.guard";
+import { cardPaymentTestGuard } from "./features/admin/card-payment-test/card-payment-test.guard";
 import { PublicShell } from "./layout/public-shell/public-shell";
 
 export const routes: Routes = [
@@ -10,6 +12,27 @@ export const routes: Routes = [
       import("./features/admin/admin.routes").then(
         (module) => module.adminRoutes,
       ),
+  },
+  {
+    path: "card-payment-test/:locale",
+    canActivate: [adminAuthGuard, cardPaymentTestGuard],
+    children: [
+      {
+        path: "",
+        data: { cardPaymentTestMode: true },
+        loadComponent: () =>
+          import("./features/basket/basket-page").then(
+            (module) => module.BasketPage,
+          ),
+      },
+      {
+        path: "payment/:reference",
+        loadComponent: () =>
+          import(
+            "./features/admin/card-payment-test/mock-card-checkout-page"
+          ).then((module) => module.MockCardCheckoutPage),
+      },
+    ],
   },
   {
     path: ":locale",

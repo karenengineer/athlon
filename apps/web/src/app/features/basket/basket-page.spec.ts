@@ -228,7 +228,7 @@ describe("BasketPage", () => {
     request.flush({ reference: "mock-ref", mode: "MOCK", status: "PENDING" });
 
     expect(navigate).toHaveBeenCalledWith([
-      "/admin/card-payment-test",
+      "/card-payment-test",
       "en",
       "payment",
       "mock-ref",

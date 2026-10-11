@@ -2,7 +2,6 @@ import { Routes } from "@angular/router";
 import { AdminRoot } from "./admin-root";
 import { adminAuthGuard } from "./auth/admin-auth.guard";
 import { adminDirtyFormGuard } from "./shared/admin-dirty-form.guard";
-import { cardPaymentTestGuard } from "./card-payment-test/card-payment-test.guard";
 
 export const adminRoutes: Routes = [
   {
@@ -20,27 +19,6 @@ export const adminRoutes: Routes = [
         loadComponent: () =>
           import("./admin-shell").then((module) => module.AdminShell),
         children: [
-          {
-            path: "card-payment-test/:locale",
-            canActivate: [cardPaymentTestGuard],
-            children: [
-              {
-                path: "",
-                data: { cardPaymentTestMode: true },
-                loadComponent: () =>
-                  import("../basket/basket-page").then(
-                    (module) => module.BasketPage,
-                  ),
-              },
-              {
-                path: "payment/:reference",
-                loadComponent: () =>
-                  import("./card-payment-test/mock-card-checkout-page").then(
-                    (module) => module.MockCardCheckoutPage,
-                  ),
-              },
-            ],
-          },
           {
             path: "finance",
             loadChildren: () =>

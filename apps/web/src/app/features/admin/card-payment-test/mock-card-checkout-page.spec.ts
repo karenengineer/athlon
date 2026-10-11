@@ -118,7 +118,7 @@ describe("MockCardCheckoutPage", () => {
       pending.complete();
       await Promise.resolve();
       expect(navigate).toHaveBeenCalledWith(
-        ["/admin/card-payment-test", locale],
+        ["/card-payment-test", locale],
         {
           queryParams: { session: "mock-ref" },
         },

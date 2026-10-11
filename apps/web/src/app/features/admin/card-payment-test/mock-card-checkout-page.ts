@@ -65,7 +65,7 @@ export class MockCardCheckoutPage {
         next: () => {
           const locale =
             this.route.parent?.snapshot.paramMap.get("locale") ?? "hy";
-          void this.router.navigate(["/admin/card-payment-test", locale], {
+          void this.router.navigate(["/card-payment-test", locale], {
             queryParams: { session: session.reference },
           });
         },

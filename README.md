@@ -111,9 +111,9 @@ signed in as an administrator:
 
 | Locale   | Test checkout URL             |
 | -------- | ----------------------------- |
-| Armenian | `/admin/card-payment-test/hy` |
-| Russian  | `/admin/card-payment-test/ru` |
-| English  | `/admin/card-payment-test/en` |
+| Armenian | `/card-payment-test/hy` |
+| Russian  | `/card-payment-test/ru` |
+| English  | `/card-payment-test/en` |
 
 Set `CARD_PAYMENT_TEST_FLOW_ENABLED=true` only in a private local or deployment
 environment (for local development, `.env`); keep the committed examples and
