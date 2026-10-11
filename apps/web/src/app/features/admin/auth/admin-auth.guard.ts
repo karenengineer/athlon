@@ -21,17 +21,22 @@ export const adminAuthGuard: CanActivateFn = (_route, state) => {
 export function safeAdminReturnUrl(value: string | null): string {
   if (
     !value ||
-    !/^\/admin(?:\/|\?|#|$)/.test(value) ||
     value.includes("\\") ||
     [...value].some((character) => character.charCodeAt(0) <= 32)
   )
     return "/admin";
   try {
     const decoded = decodeURIComponent(value.split(/[?#]/)[0]);
+    const safeCardPaymentTestPath =
+      /^\/card-payment-test\/(?:hy|ru|en)(?:\/payment\/[a-zA-Z0-9._~-]+)?\/?$/.test(
+        decoded,
+      );
+    const safeAdminPath =
+      /^\/admin(?:\/[a-zA-Z0-9._~-]+)*\/?$/.test(decoded) &&
+      !/^\/admin\/login(?:\/|$)/.test(decoded);
     if (
       decoded.split("/").some((part) => part === "." || part === "..") ||
-      !/^\/admin(?:\/[a-zA-Z0-9._~-]+)*\/?$/.test(decoded) ||
-      /^\/admin\/login(?:\/|$)/.test(decoded)
+      (!safeAdminPath && !safeCardPaymentTestPath)
     )
       return "/admin";
     return value;

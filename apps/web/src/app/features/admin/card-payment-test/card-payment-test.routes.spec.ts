@@ -2,18 +2,15 @@ import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { AdminShell } from "../admin-shell";
 import { adminAuthGuard } from "../auth/admin-auth.guard";
-import { adminRoutes } from "../admin.routes";
+import { routes } from "../../../app.routes";
 import { cardPaymentTestGuard } from "./card-payment-test.guard";
 
 describe("isolated mock card-payment routes", () => {
-  it("registers test pages only below the protected admin shell with no nav entry", async () => {
-    const shellRoute = adminRoutes[0].children?.find(
-      (route) => route.path === "" && route.canActivate,
-    );
-    const parent = shellRoute?.children?.find(
+  it("registers dedicated test pages at the app root behind both guards with no nav entry", async () => {
+    const parent = routes.find(
       (route) => route.path === "card-payment-test/:locale",
     );
-    expect(shellRoute?.canActivate).toContain(adminAuthGuard);
+    expect(parent?.canActivate).toContain(adminAuthGuard);
     expect(parent?.canActivate).toContain(cardPaymentTestGuard);
     expect(parent?.children?.map((route) => route.path)).toEqual([
       "",

@@ -221,7 +221,7 @@ export class BasketPage {
             return;
           }
           void this.router.navigate([
-            "/admin/card-payment-test",
+            "/card-payment-test",
             this.i18n.locale(),
             "payment",
             session.reference,
