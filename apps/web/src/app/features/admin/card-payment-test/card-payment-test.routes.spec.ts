@@ -7,7 +7,9 @@ import { cardPaymentTestGuard } from "./card-payment-test.guard";
 
 describe("isolated mock card-payment routes", () => {
   it("registers dedicated test pages at the app root behind both guards with no nav entry", async () => {
-    const parent = routes.find((route) => route.path === "card-payment-test/:locale");
+    const parent = routes.find(
+      (route) => route.path === "card-payment-test/:locale",
+    );
     expect(parent?.canActivate).toContain(adminAuthGuard);
     expect(parent?.canActivate).toContain(cardPaymentTestGuard);
     expect(parent?.children?.map((route) => route.path)).toEqual([

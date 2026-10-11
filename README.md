@@ -109,8 +109,8 @@ disabled by default and has no link in public navigation. After enabling the fea
 flag in a private API environment and restarting the API, open one of these URLs while
 signed in as an administrator:
 
-| Locale   | Test checkout URL             |
-| -------- | ----------------------------- |
+| Locale   | Test checkout URL       |
+| -------- | ----------------------- |
 | Armenian | `/card-payment-test/hy` |
 | Russian  | `/card-payment-test/ru` |
 | English  | `/card-payment-test/en` |

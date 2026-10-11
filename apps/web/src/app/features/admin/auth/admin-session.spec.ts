@@ -479,7 +479,10 @@ describe("admin cookie sessions", () => {
     ["/admin/products?page=2", "/admin/products?page=2"],
     ["/admin", "/admin"],
     ["/card-payment-test/hy", "/card-payment-test/hy"],
-    ["/card-payment-test/en/payment/abc-123?session=abc-123", "/card-payment-test/en/payment/abc-123?session=abc-123"],
+    [
+      "/card-payment-test/en/payment/abc-123?session=abc-123",
+      "/card-payment-test/en/payment/abc-123?session=abc-123",
+    ],
     ["https://untrusted.example/admin", "/admin"],
     ["//untrusted.example/admin", "/admin"],
     ["/hy", "/admin"],
