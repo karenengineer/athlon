@@ -19,6 +19,20 @@ describe("environmentSchema", () => {
     expect(value.TRUST_PROXY_HOPS).toBe(0);
     expect(value.RESEND_API_KEY).toBeUndefined();
     expect(value.ORDER_FROM_EMAIL).toBe("orders@athlonsport.am");
+    expect(value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(false);
+  });
+
+  it("defaults the isolated card-payment test flow to disabled", () => {
+    const defaults = environmentSchema.validate(requiredEnvironment);
+    expect(defaults.error).toBeUndefined();
+    expect(defaults.value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(false);
+
+    const enabled = environmentSchema.validate({
+      ...requiredEnvironment,
+      CARD_PAYMENT_TEST_FLOW_ENABLED: "true",
+    });
+    expect(enabled.error).toBeUndefined();
+    expect(enabled.value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(true);
   });
 
   it("still validates explicitly configured values", () => {
@@ -33,5 +47,52 @@ describe("environmentSchema", () => {
     expect(value.TRUST_PROXY_HOPS).toBe(2);
     expect(value.RESEND_API_KEY).toBe("provider-key");
     expect(value.ORDER_FROM_EMAIL).toBe("sales@example.com");
+  });
+
+  it("keeps Ameria disabled by default and requires the complete HTTPS configuration to enable", () => {
+    const defaults = environmentSchema.validate(requiredEnvironment);
+    expect(defaults.error).toBeUndefined();
+    expect(defaults.value.AMERIA_PAYMENTS_ENABLED).toBe(false);
+
+    const incomplete = environmentSchema.validate({
+      ...requiredEnvironment,
+      AMERIA_PAYMENTS_ENABLED: true,
+    });
+    expect(incomplete.error).toBeDefined();
+
+    const configured = environmentSchema.validate({
+      ...requiredEnvironment,
+      AMERIA_PAYMENTS_ENABLED: true,
+      AMERIA_API_BASE_URL: "https://bank.example.test/api",
+      AMERIA_CHECKOUT_BASE_URL: "https://bank.example.test/checkout",
+      AMERIA_MERCHANT_ID: "merchant-test-id",
+      AMERIA_USERNAME: "test-username",
+      AMERIA_PASSWORD: "test-password",
+    });
+    expect(configured.error).toBeUndefined();
+  });
+
+  it("rejects non-HTTPS or credential-bearing Ameria endpoints", () => {
+    const http = environmentSchema.validate({
+      ...requiredEnvironment,
+      AMERIA_PAYMENTS_ENABLED: true,
+      AMERIA_API_BASE_URL: "http://bank.example.test/api",
+      AMERIA_CHECKOUT_BASE_URL: "https://bank.example.test/checkout",
+      AMERIA_MERCHANT_ID: "merchant-test-id",
+      AMERIA_USERNAME: "test-username",
+      AMERIA_PASSWORD: "test-password",
+    });
+    expect(http.error).toBeDefined();
+
+    const userInfo = environmentSchema.validate({
+      ...requiredEnvironment,
+      AMERIA_PAYMENTS_ENABLED: true,
+      AMERIA_API_BASE_URL: "https://user:password@bank.example.test/api",
+      AMERIA_CHECKOUT_BASE_URL: "https://bank.example.test/checkout",
+      AMERIA_MERCHANT_ID: "merchant-test-id",
+      AMERIA_USERNAME: "test-username",
+      AMERIA_PASSWORD: "test-password",
+    });
+    expect(userInfo.error).toBeDefined();
   });
 });

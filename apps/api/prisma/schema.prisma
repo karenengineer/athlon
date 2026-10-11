@@ -49,6 +49,49 @@ enum Recurrence {
   MONTHLY
 }
 
+enum OrderPaymentMethod {
+  CASH_ON_DELIVERY
+  CARD
+}
+
+enum OrderStatus {
+  PENDING
+  PAYMENT_PENDING
+  CONFIRMED
+  PAID
+  PAYMENT_FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentProvider {
+  AMERIABANK
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum OrderNotificationEventType {
+  ORDER_ACCEPTED
+  PAYMENT_CONFIRMED
+}
+
+enum OrderNotificationRecipientType {
+  CUSTOMER
+  MERCHANT
+}
+
+enum OrderNotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 model Category {
   id           String                @id @default(uuid()) @db.Uuid
   code         String                @unique @db.VarChar(80)
@@ -124,6 +167,7 @@ model Product {
   images            ProductImage[]
   purchaseItems     PurchaseItem[]
   saleItems         SaleItem[]
+  orderItems        OrderItem[]
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
@@ -366,4 +410,81 @@ model RecurringExpenseOccurrence {
   updatedAt             DateTime         @updatedAt
 
   @@unique([recurringExpenseId, periodYear, periodMonth])
+}
+
+model Order {
+  id                 String              @id @default(uuid()) @db.Uuid
+  reference          String              @unique @db.VarChar(40)
+  idempotencyKey     String              @unique @db.VarChar(120)
+  requestFingerprint String              @db.Char(64)
+  locale             Locale
+  customerName       String              @db.VarChar(180)
+  customerEmail      String              @db.VarChar(320)
+  customerPhone      String              @db.VarChar(50)
+  deliveryAddress    String              @db.VarChar(500)
+  paymentMethod      OrderPaymentMethod
+  status             OrderStatus         @default(PENDING)
+  currency           String              @default("AMD") @db.Char(3)
+  total              Decimal?            @db.Decimal(14, 2)
+  items              OrderItem[]
+  paymentAttempts    PaymentAttempt[]
+  notifications      OrderNotification[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @db.Uuid
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?  @db.Uuid
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sku       String   @db.VarChar(100)
+  name      String   @db.VarChar(220)
+  quantity  Int
+  unitPrice Decimal? @db.Decimal(14, 2)
+  lineTotal Decimal? @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model PaymentAttempt {
+  id                    String          @id @default(uuid()) @db.Uuid
+  orderId               String          @db.Uuid
+  order                 Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider              PaymentProvider
+  status                PaymentStatus   @default(PENDING)
+  expectedAmount        Decimal         @db.Decimal(14, 2)
+  currency              String          @db.Char(3)
+  requestIdempotencyKey String          @unique @db.VarChar(120)
+  ameriaOrderId         String          @unique @db.VarChar(20)
+  providerPaymentId     String?         @unique @db.VarChar(100)
+  checkoutUrl           String?         @db.VarChar(2048)
+  providerStatus        String?         @db.VarChar(100)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([orderId, createdAt])
+  @@index([provider, providerPaymentId])
+}
+
+model OrderNotification {
+  id            String                         @id @default(uuid()) @db.Uuid
+  orderId       String                         @db.Uuid
+  order         Order                          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  eventType     OrderNotificationEventType
+  recipientType OrderNotificationRecipientType
+  status        OrderNotificationStatus        @default(PENDING)
+  attemptCount  Int                            @default(0)
+  lastErrorCode String?                        @db.VarChar(100)
+  sentAt        DateTime?
+  createdAt     DateTime                       @default(now())
+  updatedAt     DateTime                       @updatedAt
+
+  @@unique([orderId, eventType, recipientType])
+  @@index([status, createdAt])
 }

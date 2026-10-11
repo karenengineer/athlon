@@ -7,6 +7,7 @@ const recipient = "athlonsportgoods@gmail.com";
 const emailCopy = {
   hy: {
     subject: "ATHLON-ից նոր պատվեր",
+    customerSubject: "Ձեր պատվերը ստացվել է — ATHLON",
     reference: "Պատվերի համար",
     customer: "Հաճախորդ",
     phone: "Հեռախոս",
@@ -18,6 +19,7 @@ const emailCopy = {
   },
   ru: {
     subject: "Новый заказ ATHLON",
+    customerSubject: "Ваш заказ принят — ATHLON",
     reference: "Номер заказа",
     customer: "Клиент",
     phone: "Телефон",
@@ -29,6 +31,7 @@ const emailCopy = {
   },
   en: {
     subject: "New ATHLON order",
+    customerSubject: "Your ATHLON order was received",
     reference: "Order reference",
     customer: "Customer",
     phone: "Phone",
@@ -63,7 +66,23 @@ function priceText(value: string | null, fallback: string): string {
 export class OrderEmailService {
   constructor(private readonly config: ConfigService) {}
 
-  async send(order: OrderEmailMessage): Promise<void> {
+  async send(order: OrderEmailMessage, idempotencyKey: string): Promise<void> {
+    return this.sendTo(order, recipient, false, idempotencyKey);
+  }
+
+  async sendCustomer(
+    order: OrderEmailMessage,
+    idempotencyKey: string,
+  ): Promise<void> {
+    return this.sendTo(order, order.customer.email, true, idempotencyKey);
+  }
+
+  private async sendTo(
+    order: OrderEmailMessage,
+    to: string,
+    customerConfirmation: boolean,
+    idempotencyKey: string,
+  ): Promise<void> {
     const apiKey = this.config.get<string>("RESEND_API_KEY");
     const from = this.config.get<string>("ORDER_FROM_EMAIL");
     if (!apiKey || !from) {
@@ -71,7 +90,7 @@ export class OrderEmailService {
     }
 
     const copy = emailCopy[order.locale];
-    const subject = `${copy.subject} · ${order.orderReference}`;
+    const subject = `${customerConfirmation ? copy.customerSubject : copy.subject} · ${order.orderReference}`;
     const productLines = order.items.map(
       (item, index) =>
         `${index + 1}. ${item.name} (${item.sku}) × ${item.quantity} — ${priceText(item.lineTotal, copy.askPrice)}`,
@@ -111,8 +130,9 @@ export class OrderEmailService {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
         },
-        body: JSON.stringify({ to: [recipient], from, subject, text, html }),
+        body: JSON.stringify({ to: [to], from, subject, text, html }),
         signal: AbortSignal.timeout(8_000),
       });
       if (!response.ok) {

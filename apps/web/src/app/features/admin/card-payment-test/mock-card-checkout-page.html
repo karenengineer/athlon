@@ -1,0 +1,79 @@
+<main class="mock-checkout page-width">
+  <div class="mock-banner" role="note">
+    <strong>{{ i18n.t("paymentTestMockLabel") }}</strong>
+    <span>{{ i18n.t("paymentTestNoCharge") }}</span>
+  </div>
+
+  <header>
+    <p>ATHLON · {{ i18n.t("paymentTestTitle") }}</p>
+    <h1>{{ i18n.t("paymentTestDescription") }}</h1>
+  </header>
+
+  @if (busy() && !session()) {
+  <p role="status" aria-live="polite">{{ i18n.t("loading") }}</p>
+  } @if (error()) {
+  <p class="error" role="alert">{{ i18n.t("paymentTestError") }}</p>
+  <button type="button" (click)="loadSession()">{{ i18n.t("retry") }}</button>
+  } @if (session(); as payment) {
+  <section class="session-card" aria-labelledby="payment-session-title">
+    <h2 id="payment-session-title">{{ i18n.t("paymentTestTitle") }}</h2>
+    <p class="status" role="status" aria-live="polite">
+      {{ statusCopy(payment) }}
+    </p>
+    <ul>
+      @for (item of payment.items; track item.productId) {
+      <li>
+        <span>{{ item.name }} × {{ item.quantity }}</span>
+        <strong
+          >{{ +item.lineTotal | currency: "AMD" : "symbol-narrow" : "1.0-0"
+          }}</strong
+        >
+      </li>
+      }
+    </ul>
+    <p class="total">
+      <span>{{ i18n.t("basketTotal") }}</span>
+      <strong
+        >{{ +payment.total | currency: "AMD" : "symbol-narrow" : "1.0-0"
+        }}</strong
+      >
+    </p>
+    @if (payment.status === 'PENDING') {
+    <div class="outcomes" aria-label="{{ i18n.t('paymentTestTitle') }}">
+      <button
+        data-outcome="SUCCESS"
+        type="button"
+        [disabled]="busy()"
+        (click)="chooseOutcome('SUCCESS')"
+      >
+        {{ i18n.t("paymentTestSuccessAction") }}
+      </button>
+      <button
+        data-outcome="DECLINED"
+        type="button"
+        [disabled]="busy()"
+        (click)="chooseOutcome('DECLINED')"
+      >
+        {{ i18n.t("paymentTestDeclineAction") }}
+      </button>
+      <button
+        data-outcome="CANCELLED"
+        type="button"
+        [disabled]="busy()"
+        (click)="chooseOutcome('CANCELLED')"
+      >
+        {{ i18n.t("paymentTestCancelAction") }}
+      </button>
+      <button
+        data-outcome="TIMEOUT"
+        type="button"
+        [disabled]="busy()"
+        (click)="chooseOutcome('TIMEOUT')"
+      >
+        {{ i18n.t("paymentTestTimeoutAction") }}
+      </button>
+    </div>
+    }
+  </section>
+  }
+</main>

@@ -58,11 +58,14 @@ can replace local disk storage later without changing the catalog domain.
 
 ### Email order requests (no online payment)
 
-Basket checkout emails order requests to the fixed ATHLON address
-`athlonsportgoods@gmail.com`. The customer pays the courier on delivery by cash or card.
-Checkout reports `Ձեր պատվերը գրանցված է` only after the email provider accepts the
-request; provider acceptance does not guarantee inbox placement. The site does not
-take card details or mark an order as paid.
+Basket checkout records an order and durable merchant/customer notification intents;
+the fixed ATHLON recipient is `athlonsportgoods@gmail.com`. The customer pays the
+courier on delivery by cash or card. Checkout reports `Ձեր պատվերը գրանցված է` after
+the email provider accepts the notifications; provider acceptance does not guarantee
+inbox placement. Failed notifications remain retryable on a repeat of the same order
+request. Resend idempotency keys are derived from the persisted notification ID so a
+delivery retry does not create a duplicate confirmation. The site does not take card
+details or mark an order as paid.
 
 Before enabling checkout on a deployment, configure Resend and verify the sender
 address/domain there. Set `RESEND_API_KEY` and `ORDER_FROM_EMAIL` privately in the API
@@ -71,6 +74,61 @@ restart/redeploy the API. Never put the API key in source control, chat, build a
 or logs. The notification recipient is fixed in API code and cannot be supplied by a
 browser request. Do not use the production inbox for test orders; automated tests mock
 the provider and database.
+
+### Ameriabank card payment activation (not available yet)
+
+Card payment is intentionally disabled. The public settings endpoint remains false and
+the payment adapter performs no bank requests until ATHLON has an active Ameria
+merchant account and the bank supplies the official integration manual and sandbox
+credentials. Do not set `AMERIA_PAYMENTS_ENABLED=true` based only on the placeholder
+fields: the integration must first be completed against the exact manual, tested with
+mocked calls, and reviewed. Never send merchant credentials through chat or commit
+them to source control.
+
+Before implementation/activation, request the following from Ameriabank:
+
+1. Merchant onboarding and sandbox access for ATHLON.
+2. The current vPOS technical manual, including the official test/production API
+   endpoints, request and response schemas, signed callback or status-query rules,
+   amount/currency format, allowed state transitions, and any confirm/capture step.
+3. The approved storefront domain, return/cancel URLs, callback URL requirements, and
+   any website/legal-policy checks needed for merchant approval.
+4. A safe process for privately provisioning sandbox credentials and, only later, live
+   credentials in the production secret store.
+
+Keep `AMERIA_PAYMENTS_ENABLED=false` in development and production until the official
+flow is implemented and independently verified. Sandbox activation/transactions and
+production activation/charges require explicit approval. A browser redirect is never
+proof of payment; only the documented server-authenticated bank result can confirm it.
+
+### Isolated card-checkout test flow (mock only)
+
+The separate card-checkout test flow is an authenticated-admin-only simulator. It does
+not contact Ameriabank, create an order, send order emails, or charge a card. It is
+disabled by default and has no link in public navigation. After enabling the feature
+flag in a private API environment and restarting the API, open one of these URLs while
+signed in as an administrator:
+
+| Locale   | Test checkout URL             |
+| -------- | ----------------------------- |
+| Armenian | `/admin/card-payment-test/hy` |
+| Russian  | `/admin/card-payment-test/ru` |
+| English  | `/admin/card-payment-test/en` |
+
+Set `CARD_PAYMENT_TEST_FLOW_ENABLED=true` only in a private local or deployment
+environment (for local development, `.env`); keep the committed examples and
+production configuration disabled unless an administrator intentionally enables this
+test. Restart the API after changing it. The test checkout uses the current catalog
+prices and lets an administrator simulate success, decline, cancellation, and timeout.
+Its persistent `TEST / MOCK` notice means no money moves; it is neither an Ameria
+sandbox nor production payment. No card-number or CVV fields are shown.
+
+Mock sessions are held in API process memory for 15 minutes and are lost when that API
+process restarts. The current production Compose topology runs one API container. If
+API replicas are introduced, keep this flow disabled or move sessions to shared,
+short-lived storage before enabling it across replicas. Ameria sandbox testing remains
+unavailable until ATHLON has the merchant agreement, official integration manual, and
+sandbox credentials; this test flow does not substitute for those prerequisites.
 
 The production API is reached through one Caddy reverse-proxy hop. Keep
 `TRUST_PROXY_HOPS=1` in the protected production environment so per-IP throttling uses

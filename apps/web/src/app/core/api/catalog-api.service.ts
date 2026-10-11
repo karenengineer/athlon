@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, throwError } from "rxjs";
 import { API_BASE_URL } from "./api-base-url";
 import {
   Brand,
@@ -10,6 +10,7 @@ import {
   Product,
   ProductPageResponse,
   ProductQuery,
+  PaymentStatusResponse,
   PublicSettings,
 } from "./catalog.models";
 
@@ -52,10 +53,23 @@ export class CatalogApiService {
     return this.http.get<PublicSettings>(`${this.baseUrl}/public/settings`);
   }
 
-  submitOrder(order: CreateOrderRequest): Observable<CreateOrderResponse> {
+  submitOrder(
+    order: CreateOrderRequest,
+    idempotencyKey: string,
+  ): Observable<CreateOrderResponse> {
     return this.http.post<CreateOrderResponse>(
       `${this.baseUrl}/public/orders`,
       order,
+      { headers: { "Idempotency-Key": idempotencyKey } },
+    );
+  }
+
+  paymentStatus(orderReference: string): Observable<PaymentStatusResponse> {
+    if (!/^ATH-[A-F0-9]{32}$/.test(orderReference)) {
+      return throwError(() => new Error("Invalid order reference"));
+    }
+    return this.http.get<PaymentStatusResponse>(
+      `${this.baseUrl}/public/orders/${encodeURIComponent(orderReference)}/payment-status`,
     );
   }
 }
