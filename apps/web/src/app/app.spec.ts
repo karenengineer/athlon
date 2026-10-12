@@ -122,6 +122,31 @@ describe("ATHLON public application", () => {
     ).toBe(true);
   });
 
+  for (const [locale, removedCopy] of [
+    ["hy", "Խոշոր քարտեր և միայն կարևոր տեղեկություն։"],
+    ["ru", "Крупные карточки и только важные факты о продукте."],
+    ["en", "Large product cards with the facts that matter."],
+  ]) {
+    it(`omits the showcase supporting sentence in ${locale}`, async () => {
+      const fixture = TestBed.createComponent(App);
+      await router.navigateByUrl(`/${locale}`);
+      fixture.detectChanges();
+
+      http
+        .expectOne((request) => request.url.endsWith("/products"))
+        .flush({
+          items: [],
+          meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+        });
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(".section-heading p:not(.eyebrow)"),
+      ).toBeNull();
+      expect(fixture.nativeElement.textContent).not.toContain(removedCopy);
+    });
+  }
+
   for (const [locale, title] of [
     ["hy", "Կառուցիր մարմինդ հոգուդ համապատասխան"],
     ["ru", "Создай тело под стать своему духу"],
