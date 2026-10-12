@@ -54,7 +54,7 @@ jobs:
         run: pnpm test:ops
       - name: Probe native Linux lock contention and release
         run: bash scripts/tests/native-flock.test.sh
-      - name: Verify isolated actual PostgreSQL
+      - name: Verify isolated actual PostgreSQL suites
         env:
           ATHLON_PG_INTEGRATION: "1"
-        run: pnpm --filter @athlon/api test:e2e --testPathPatterns=catalog-postgres.e2e-spec
+        run: pnpm --filter @athlon/api test:e2e --testPathPatterns='(catalog-postgres|auth-refresh-postgres)\.e2e-spec\.ts$'
