@@ -46,10 +46,11 @@ export class AuthService {
       where: { id: payload.jti },
       include: { adminUser: true },
     });
+    const now = new Date();
     const valid =
       session &&
       !session.revokedAt &&
-      session.expiresAt > new Date() &&
+      session.expiresAt > now &&
       session.adminUser.active &&
       (await argon2.verify(session.tokenHash, refreshToken));
     if (!valid || !session)
@@ -58,13 +59,19 @@ export class AuthService {
       session.adminUser.id,
       session.adminUser.email,
     );
-    await this.prisma.$transaction([
-      this.prisma.refreshSession.update({
-        where: { id: session.id },
-        data: { revokedAt: new Date() },
-      }),
-      this.prisma.refreshSession.create({ data: next.session }),
-    ]);
+    await this.prisma.$transaction(async (transaction) => {
+      const claim = await transaction.refreshSession.updateMany({
+        where: {
+          id: session.id,
+          revokedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { revokedAt: now },
+      });
+      if (claim.count !== 1)
+        throw new UnauthorizedException("Invalid refresh session");
+      await transaction.refreshSession.create({ data: next.session });
+    });
     return next.tokens;
   }
 

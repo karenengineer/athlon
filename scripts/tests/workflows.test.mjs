@@ -29,6 +29,8 @@ const actionPins = new Set([
   "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
   "pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413",
 ]);
+const postgresE2eCommand =
+  "pnpm --filter @athlon/api test:e2e --testPathPatterns='(catalog-postgres|auth-refresh-postgres)\\.e2e-spec\\.ts$'";
 
 // These boundary tests catch privilege/trigger drift, bypassed gates, wrong
 // revision and notification masking. They parse real YAML, not a custom grammar.
@@ -54,7 +56,7 @@ function assertCiContract(ci) {
     "pnpm verify",
     "pnpm test:ops",
     "bash scripts/tests/native-flock.test.sh",
-    "pnpm --filter @athlon/api test:e2e --testPathPatterns=catalog-postgres.e2e-spec",
+    postgresE2eCommand,
   ];
   assert.deepEqual(
     run.filter((command) => requiredCommands.includes(command)),
@@ -75,10 +77,7 @@ function assertCiContract(ci) {
   const postgres = steps.find(
     (step) => step.env?.ATHLON_PG_INTEGRATION === "1",
   );
-  assert.equal(
-    postgres.run,
-    "pnpm --filter @athlon/api test:e2e --testPathPatterns=catalog-postgres.e2e-spec",
-  );
+  assert.equal(postgres.run, postgresE2eCommand);
   assert(!postgres.env.DATABASE_URL);
   assert(
     steps.some(
