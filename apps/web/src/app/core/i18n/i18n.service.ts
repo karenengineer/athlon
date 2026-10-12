@@ -16,7 +16,6 @@ type Copy = {
   explore: string;
   showcaseEyebrow: string;
   showcaseTitle: string;
-  showcaseText: string;
   viewAll: string;
   details: string;
   contactPrice: string;
@@ -116,7 +115,6 @@ const copy: Record<Locale, Copy> = {
     explore: "Смотреть товары",
     showcaseEyebrow: "Спортивное питание",
     showcaseTitle: "Популярное сейчас",
-    showcaseText: "Крупные карточки и только важные факты о продукте.",
     viewAll: "Все товары",
     details: "Подробнее",
     contactPrice: "Уточнить цену",
@@ -225,7 +223,6 @@ const copy: Record<Locale, Copy> = {
     explore: "Դիտել ապրանքները",
     showcaseEyebrow: "Սպորտային սնունդ",
     showcaseTitle: "Հայտնի ապրանքներ",
-    showcaseText: "Խոշոր քարտեր և միայն կարևոր տեղեկություն։",
     viewAll: "Տեսնել բոլոր ապրանքները",
     details: "Մանրամասն",
     contactPrice: "Ճշտել գինը",
@@ -334,7 +331,6 @@ const copy: Record<Locale, Copy> = {
     explore: "Explore products",
     showcaseEyebrow: "Sports nutrition",
     showcaseTitle: "Popular right now",
-    showcaseText: "Large product cards with the facts that matter.",
     viewAll: "See all products",
     details: "Details",
     contactPrice: "Ask for price",

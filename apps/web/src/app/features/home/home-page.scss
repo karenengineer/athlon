@@ -176,8 +176,30 @@ h1 {
     padding: 28px 0 18px;
   }
 
+  .hero-copy h1 {
+    width: 100%;
+    max-width: 100%;
+    font-family: var(--font-slogan);
+    font-size: clamp(2rem, 10.2vw, 2.8rem);
+    font-style: normal;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+    overflow-wrap: anywhere;
+  }
+
+  .hero-text {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
   .hero-visual {
-    height: 186px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1280 / 634;
+  }
+
+  .hero-visual img {
+    object-position: center;
   }
 
   .showcase {
