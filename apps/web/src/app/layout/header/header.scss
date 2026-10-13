@@ -158,6 +158,10 @@ nav a:hover {
 }
 
 @media (max-width: 860px) {
+  .announcement {
+    font-size: 18px;
+  }
+
   .header {
     min-height: 62px;
     justify-content: space-between;
