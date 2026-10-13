@@ -8,7 +8,7 @@
   gap: 8px;
   overflow: hidden;
   margin-bottom: 24px;
-  color: #77777d;
+  color: #5f5f66;
   font-size: 0.75rem;
   white-space: nowrap;
 }
@@ -55,7 +55,9 @@
 
 .thumbs button {
   width: 64px;
+  min-width: 44px;
   height: 64px;
+  min-height: 44px;
   padding: 3px;
   border: 1px solid #d5d5d9;
   border-radius: 4px;
@@ -86,6 +88,7 @@
 }
 
 h1 {
+  overflow-wrap: anywhere;
   margin: 0;
   color: #141416;
   font-size: clamp(2.2rem, 5vw, 4.3rem);
@@ -149,8 +152,8 @@ h1 {
   margin-top: 16px;
   border: 1px solid #171719;
   border-radius: 12px;
-  color: #171719;
-  background: #fff;
+  color: #fff;
+  background: #171719;
   font-size: 0.84rem;
   font-weight: 900;
   letter-spacing: 0.04em;
@@ -160,7 +163,14 @@ h1 {
 
 .basket-cta:hover {
   color: #fff;
-  background: #171719;
+  background: #36363a;
+}
+
+.basket-cta:disabled {
+  border-color: #77777d;
+  color: #55555c;
+  background: #e8e8eb;
+  cursor: not-allowed;
 }
 
 .characteristics h2 {
@@ -190,6 +200,7 @@ h1 {
   margin: 0;
   color: #202024;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .back {
@@ -282,5 +293,26 @@ h1 {
 @media (max-width: 480px) {
   .related-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .product-page {
+    padding-block: 20px 48px;
+  }
+
+  .product-layout {
+    gap: 20px;
+    padding: 14px;
+  }
+
+  h1 {
+    font-size: clamp(1.85rem, 9vw, 2.5rem);
+    line-height: 1.04;
+  }
+
+  .characteristics dl div {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 10px;
   }
 }

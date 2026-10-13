@@ -43,6 +43,8 @@ type Copy = {
   priceAsc: string;
   priceDesc: string;
   apply: string;
+  resetFilters: string;
+  sortProducts: string;
   previous: string;
   next: string;
   characteristics: string;
@@ -51,6 +53,8 @@ type Copy = {
   checkAvailability: string;
   relatedProducts: string;
   backToCatalog: string;
+  notFoundTitle: string;
+  notFoundText: string;
   footerText: string;
   basket: string;
   addToBasket: string;
@@ -80,6 +84,10 @@ type Copy = {
   orderFailure: string;
   orderConflict: string;
   orderRequired: string;
+  nameRequired: string;
+  emailInvalid: string;
+  phoneRequired: string;
+  addressRequired: string;
   basketTotal: string;
   paymentTestMockLabel: string;
   paymentTestNoCharge: string;
@@ -142,6 +150,8 @@ const copy: Record<Locale, Copy> = {
     priceAsc: "Сначала дешевле",
     priceDesc: "Сначала дороже",
     apply: "Применить",
+    resetFilters: "Сбросить фильтры",
+    sortProducts: "Сортировка",
     previous: "Назад",
     next: "Далее",
     characteristics: "Характеристики",
@@ -150,6 +160,8 @@ const copy: Record<Locale, Copy> = {
     checkAvailability: "Уточнить наличие",
     relatedProducts: "Похожие товары",
     backToCatalog: "Вернуться в каталог",
+    notFoundTitle: "Страница не найдена",
+    notFoundText: "Возможно, ссылка устарела или страница была перемещена.",
     footerText: "Спортивное питание в Армении.",
     basket: "Корзина",
     addToBasket: "В корзину",
@@ -183,6 +195,10 @@ const copy: Record<Locale, Copy> = {
     orderConflict:
       "Цена или наличие товара изменились. Проверьте корзину и повторите попытку.",
     orderRequired: "Укажите имя, корректный email, телефон и адрес доставки.",
+    nameRequired: "Укажите имя и фамилию.",
+    emailInvalid: "Укажите корректный адрес электронной почты.",
+    phoneRequired: "Укажите номер телефона.",
+    addressRequired: "Укажите адрес доставки.",
     basketTotal: "Итого",
     paymentTestMockLabel: "ТЕСТ / МАКЕТ",
     paymentTestNoCharge:
@@ -250,6 +266,8 @@ const copy: Record<Locale, Copy> = {
     priceAsc: "Գինը՝ ցածրից",
     priceDesc: "Գինը՝ բարձրից",
     apply: "Կիրառել",
+    resetFilters: "Մաքրել զտիչները",
+    sortProducts: "Դասավորել",
     previous: "Հետ",
     next: "Առաջ",
     characteristics: "Բնութագրեր",
@@ -258,6 +276,8 @@ const copy: Record<Locale, Copy> = {
     checkAvailability: "Ճշտել առկայությունը",
     relatedProducts: "Նմանատիպ ապրանքներ",
     backToCatalog: "Վերադառնալ կատալոգ",
+    notFoundTitle: "Էջը չի գտնվել",
+    notFoundText: "Հնարավոր է՝ հղումը հին է, կամ էջը տեղափոխվել է։",
     footerText: "Սպորտային սնունդ Հայաստանում։",
     basket: "Զամբյուղ",
     addToBasket: "Ավելացնել",
@@ -291,6 +311,10 @@ const copy: Record<Locale, Copy> = {
       "Ապրանքի գինը կամ առկայությունը փոխվել է։ Ստուգեք զամբյուղը և կրկին փորձեք։",
     orderRequired:
       "Լրացրեք անունը, ճիշտ էլ. փոստը, հեռախոսահամարը և առաքման հասցեն։",
+    nameRequired: "Մուտքագրեք անունն ու ազգանունը։",
+    emailInvalid: "Մուտքագրեք ճիշտ էլ. փոստի հասցե։",
+    phoneRequired: "Մուտքագրեք հեռախոսահամարը։",
+    addressRequired: "Մուտքագրեք առաքման հասցեն։",
     basketTotal: "Ընդամենը",
     paymentTestMockLabel: "ԹԵՍՏ / ՄԱԿԵՏ",
     paymentTestNoCharge:
@@ -358,6 +382,8 @@ const copy: Record<Locale, Copy> = {
     priceAsc: "Lowest price",
     priceDesc: "Highest price",
     apply: "Apply",
+    resetFilters: "Clear filters",
+    sortProducts: "Sort by",
     previous: "Previous",
     next: "Next",
     characteristics: "Characteristics",
@@ -366,6 +392,8 @@ const copy: Record<Locale, Copy> = {
     checkAvailability: "Check availability",
     relatedProducts: "Related products",
     backToCatalog: "Back to catalog",
+    notFoundTitle: "Page not found",
+    notFoundText: "The link may be outdated or the page may have moved.",
     footerText: "Sports nutrition in Armenia.",
     basket: "Basket",
     addToBasket: "Add to basket",
@@ -398,6 +426,10 @@ const copy: Record<Locale, Copy> = {
       "An item’s price or availability changed. Review your basket and try again.",
     orderRequired:
       "Enter your name, a valid email, phone number, and delivery address.",
+    nameRequired: "Enter your full name.",
+    emailInvalid: "Enter a valid email address.",
+    phoneRequired: "Enter your phone number.",
+    addressRequired: "Enter your delivery address.",
     basketTotal: "Total",
     paymentTestMockLabel: "TEST / MOCK",
     paymentTestNoCharge:

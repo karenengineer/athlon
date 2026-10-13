@@ -2,6 +2,7 @@ import { CurrencyPipe, KeyValuePipe } from "@angular/common";
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, RouterLink } from "@angular/router";
+import { Title } from "@angular/platform-browser";
 import {
   catchError,
   combineLatest,
@@ -34,6 +35,7 @@ export class ProductPage {
   readonly basket = inject(BasketService);
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly title = inject(Title);
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
 
@@ -67,6 +69,13 @@ export class ProductPage {
       .pipe(
         switchMap((product) => {
           this.product.set(product);
+          this.title.setTitle(`${product.name} | ATHLON`);
+          this.selectedImage.set(
+            Math.max(
+              0,
+              product.images.findIndex((image) => image.primary),
+            ),
+          );
           this.state.set("ready");
           return forkJoin({
             settings: this.api.settings().pipe(catchError(() => of({}))),
@@ -146,12 +155,58 @@ export class ProductPage {
     if (value !== null && typeof value === "object")
       return JSON.stringify(value);
     if (typeof value === "boolean") return value ? "✓" : "—";
-    return String(value ?? "—");
+    const text = String(value ?? "—");
+    if (
+      ["unflavored", "unflavoured", "without flavor"].includes(
+        text.toLowerCase(),
+      )
+    ) {
+      return this.i18n.locale() === "hy"
+        ? "Առանց համի"
+        : this.i18n.locale() === "ru"
+          ? "Без вкуса"
+          : "Unflavored";
+    }
+    return text;
+  }
+
+  characteristicLabel(key: string): string {
+    const normalized = key
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/[_-]+/g, " ")
+      .toLowerCase();
+    const known: Record<string, [string, string, string]> = {
+      "net weight": ["Net weight", "Вес нетто", "Զուտ քաշ"],
+      weight: ["Weight", "Вес", "Քաշ"],
+      "serving size": ["Serving size", "Размер порции", "Մեկ չափաբաժնի չափը"],
+      servings: ["Servings", "Порций", "Չափաբաժիններ"],
+      flavor: ["Flavor", "Вкус", "Համ"],
+      "creatine per serving": [
+        "Creatine per serving",
+        "Креатин на порцию",
+        "Կրեատին՝ մեկ չափաբաժնում",
+      ],
+      "protein per serving": [
+        "Protein per serving",
+        "Белок на порцию",
+        "Սպիտակուց՝ մեկ չափաբաժնում",
+      ],
+      "caffeine per serving": [
+        "Caffeine per serving",
+        "Кофеин на порцию",
+        "Կոֆեին՝ մեկ չափաբաժնում",
+      ],
+    };
+    const labels = known[normalized];
+    if (labels) return labels[{ en: 0, ru: 1, hy: 2 }[this.i18n.locale()]];
+    return normalized.replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 
   addToBasket(): void {
     const product = this.product();
-    if (product) this.basket.add(product);
+    if (product && product.availability !== "OUT_OF_STOCK") {
+      this.basket.add(product);
+    }
   }
 
   inBasket(): boolean {

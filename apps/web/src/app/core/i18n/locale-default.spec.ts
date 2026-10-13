@@ -64,6 +64,7 @@ describe("default public locale", () => {
       await harness.navigateByUrl(`/${locale}`);
       expect(TestBed.inject(Router).url).toBe(`/${locale}`);
       expect(TestBed.inject(I18nService).locale()).toBe(locale);
+      expect(document.documentElement.lang).toBe(locale);
       flushCatalog(locale);
     });
   }

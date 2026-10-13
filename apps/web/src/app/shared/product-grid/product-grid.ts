@@ -32,6 +32,12 @@ import { ProductCard } from "../product-card/product-card";
         gap: 10px;
       }
     }
+    @media (max-width: 360px) {
+      .product-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+      }
+    }
   `,
 })
 export class ProductGrid {

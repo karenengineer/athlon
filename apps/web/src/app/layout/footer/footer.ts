@@ -41,24 +41,6 @@ import {
         >
           <img src="/social/facebook.svg" width="36" height="36" alt="" />
         </a>
-        <a
-          class="footer-social"
-          data-testid="footer-social-link"
-          data-social="whatsapp"
-          aria-label="WhatsApp link placeholder"
-          aria-disabled="true"
-        >
-          <img src="/social/whatsapp.svg" width="36" height="36" alt="" />
-        </a>
-        <a
-          class="footer-social"
-          data-testid="footer-social-link"
-          data-social="telegram"
-          aria-label="Telegram link placeholder"
-          aria-disabled="true"
-        >
-          <img src="/social/telegram.svg" width="36" height="36" alt="" />
-        </a>
       </div>
       <small>© {{ year }} ATHLON</small>
     </footer>
@@ -81,7 +63,7 @@ import {
     }
     p {
       margin: 7px 0 0;
-      color: #8c8c92;
+      color: #a2a2a8;
     }
     a {
       margin-left: auto;
@@ -97,6 +79,8 @@ import {
     .footer-social {
       width: 46px;
       height: 46px;
+      min-width: 44px;
+      min-height: 44px;
       display: grid;
       margin-left: 0;
       place-items: center;
@@ -109,7 +93,7 @@ import {
       border-radius: 12px;
     }
     small {
-      color: #737379;
+      color: #a2a2a8;
     }
     @media (max-width: 640px) {
       footer {

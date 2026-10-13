@@ -2,18 +2,26 @@ import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, ParamMap, Router, RouterLink } from "@angular/router";
+import { Title } from "@angular/platform-browser";
 import {
+  catchError,
   combineLatest,
   distinctUntilChanged,
   forkJoin,
   map,
+  Observable,
+  shareReplay,
   Subscription,
+  of,
 } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import {
+  Availability,
+  Brand,
   Category,
   Product,
   ProductPageResponse,
+  ProductQuery,
 } from "../../core/api/catalog.models";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { ProductGrid } from "../../shared/product-grid/product-grid";
@@ -34,6 +42,7 @@ export class CatalogPage {
   readonly state = signal<CatalogState>("loading");
   readonly products = signal<Product[]>([]);
   readonly categories = signal<Category[]>([]);
+  readonly brands = signal<Brand[]>([]);
   readonly meta = signal<ProductPageResponse["meta"]>({
     page: 1,
     pageSize: 24,
@@ -43,12 +52,17 @@ export class CatalogPage {
   categoryFilter = "";
   minPrice: number | null = null;
   maxPrice: number | null = null;
+  brandFilter = "";
+  availabilityFilter: Availability | "" = "";
+  sortFilter: NonNullable<ProductQuery["sort"]> = "displayOrder";
 
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
+  private readonly brandsByLocale = new Map<string, Observable<Brand[]>>();
 
   constructor() {
     combineLatest([
@@ -82,10 +96,21 @@ export class CatalogPage {
     void this.router.navigate(["/", this.i18n.locale(), "catalog", category], {
       queryParams: {
         q: query,
+        brand: this.brandFilter || undefined,
+        availability: this.availabilityFilter || undefined,
         minPrice: this.minPrice ?? undefined,
         maxPrice: this.maxPrice ?? undefined,
+        sort: this.sortFilter === "displayOrder" ? undefined : this.sortFilter,
       },
     });
+  }
+
+  resetFilters(): void {
+    const query = this.route.snapshot.queryParamMap.get("q") || undefined;
+    void this.router.navigate(
+      ["/", this.i18n.locale(), "catalog", DEFAULT_CATEGORY_SLUG],
+      { queryParams: { q: query } },
+    );
   }
 
   goToPage(page: number): void {
@@ -120,7 +145,10 @@ export class CatalogPage {
       Boolean(this.route.snapshot.queryParamMap.get("q")) ||
       this.minPrice !== null ||
       this.maxPrice !== null ||
-      Boolean(this.categoryFilter)
+      Boolean(this.categoryFilter) ||
+      Boolean(this.brandFilter) ||
+      Boolean(this.availabilityFilter) ||
+      this.sortFilter !== "displayOrder"
     );
   }
 
@@ -146,17 +174,26 @@ export class CatalogPage {
     const page =
       Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
     this.categoryFilter = category === DEFAULT_CATEGORY_SLUG ? "" : category;
+    this.brandFilter = params.get("brand") ?? "";
+    this.availabilityFilter = this.parseAvailability(
+      params.get("availability"),
+    );
+    this.sortFilter = this.parseSort(params.get("sort"));
     this.minPrice = this.parsePrice(params.get("minPrice"));
     this.maxPrice = this.parsePrice(params.get("maxPrice"));
     this.state.set("loading");
 
     this.loadSubscription = forkJoin({
       categories: this.api.categories(locale),
+      brands: this.brandsForLocale(locale),
       products: this.api.products({
         locale,
         category,
+        brand: this.brandFilter || undefined,
+        availability: this.availabilityFilter || undefined,
         minPrice: this.minPrice ?? undefined,
         maxPrice: this.maxPrice ?? undefined,
+        sort: this.sortFilter,
         page,
         pageSize: 24,
         q,
@@ -166,9 +203,11 @@ export class CatalogPage {
       .subscribe({
         next: (response) => {
           this.categories.set(response.categories);
+          this.brands.set(response.brands);
           this.products.set(response.products.items);
           this.meta.set(response.products.meta);
           this.state.set(response.products.items.length ? "ready" : "empty");
+          this.title.setTitle(`${this.heading()} | ATHLON`);
         },
         error: () => this.state.set("error"),
       });
@@ -178,6 +217,38 @@ export class CatalogPage {
     if (value === null || value.trim() === "") return null;
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+
+  private brandsForLocale(locale: string): Observable<Brand[]> {
+    let brands = this.brandsByLocale.get(locale);
+    if (!brands) {
+      brands = this.api.brands(locale).pipe(
+        catchError(() => {
+          if (this.brandsByLocale.get(locale) === brands) {
+            this.brandsByLocale.delete(locale);
+          }
+          return of([]);
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+      this.brandsByLocale.set(locale, brands);
+    }
+    return brands;
+  }
+
+  private parseAvailability(value: string | null): Availability | "" {
+    return value === "IN_STOCK" ||
+      value === "OUT_OF_STOCK" ||
+      value === "PREORDER" ||
+      value === "ON_REQUEST"
+      ? value
+      : "";
+  }
+
+  private parseSort(value: string | null): NonNullable<ProductQuery["sort"]> {
+    return value === "priceAsc" || value === "priceDesc" || value === "newest"
+      ? value
+      : "displayOrder";
   }
 
   private findCategoryName(slug: string | null): string | undefined {

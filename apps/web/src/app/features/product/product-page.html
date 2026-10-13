@@ -31,6 +31,8 @@
         <button
           type="button"
           [class.active]="selectedImage() === index"
+          [attr.aria-pressed]="selectedImage() === index"
+          [attr.aria-label]="picture.alt || item.name"
           (click)="selectedImage.set(index)"
         >
           <img
@@ -58,8 +60,15 @@
         } @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
         <span>{{ availabilityLabel() }}</span>
       </div>
-      <button type="button" class="basket-cta" (click)="addToBasket()">
-        {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
+      <button
+        type="button"
+        class="basket-cta"
+        [disabled]="item.availability === 'OUT_OF_STOCK'"
+        (click)="addToBasket()"
+      >
+        @if (item.availability === "OUT_OF_STOCK") { {{ i18n.t("unavailable") }}
+        } @else { {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
+        }
       </button>
       @if (contactHref(); as href) {
       <a
@@ -77,7 +86,7 @@
         <dl>
           @for (feature of item.characteristics | keyvalue; track feature.key) {
           <div>
-            <dt>{{ feature.key }}</dt>
+            <dt>{{ characteristicLabel(feature.key) }}</dt>
             <dd>{{ formatCharacteristic(feature.value) }}</dd>
           </div>
           }
