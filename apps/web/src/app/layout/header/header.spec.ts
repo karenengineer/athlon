@@ -13,7 +13,7 @@ describe("Header logo presentation", () => {
     const i18n = TestBed.inject(I18nService);
 
     for (const [locale, expected] of [
-      ["hy", "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ԱՄԲՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55"],
+      ["hy", "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55"],
       ["ru", "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55"],
       ["en", "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55"],
     ] as const) {
