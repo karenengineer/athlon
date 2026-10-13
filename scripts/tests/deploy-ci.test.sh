@@ -40,7 +40,7 @@ reject env CI=true ATHLON_SKIP_BOOTSTRAP=0 bash "$ROOT/scripts/deploy-production
 reject env CI=1 ATHLON_SKIP_BOOTSTRAP=0 bash "$ROOT/scripts/deploy-production.sh" --seed
 printf 'PASS: CI settings and trusted hosts validated before network\n'
 
-printf 'SITE_DOMAIN=athlonsport.am\nPOSTGRES_USER=fixture\nPOSTGRES_DB=fixture\nSERVER_ENV_SENTINEL\n' > "$fixture/remote/.env"
+printf 'SITE_DOMAIN=athlon.am\nCORS_ORIGINS=https://athlon.am\nPOSTGRES_USER=fixture\nPOSTGRES_DB=fixture\nSERVER_ENV_SENTINEL\n' > "$fixture/remote/.env"
 cp "$fixture/remote/.env" "$fixture/env-before"
 printf 'old-revision\n' > "$fixture/remote/REVISION"
 reset_events() { : > "$fixture/events"; }
@@ -76,6 +76,79 @@ order 'health/live' revision-write
 [[ "$(cat "$fixture/remote/.previous-images")" == *'athlon-api:rollback-'* ]] || fail 'saved rollback tags missing'
 printf 'PASS: staged locked promotion, real prior tags, backup/migrate, smoke/revision and env preservation\n'
 
+release_hardening_failures=0
+record_release_hardening_failure() {
+  printf 'FAIL: %s\n' "$*" >&2
+  release_hardening_failures=$((release_hardening_failures + 1))
+}
+expect_protected_env_rejected() {
+  local case_name="$1" expected_error="$2" env_contents="$3"
+  printf '%s' "$env_contents" > "$fixture/remote/.env"
+  cp "$fixture/remote/.env" "$fixture/cors-env-before"
+  printf 'old-revision\n' > "$fixture/remote/REVISION"
+  reset_events
+  if bash "$ROOT/scripts/deploy-production.sh" > "$fixture/output" 2>&1; then
+    record_release_hardening_failure "$case_name accepted"
+  elif ! grep -Fq "$expected_error" "$fixture/output"; then
+    record_release_hardening_failure "$case_name missing exact canonical guard"
+  fi
+  cmp "$fixture/remote/.env" "$fixture/cors-env-before" || record_release_hardening_failure "$case_name changed protected env"
+  [[ "$(cat "$fixture/remote/REVISION")" == old-revision ]] || record_release_hardening_failure "$case_name changed revision"
+  if grep -Eq 'docker compose|interactive=false migrate|health/live|revision-write' "$fixture/events"; then
+    record_release_hardening_failure "$case_name reached Compose or a later release stage"
+  fi
+}
+common_env=$'POSTGRES_USER=fixture\nPOSTGRES_DB=fixture\nSERVER_ENV_SENTINEL\n'
+site_error='SITE_DOMAIN must be athlon.am.'
+cors_error='CORS_ORIGINS must be https://athlon.am.'
+expect_protected_env_rejected 'missing SITE_DOMAIN' "$site_error" "CORS_ORIGINS=https://athlon.am
+$common_env"
+expect_protected_env_rejected 'quoted SITE_DOMAIN' "$site_error" "SITE_DOMAIN='athlon.am'
+CORS_ORIGINS=https://athlon.am
+$common_env"
+expect_protected_env_rejected 'multiline SITE_DOMAIN' "$site_error" "SITE_DOMAIN='athlon.am
+.evil.example'
+CORS_ORIGINS=https://athlon.am
+$common_env"
+expect_protected_env_rejected 'duplicate SITE_DOMAIN' "$site_error" "SITE_DOMAIN=athlon.am
+SITE_DOMAIN=athlon.am
+CORS_ORIGINS=https://athlon.am
+$common_env"
+expect_protected_env_rejected 'export-prefixed duplicate SITE_DOMAIN' "$site_error" "SITE_DOMAIN=athlon.am
+export SITE_DOMAIN=evil.example
+CORS_ORIGINS=https://athlon.am
+$common_env"
+expect_protected_env_rejected 'legacy SITE_DOMAIN' "$site_error" "SITE_DOMAIN=athlonsport.am
+CORS_ORIGINS=https://athlon.am
+$common_env"
+expect_protected_env_rejected 'missing CORS_ORIGINS' "$cors_error" "SITE_DOMAIN=athlon.am
+$common_env"
+expect_protected_env_rejected 'quoted CORS_ORIGINS' "$cors_error" "SITE_DOMAIN=athlon.am
+CORS_ORIGINS='https://athlon.am'
+$common_env"
+expect_protected_env_rejected 'multiline CORS_ORIGINS' "$cors_error" "SITE_DOMAIN=athlon.am
+CORS_ORIGINS='https://athlon.am
+,https://evil.example'
+$common_env"
+expect_protected_env_rejected 'duplicate CORS_ORIGINS' "$cors_error" "SITE_DOMAIN=athlon.am
+CORS_ORIGINS=https://athlon.am
+CORS_ORIGINS=https://athlon.am
+$common_env"
+expect_protected_env_rejected 'export-prefixed duplicate CORS_ORIGINS' "$cors_error" "SITE_DOMAIN=athlon.am
+CORS_ORIGINS=https://athlon.am
+export CORS_ORIGINS=https://evil.example
+$common_env"
+expect_protected_env_rejected 'legacy CORS_ORIGINS' "$cors_error" "SITE_DOMAIN=athlon.am
+CORS_ORIGINS=https://athlonsport.am,https://www.athlonsport.am
+$common_env"
+expect_protected_env_rejected 'multi-origin CORS_ORIGINS' "$cors_error" "SITE_DOMAIN=athlon.am
+CORS_ORIGINS=https://athlon.am,https://www.athlon.am
+$common_env"
+cp "$fixture/env-before" "$fixture/remote/.env"
+if [[ "$release_hardening_failures" == 0 ]]; then
+  printf 'PASS: protected domain settings require unique exact literals before Compose without changing env or revision\n'
+fi
+
 mkdir -p "$fixture/checkout/scripts" "$fixture/checkout/.codex"
 cp "$ROOT/scripts/deploy-production.sh" "$ROOT/scripts/backup-production.sh" "$ROOT/scripts/smoke-production.sh" "$fixture/checkout/scripts/"
 cp -R "$ROOT/infrastructure" "$fixture/checkout/"
@@ -96,7 +169,7 @@ if grep -q source-promotion "$fixture/events"; then fail 'source promoted withou
 mv "$fixture/env-saved" "$fixture/remote/.env"
 printf 'PASS: missing server environment rejected before promotion\n'
 
-for failure in backup migrate health page products redirect hsts www lock build; do
+for failure in backup migrate health page products hsts www-new-http www-new-https legacy-apex-http legacy-apex-https legacy-www-http legacy-www-https lock build; do
   printf 'old-revision\n' > "$fixture/remote/REVISION"
   reset_events
   if TEST_FAIL="$failure" bash "$ROOT/scripts/deploy-production.sh" > "$fixture/output" 2>&1; then fail "$failure accepted"; fi
@@ -133,11 +206,33 @@ printf 'PASS: stdin-consuming dump cannot skip caller/release continuation; back
 reset_events
 bash "$ROOT/scripts/smoke-production.sh" > "$fixture/output" 2>&1 || { cat "$fixture/output"; fail 'standalone smoke'; }
 if grep -Eq -- '(^| )-k( |$)|--insecure' "$fixture/events"; then fail 'TLS bypass'; fi
+if grep -q '^curl-missing-leading-disable$' "$fixture/events"; then
+  record_release_hardening_failure 'smoke curl did not start with curl --disable'
+fi
+if grep '^curl ' "$fixture/events" | grep -qv '^curl --disable '; then
+  record_release_hardening_failure 'not every smoke curl invocation starts with curl --disable'
+fi
 for locale in hy ru en; do
-  grep -Fq "https://athlonsport.am/$locale" "$fixture/events" || fail 'missing locale page'
+  grep -Fq "https://athlon.am/$locale" "$fixture/events" || fail 'missing locale page'
   grep -Fq "products?locale=$locale" "$fixture/events" || fail 'missing localized products'
 done
-printf 'PASS: standalone smoke checks trusted TLS, redirect, HSTS, health JSON and HY/RU/EN catalog\n'
+redirect_path='/hy/catalog?page=2&sort=price'
+for origin in \
+  'http://www.athlon.am' \
+  'https://www.athlon.am' \
+  'http://athlonsport.am' \
+  'https://athlonsport.am' \
+  'http://www.athlonsport.am' \
+  'https://www.athlonsport.am'; do
+  grep -Fq "$origin$redirect_path" "$fixture/events" || fail "missing exact redirect check for $origin"
+done
+if grep -E 'www\.athlon\.am|athlonsport\.am' "$fixture/events" | grep -Eq -- '--location|(^|[[:space:]])-L([[:space:]]|$)'; then
+  fail 'redirect smoke followed a redirect'
+fi
+printf 'PASS: standalone smoke checks canonical TLS/HSTS/health/catalog and exact one-hop permanent redirects\n'
+if [[ "$release_hardening_failures" != 0 ]]; then
+  exit 1
+fi
 
 # Exercise the no-host-Node path with only fixtures/standard text tools reachable.
 mkdir "$fixture/minimal"

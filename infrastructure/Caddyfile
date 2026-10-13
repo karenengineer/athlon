@@ -1,15 +1,23 @@
-{$SITE_DOMAIN}, www.{$SITE_DOMAIN} {
-  encode zstd gzip
+http://www.athlon.am, http://athlonsport.am, http://www.athlonsport.am {
+	redir https://athlon.am{uri} 308
+}
 
-  @api path /api/* /uploads/*
-  reverse_proxy @api api:3000
+https://www.athlon.am, https://athlonsport.am, https://www.athlonsport.am {
+	redir https://athlon.am{uri} 308
+}
 
-  reverse_proxy web:4000
+https://athlon.am {
+	encode zstd gzip
 
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    X-Content-Type-Options "nosniff"
-    Referrer-Policy "strict-origin-when-cross-origin"
-    -Server
-  }
+	@api path /api/* /uploads/*
+	reverse_proxy @api api:3000
+
+	reverse_proxy web:4000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
 }

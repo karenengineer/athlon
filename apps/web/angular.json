@@ -34,11 +34,7 @@
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": [
-                "athlonsport.am",
-                "www.athlonsport.am",
-                "127.0.0.1"
-              ]
+              "allowedHosts": ["athlon.am", "127.0.0.1"]
             },
             "ssr": {
               "entry": "src/server.ts"
