@@ -106,7 +106,7 @@ async function main() {
     });
     const visible = (html) =>
       html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
-    for (const host of ["athlonsport.am", "www.athlonsport.am"]) {
+    for (const host of ["athlon.am"]) {
       for (const locale of ["hy", "ru", "en"]) {
         const before = calls.length;
         const response = await get(
@@ -170,11 +170,14 @@ async function main() {
     }
     for (const headers of [
       { host: "unknown.example" },
-      { host: "evil.athlonsport.am" },
+      { host: "www.athlon.am" },
+      { host: "athlonsport.am" },
+      { host: "www.athlonsport.am" },
+      { host: "evil.athlon.am" },
       { host: "localhost" },
-      { ...forwarded("athlonsport.am"), "x-forwarded-host": "unknown.example" },
-      { ...forwarded("athlonsport.am"), host: "unknown.example" },
-      { ...forwarded("athlonsport.am"), "x-forwarded-proto": "ftp" },
+      { ...forwarded("athlon.am"), "x-forwarded-host": "unknown.example" },
+      { ...forwarded("athlon.am"), host: "unknown.example" },
+      { ...forwarded("athlon.am"), "x-forwarded-proto": "ftp" },
     ]) {
       const before = calls.length;
       const response = await get("/hy/product/ssr-fixture", headers);
@@ -186,7 +189,7 @@ async function main() {
       assert.equal(calls.length, before);
     }
     const prefix = await get("/hy/product/ssr-fixture", {
-      ...forwarded("athlonsport.am"),
+      ...forwarded("athlon.am"),
       "x-forwarded-prefix": "/injected",
     });
     assert.doesNotMatch(

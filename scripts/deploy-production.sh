@@ -126,12 +126,30 @@ read_dotenv_value() {
   esac
   printf '%s' "$raw"
 }
+require_exact_dotenv_assignment() {
+  local key="$1" value="$2"
+  awk -v key="$key" -v literal="$key=$value" '
+    {
+      line=$0
+      sub(/^[[:space:]]*/, "", line)
+      if (line ~ /^export[[:space:]]/) {
+        sub(/^export[[:space:]]+/, "", line)
+      }
+      if (substr(line, 1, length(key)) == key) {
+        rest=substr(line, length(key)+1)
+        if (rest ~ /^[[:space:]]*=/) assignments++
+      }
+      if ($0 == literal) exact++
+    }
+    END { exit !(assignments == 1 && exact == 1) }' .env
+}
 if [[ "$seed_mode" == 1 ]]; then
   [[ -n "$(read_dotenv_value ADMIN_EMAIL)" && -n "$(read_dotenv_value ADMIN_PASSWORD)" ]] || {
     printf 'Set non-empty ADMIN_EMAIL and ADMIN_PASSWORD in /opt/athlon/.env before using --seed.\n' >&2; exit 1;
   }
 fi
-[[ "$(read_dotenv_value SITE_DOMAIN)" == athlonsport.am ]] || { printf 'SITE_DOMAIN must be athlonsport.am.\n' >&2; exit 1; }
+require_exact_dotenv_assignment SITE_DOMAIN athlon.am || { printf 'SITE_DOMAIN must be athlon.am.\n' >&2; exit 1; }
+require_exact_dotenv_assignment CORS_ORIGINS https://athlon.am || { printf 'CORS_ORIGINS must be https://athlon.am.\n' >&2; exit 1; }
 COMPOSE=(docker compose --env-file .env -f infrastructure/docker-compose.production.yml)
 "${COMPOSE[@]}" config --quiet
 # Preserve actual running image IDs under unique retained tags before building.

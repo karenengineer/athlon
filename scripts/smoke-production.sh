@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Fixed approved hosts; normal CA verification and bounded IO.
-CURL=(curl --fail --silent --show-error --connect-timeout 10 --max-time 30)
+CURL=(curl --disable --fail --silent --show-error --connect-timeout 10 --max-time 30)
 JSON=(node)
 if ! command -v node >/dev/null 2>&1; then
   JSON=(timeout --kill-after=5 20 docker compose --env-file .env -f infrastructure/docker-compose.production.yml exec -T api node)
@@ -25,15 +25,24 @@ validate_json() {
       } catch { process.exit(1); }
     });' "$1"
 }
-"${CURL[@]}" https://athlonsport.am/api/v1/health/live | validate_json health
+"${CURL[@]}" https://athlon.am/api/v1/health/live | validate_json health
 for locale in hy ru en; do
-  "${CURL[@]}" --output /dev/null "https://athlonsport.am/$locale"
-  "${CURL[@]}" "https://athlonsport.am/api/v1/products?locale=$locale&page=1&pageSize=1" | validate_json products
+  "${CURL[@]}" --output /dev/null "https://athlon.am/$locale"
+  "${CURL[@]}" "https://athlon.am/api/v1/products?locale=$locale&page=1&pageSize=1" | validate_json products
 done
-"${CURL[@]}" --location --max-redirs 3 --proto '=https' --proto-redir '=https' --output /dev/null https://www.athlonsport.am/hy
-headers="$("${CURL[@]}" --dump-header - --output /dev/null https://athlonsport.am/hy)"
+headers="$("${CURL[@]}" --dump-header - --output /dev/null https://athlon.am/hy)"
 printf '%s\n' "$headers" | tr -d '\r' | grep -Eiq '^strict-transport-security:[[:space:]]*max-age=[1-9][0-9]*(;|[[:space:]]|$)'
-redirect="$("${CURL[@]}" --dump-header - --output /dev/null http://athlonsport.am/)"
-printf '%s\n' "$redirect" | tr -d '\r' | grep -Eq '^HTTP/[0-9.]+ 30[1278]([[:space:]]|$)'
-printf '%s\n' "$redirect" | tr -d '\r' | grep -Eiq '^location:[[:space:]]*https://athlonsport\.am/([[:space:]]|$)'
+redirect_path='/hy/catalog?page=2&sort=price'
+for origin in \
+  'http://www.athlon.am' \
+  'https://www.athlon.am' \
+  'http://athlonsport.am' \
+  'https://athlonsport.am' \
+  'http://www.athlonsport.am' \
+  'https://www.athlonsport.am'; do
+  redirect="$("${CURL[@]}" --dump-header - --output /dev/null "$origin$redirect_path")"
+  redirect="$(printf '%s\n' "$redirect" | tr -d '\r')"
+  printf '%s\n' "$redirect" | grep -Eq '^HTTP/[0-9.]+ 308([[:space:]]|$)'
+  printf '%s\n' "$redirect" | grep -Eiq '^location:[[:space:]]*https://athlon\.am/hy/catalog\?page=2&sort=price[[:space:]]*$'
+done
 printf 'Production public smoke passed.\n'

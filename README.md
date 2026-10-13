@@ -155,6 +155,9 @@ The production host is the `athlon-production` Lightsail instance at
 `18.158.105.59`. Keep the downloaded Lightsail PEM file private, and never commit it
 or a production `.env` file. The deployment script excludes both from synchronization;
 the server keeps its protected environment at `/opt/athlon/.env` with mode `600`.
+The canonical public origin is `https://athlon.am`. Requests to `www.athlon.am`,
+`athlonsport.am`, and `www.athlonsport.am` redirect directly to that origin with their
+path and query preserved; only the canonical host reaches the application proxies.
 
 ### DNS
 
@@ -199,13 +202,22 @@ operation once the values are set:
 
 The `--seed` flag is deliberately rejected if either administrator value is empty.
 
+For the domain migration, edit the existing protected `/opt/athlon/.env` in place
+before deploying: set `SITE_DOMAIN=athlon.am` and `CORS_ORIGINS=https://athlon.am`.
+Keep its existing secrets and `ORDER_FROM_EMAIL` value (the sender remains on
+`athlonsport.am`), keep mode `600`, and do not replace the file with the example.
+Deployment preserves this file and rejects `SITE_DOMAIN` and `CORS_ORIGINS` unless
+each appears once as its exact, unquoted canonical assignment shown above. DNS and
+certificate readiness are separate external operations.
+
 ### Deploying updates and checking services
 
 After reviewing and committing a release locally, run the same deployment script
 without `--seed`. It synchronizes the source (while preserving the server `.env`,
 uploads, and backups), builds the API and web images, runs migrations, waits for
-services, and checks public trusted HTTPS, www HTTPS, HTTP redirect, HSTS, health JSON,
-HY/RU/EN pages and each localized products API. A backup is required before migrations.
+services, and checks canonical trusted HTTPS/HSTS, health JSON, HY/RU/EN pages, each
+localized products API, and exact one-hop redirects for every legacy scheme/host. A
+backup is required before migrations.
 Source uploads use unique private staging directories; one remote release lock protects
 source promotion, image preservation, backup, migration, restart, smoke and REVISION.
 `/opt/athlon/REVISION` records the commit only after all checks succeed. Failures exit
@@ -546,8 +558,9 @@ image bytes and cover authorization/CSRF, corrupt/mismatched/oversized content a
 foreign image IDs. Local headless Chrome acceptance at 375px and 1440px covers login,
 authenticated product list/editor, preview and media layout using temporary profiles
 and in-memory fixtures, not production credentials. Production SSR allows exactly
-`athlonsport.am`, `www.athlonsport.am`, and `127.0.0.1` (the internal Compose
-healthcheck only); there are no wildcard hosts. The web port is not published:
+`athlon.am` and `127.0.0.1` (the internal Compose healthcheck only); `www.athlon.am`
+and both old public hosts are rejected at the internal SSR boundary, and there are no
+wildcard hosts. The web port is not published:
 Caddy is the public request boundary and replaces incoming forwarded host/proto/for
 values. Angular trusts only those three headers, not forwarded ports/prefixes.
 The web healthcheck requests HY and requires actual SSR/home markers, so HTTP 200
