@@ -138,7 +138,7 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid #171719;
   border-radius: 12px;
@@ -159,7 +159,7 @@ p {
 
 .basket-button {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   margin-top: 12px;
   border: 1px solid #171719;
   border-radius: 12px;
@@ -194,9 +194,9 @@ p {
 }
 
 .basket-controls {
-  min-height: 42px;
+  min-height: 44px;
   display: grid;
-  grid-template-columns: 42px 1fr 42px;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   margin-top: 12px;
   overflow: hidden;
@@ -212,7 +212,7 @@ p {
 }
 
 .quantity-button {
-  height: 42px;
+  min-height: 44px;
   border: 0;
   color: #475569;
   background: transparent;

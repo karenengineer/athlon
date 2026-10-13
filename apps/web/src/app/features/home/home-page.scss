@@ -48,13 +48,14 @@
 h1 {
   max-width: 610px;
   margin: 0;
-  font-family: ui-monospace;
-  font-size: 60px;
-  font-style: italic;
+  font-family: var(--font-slogan);
+  font-size: clamp(2.5rem, 5.2vw, 4rem);
+  font-style: normal;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: -0.035em;
   text-transform: uppercase;
-  line-height: 86%;
+  line-height: 0.98;
+  overflow-wrap: anywhere;
 }
 
 .hero-text {
@@ -159,13 +160,18 @@ h1 {
   padding-block: 34px 56px;
 }
 
+.brand-proof picture {
+  width: 100%;
+  min-width: 0;
+}
+
 .brand-proof img {
   width: 100%;
   height: auto;
   border-radius: 10px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .hero {
     height: auto;
     min-height: 270px;

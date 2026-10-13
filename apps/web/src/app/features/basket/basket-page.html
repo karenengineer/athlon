@@ -72,10 +72,11 @@
         "symbol-narrow" : "1.0-0" }} } @else { {{ i18n.t("contactPrice") }}
         }</strong
       >
-      <form class="order-form" (submit)="submitOrder($event)">
-        <label>
+      <form class="order-form" novalidate (submit)="submitOrder($event)">
+        <label for="order-name">
           <span>{{ i18n.t("orderCustomerName") }}</span>
           <input
+            id="order-name"
             name="customerName"
             type="text"
             autocomplete="name"
@@ -83,12 +84,20 @@
             required
             [disabled]="submitting()"
             [value]="customer.name"
+            [attr.aria-invalid]="fieldHasError('name') ? 'true' : null"
+            [attr.aria-describedby]="fieldHasError('name') ? 'order-name-error' : null"
             (input)="updateCustomerField('name', $any($event.target).value)"
           />
+          @if (fieldHasError("name")) {
+          <small id="order-name-error" class="field-error"
+            >{{ i18n.t("nameRequired") }}</small
+          >
+          }
         </label>
-        <label>
+        <label for="order-email">
           <span>{{ i18n.t("orderCustomerEmail") }}</span>
           <input
+            id="order-email"
             name="customerEmail"
             type="email"
             autocomplete="email"
@@ -96,12 +105,20 @@
             required
             [disabled]="submitting()"
             [value]="customer.email"
+            [attr.aria-invalid]="fieldHasError('email') ? 'true' : null"
+            [attr.aria-describedby]="fieldHasError('email') ? 'order-email-error' : null"
             (input)="updateCustomerField('email', $any($event.target).value)"
           />
+          @if (fieldHasError("email")) {
+          <small id="order-email-error" class="field-error"
+            >{{ i18n.t("emailInvalid") }}</small
+          >
+          }
         </label>
-        <label>
+        <label for="order-phone">
           <span>{{ i18n.t("orderCustomerPhone") }}</span>
           <input
+            id="order-phone"
             name="customerPhone"
             type="tel"
             autocomplete="tel"
@@ -109,12 +126,20 @@
             required
             [disabled]="submitting()"
             [value]="customer.phone"
+            [attr.aria-invalid]="fieldHasError('phone') ? 'true' : null"
+            [attr.aria-describedby]="fieldHasError('phone') ? 'order-phone-error' : null"
             (input)="updateCustomerField('phone', $any($event.target).value)"
           />
+          @if (fieldHasError("phone")) {
+          <small id="order-phone-error" class="field-error"
+            >{{ i18n.t("phoneRequired") }}</small
+          >
+          }
         </label>
-        <label>
+        <label for="order-address">
           <span>{{ i18n.t("orderDeliveryAddress") }}</span>
           <textarea
+            id="order-address"
             name="deliveryAddress"
             autocomplete="street-address"
             maxlength="300"
@@ -122,8 +147,15 @@
             rows="3"
             [disabled]="submitting()"
             [value]="customer.address"
+            [attr.aria-invalid]="fieldHasError('address') ? 'true' : null"
+            [attr.aria-describedby]="fieldHasError('address') ? 'order-address-error' : null"
             (input)="updateCustomerField('address', $any($event.target).value)"
           ></textarea>
+          @if (fieldHasError("address")) {
+          <small id="order-address-error" class="field-error"
+            >{{ i18n.t("addressRequired") }}</small
+          >
+          }
         </label>
         @if (cardPaymentTestMode) {
         <fieldset class="payment-methods" [disabled]="submitting()">

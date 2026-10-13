@@ -17,13 +17,13 @@
   <header class="catalog-heading">
     <p>ATHLON CATALOG</p>
     <h1>{{ heading() }}</h1>
-    <span>{{ i18n.productCountLabel(meta().total) }}</span>
+    <span class="result-count">{{ i18n.productCountLabel(meta().total) }}</span>
   </header>
 
   <form class="filters" (ngSubmit)="applyFilters()">
     <strong>{{ i18n.t("filters") }}</strong>
     <label>
-      <span class="sr-only">{{ i18n.t("allProductTypes") }}</span>
+      <span>{{ i18n.t("allProductTypes") }}</span>
       <select name="category" [(ngModel)]="categoryFilter">
         <option value="">{{ i18n.t("allProductTypes") }}</option>
         @for (item of categoryOptions(); track item.id) {
@@ -31,9 +31,36 @@
         }
       </select>
     </label>
-    <!-- Brand, availability and sort filters are intentionally hidden until the catalog grows. -->
     <label>
-      <span class="sr-only">{{ i18n.t("priceFrom") }}</span>
+      <span>{{ i18n.t("allBrands") }}</span>
+      <select name="brand" [(ngModel)]="brandFilter">
+        <option value="">{{ i18n.t("allBrands") }}</option>
+        @for (brand of brands(); track brand.id) {
+        <option [value]="brand.slug">{{ brand.name }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      <span>{{ i18n.t("allAvailability") }}</span>
+      <select name="availability" [(ngModel)]="availabilityFilter">
+        <option value="">{{ i18n.t("allAvailability") }}</option>
+        <option value="IN_STOCK">{{ i18n.t("available") }}</option>
+        <option value="OUT_OF_STOCK">{{ i18n.t("unavailable") }}</option>
+        <option value="PREORDER">{{ i18n.t("preorder") }}</option>
+        <option value="ON_REQUEST">{{ i18n.t("onRequest") }}</option>
+      </select>
+    </label>
+    <label>
+      <span>{{ i18n.t("sortProducts") }}</span>
+      <select name="sort" [(ngModel)]="sortFilter">
+        <option value="displayOrder">{{ i18n.t("recommended") }}</option>
+        <option value="newest">{{ i18n.t("newest") }}</option>
+        <option value="priceAsc">{{ i18n.t("priceAsc") }}</option>
+        <option value="priceDesc">{{ i18n.t("priceDesc") }}</option>
+      </select>
+    </label>
+    <label>
+      <span>{{ i18n.t("priceFrom") }}</span>
       <input
         name="minPrice"
         type="number"
@@ -44,7 +71,7 @@
       />
     </label>
     <label>
-      <span class="sr-only">{{ i18n.t("priceTo") }}</span>
+      <span>{{ i18n.t("priceTo") }}</span>
       <input
         name="maxPrice"
         type="number"
@@ -55,6 +82,16 @@
       />
     </label>
     <button type="submit">{{ i18n.t("apply") }}</button>
+    @if (hasActiveFilters()) {
+    <button
+      type="button"
+      class="reset-button"
+      data-testid="catalog-reset"
+      (click)="resetFilters()"
+    >
+      {{ i18n.t("resetFilters") }}
+    </button>
+    }
   </form>
 
   @switch (state()) { @case ("loading") { <app-status-panel kind="loading" /> }

@@ -26,6 +26,14 @@
         alt="ATHLON"
       />
     </a>
+    <a
+      class="mobile-catalog-link"
+      data-testid="mobile-catalog-link"
+      [routerLink]="['/', i18n.locale(), 'catalog']"
+      routerLinkActive="active"
+      ariaCurrentWhenActive="page"
+      >{{ i18n.t("catalog") }}</a
+    >
 
     <nav aria-label="Primary navigation">
       <a
@@ -37,6 +45,7 @@
       <a
         [routerLink]="['/', i18n.locale(), 'catalog']"
         routerLinkActive="active"
+        ariaCurrentWhenActive="page"
         >{{ i18n.t("catalog") }}</a
       >
     </nav>
