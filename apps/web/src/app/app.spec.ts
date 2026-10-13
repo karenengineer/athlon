@@ -245,10 +245,12 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/en");
     fixture.detectChanges();
-    http.expectOne((request) => request.url.endsWith("/products")).flush({
-      items: [],
-      meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-    });
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+      });
     fixture.detectChanges();
     expect(document.title).toBe("Home | ATHLON");
 
@@ -258,7 +260,8 @@ describe("ATHLON public application", () => {
     http
       .expectOne(
         (request) =>
-          request.url.endsWith("/products") && request.params.get("locale") === "ru",
+          request.url.endsWith("/products") &&
+          request.params.get("locale") === "ru",
       )
       .flush({
         items: [],
@@ -285,9 +288,11 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/en/basket");
     fixture.detectChanges();
-    http.expectOne((request) => request.url.endsWith("/public/settings")).flush({
-      cardPaymentsEnabled: false,
-    });
+    http
+      .expectOne((request) => request.url.endsWith("/public/settings"))
+      .flush({
+        cardPaymentsEnabled: false,
+      });
     fixture.detectChanges();
     expect(document.title).toBe("Basket | ATHLON");
 
@@ -302,39 +307,51 @@ describe("ATHLON public application", () => {
     await router.navigateByUrl("/en/catalog?page=1");
     fixture.detectChanges();
     http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
-    http.expectOne((request) => request.url.endsWith("/brands")).flush([
-      { id: "demo-brand", slug: "demo-brand", name: "Demo Brand" },
-    ]);
-    http.expectOne((request) => request.url.endsWith("/products")).flush({
-      items: [],
-      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
-    });
+    http
+      .expectOne((request) => request.url.endsWith("/brands"))
+      .flush([{ id: "demo-brand", slug: "demo-brand", name: "Demo Brand" }]);
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+      });
     fixture.detectChanges();
 
     await router.navigateByUrl("/en/catalog?page=2&brand=demo-brand");
     fixture.detectChanges();
     http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
-    http.expectOne((request) => request.url.endsWith("/products")).flush({
-      items: [],
-      meta: { page: 2, pageSize: 24, total: 0, totalPages: 0 },
-    });
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [],
+        meta: { page: 2, pageSize: 24, total: 0, totalPages: 0 },
+      });
     fixture.detectChanges();
     http.expectNone((request) => request.url.endsWith("/brands"));
 
     await router.navigateByUrl("/ru/catalog?page=1");
     fixture.detectChanges();
-    const categories = http.match((request) => request.url.endsWith("/categories"));
+    const categories = http.match((request) =>
+      request.url.endsWith("/categories"),
+    );
     categories
       .filter((request) => !request.cancelled)
       .forEach((request) => request.flush([]));
     const localizedBrands = http.match(
-      (request) => request.url.endsWith("/brands") && request.params.get("locale") === "ru",
+      (request) =>
+        request.url.endsWith("/brands") &&
+        request.params.get("locale") === "ru",
     );
-    expect(localizedBrands.filter((request) => !request.cancelled)).toHaveLength(1);
+    expect(
+      localizedBrands.filter((request) => !request.cancelled),
+    ).toHaveLength(1);
     localizedBrands
       .filter((request) => !request.cancelled)
       .forEach((request) =>
-        request.flush([{ id: "demo-brand", slug: "demo-brand", name: "Демо бренд" }]),
+        request.flush([
+          { id: "demo-brand", slug: "demo-brand", name: "Демо бренд" },
+        ]),
       );
     const products = http.match((request) => request.url.endsWith("/products"));
     products
@@ -354,26 +371,42 @@ describe("ATHLON public application", () => {
     await router.navigateByUrl("/en/catalog");
     fixture.detectChanges();
     http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
-    http.expectOne((request) => request.url.endsWith("/brands")).flush(
-      { message: "Temporary failure" },
-      { status: 503, statusText: "Unavailable" },
-    );
-    http.expectOne((request) => request.url.endsWith("/products")).flush(
-      { message: "Temporary failure" },
-      { status: 503, statusText: "Unavailable" },
-    );
+    http
+      .expectOne((request) => request.url.endsWith("/brands"))
+      .flush(
+        { message: "Temporary failure" },
+        { status: 503, statusText: "Unavailable" },
+      );
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush(
+        { message: "Temporary failure" },
+        { status: 503, statusText: "Unavailable" },
+      );
     fixture.detectChanges();
 
-    (fixture.nativeElement.querySelector('[data-testid="retry-home"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector(
+        '[data-testid="retry-home"]',
+      ) as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
     http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
-    http.expectOne((request) => request.url.endsWith("/brands")).flush([
-      { id: "recovered-brand", slug: "recovered-brand", name: "Recovered Brand" },
-    ]);
-    http.expectOne((request) => request.url.endsWith("/products")).flush({
-      items: [],
-      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
-    });
+    http
+      .expectOne((request) => request.url.endsWith("/brands"))
+      .flush([
+        {
+          id: "recovered-brand",
+          slug: "recovered-brand",
+          name: "Recovered Brand",
+        },
+      ]);
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+      });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain("Recovered Brand");

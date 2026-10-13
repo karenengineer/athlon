@@ -54,9 +54,7 @@ function useCardPaymentTestRoute(session?: string): void {
   basketRouteStub.parent.snapshot.paramMap = convertToParamMap({
     locale: "en",
   });
-  basketRouteStub.parent.paramMap.next(
-    convertToParamMap({ locale: "en" }),
-  );
+  basketRouteStub.parent.paramMap.next(convertToParamMap({ locale: "en" }));
 }
 
 function createBasketFixture(
@@ -112,9 +110,7 @@ describe("BasketPage", () => {
     basketRouteStub.parent.snapshot.paramMap = convertToParamMap({
       locale: "hy",
     });
-    basketRouteStub.parent.paramMap.next(
-      convertToParamMap({ locale: "hy" }),
-    );
+    basketRouteStub.parent.paramMap.next(convertToParamMap({ locale: "hy" }));
     await TestBed.configureTestingModule({
       imports: [BasketPage],
       providers: [
@@ -344,13 +340,17 @@ describe("BasketPage", () => {
     const nameInput = form.querySelector<HTMLInputElement>("#order-name")!;
     expect(nameInput.getAttribute("aria-describedby")).toBeNull();
 
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
     fixture.detectChanges();
 
     expect(nameInput.getAttribute("aria-describedby")).toBe("order-name-error");
     expect(form.querySelector("#order-name-error")).not.toBeNull();
     expect(
-      form.querySelector<HTMLInputElement>("#order-email")?.getAttribute("aria-describedby"),
+      form
+        .querySelector<HTMLInputElement>("#order-email")
+        ?.getAttribute("aria-describedby"),
     ).toBe("order-email-error");
   });
 

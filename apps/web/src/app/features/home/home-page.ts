@@ -33,7 +33,9 @@ export class HomePage {
       .subscribe((params) => this.load(params.get("locale") ?? "hy"));
   }
 
-  load(locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "hy"): void {
+  load(
+    locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "hy",
+  ): void {
     this.loadSubscription?.unsubscribe();
     this.i18n.setLocale(locale);
     this.title.setTitle(`${this.i18n.t("home")} | ATHLON`);
