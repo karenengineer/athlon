@@ -233,7 +233,7 @@ const copy: Record<Locale, Copy> = {
     nutrition: "Սպորտային սնունդ",
     searchPlaceholder: "Գտնել պրոտեին, կրեատին…",
     search: "Գտնել",
-    heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
+    heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
     heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
     heroText: "Սպորտային սնունդ ամենօրյա առաջընթացի համար։",
     explore: "Դիտել ապրանքները",
