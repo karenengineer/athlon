@@ -103,7 +103,7 @@ type Copy = {
 
 const copy: Record<Locale, Copy> = {
   ru: {
-    announcement: "Создай тело под стать своему духу",
+    announcement: "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55",
     home: "Главная",
     catalog: "Каталог",
     nutrition: "Спортивное питание",
@@ -211,7 +211,7 @@ const copy: Record<Locale, Copy> = {
       "Симуляция тайм-аута. Заказ не создан, корзина сохранена.",
   },
   hy: {
-    announcement: "Կառուցիր մարմինդ հոգուդ համապատասխան",
+    announcement: "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ԱՄԲՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55",
     home: "Գլխավոր",
     catalog: "Կատալոգ",
     nutrition: "Սպորտային սնունդ",
@@ -319,7 +319,7 @@ const copy: Record<Locale, Copy> = {
       "Ժամանակի ավարտի սիմուլյացիա։ Պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
   },
   en: {
-    announcement: "Build a body to match your spirit",
+    announcement: "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55",
     home: "Home",
     catalog: "Catalog",
     nutrition: "Sports nutrition",

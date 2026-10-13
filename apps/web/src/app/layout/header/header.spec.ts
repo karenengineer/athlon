@@ -1,8 +1,32 @@
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
+import { I18nService } from "../../core/i18n/i18n.service";
 import { Header } from "./header";
 
 describe("Header logo presentation", () => {
+  it("shows the localized free-delivery announcement and contact number", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    const i18n = TestBed.inject(I18nService);
+
+    for (const [locale, expected] of [
+      ["hy", "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ԱՄԲՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55"],
+      ["ru", "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55"],
+      ["en", "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55"],
+    ] as const) {
+      i18n.setLocale(locale);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement
+          .querySelector(".announcement")
+          ?.textContent?.trim(),
+      ).toBe(expected);
+    }
+  });
+
   it("renders a circular 64px logo without stretching its image", async () => {
     await TestBed.configureTestingModule({
       imports: [Header],
