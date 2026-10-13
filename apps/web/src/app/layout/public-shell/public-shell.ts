@@ -1,6 +1,12 @@
+import { DOCUMENT } from "@angular/common";
 import { Component, DestroyRef, inject } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { ActivatedRoute, RouterLink, RouterOutlet } from "@angular/router";
+import {
+  ActivatedRoute,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from "@angular/router";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { Footer } from "../footer/footer";
@@ -8,7 +14,7 @@ import { Header } from "../header/header";
 
 @Component({
   selector: "app-public-shell",
-  imports: [Header, Footer, RouterLink, RouterOutlet],
+  imports: [Header, Footer, RouterLink, RouterLinkActive, RouterOutlet],
   template: `
     <div class="dark-shell"><app-header /></div>
     <main><router-outlet /></main>
@@ -17,6 +23,8 @@ import { Header } from "../header/header";
       class="floating-basket"
       data-testid="floating-basket-link"
       [routerLink]="['/', i18n.locale(), 'basket']"
+      routerLinkActive="is-hidden"
+      [routerLinkActiveOptions]="{ exact: true }"
       [attr.aria-label]="i18n.t('basket')"
     >
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -61,6 +69,9 @@ import { Header } from "../header/header";
       box-shadow: 0 18px 48px rgb(0 0 0 / 28%);
       text-decoration: none;
     }
+    .floating-basket.is-hidden {
+      display: none;
+    }
     .floating-basket svg {
       width: 28px;
       height: 28px;
@@ -89,12 +100,16 @@ import { Header } from "../header/header";
 })
 export class PublicShell {
   private readonly route = inject(ActivatedRoute);
+  private readonly document = inject(DOCUMENT);
   readonly basket = inject(BasketService);
   readonly i18n = inject(I18nService);
 
   constructor() {
     this.route.paramMap
       .pipe(takeUntilDestroyed(inject(DestroyRef)))
-      .subscribe((params) => this.i18n.setLocale(params.get("locale")));
+      .subscribe((params) => {
+        this.i18n.setLocale(params.get("locale"));
+        this.document.documentElement.lang = this.i18n.locale();
+      });
   }
 }

@@ -1,6 +1,8 @@
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { distinctUntilChanged, Subscription } from "rxjs";
 import { ActivatedRoute, RouterLink } from "@angular/router";
+import { Title } from "@angular/platform-browser";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { Product } from "../../core/api/catalog.models";
 import { I18nService } from "../../core/i18n/i18n.service";
@@ -21,17 +23,22 @@ export class HomePage {
   readonly products = signal<Product[]>([]);
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
+  private readonly title = inject(Title);
   private readonly destroyRef = inject(DestroyRef);
+  private loadSubscription?: Subscription;
 
   constructor() {
-    this.load();
+    this.route.parent?.paramMap
+      .pipe(distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => this.load(params.get("locale") ?? "hy"));
   }
 
-  load(): void {
-    const locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "hy";
+  load(locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "hy"): void {
+    this.loadSubscription?.unsubscribe();
     this.i18n.setLocale(locale);
+    this.title.setTitle(`${this.i18n.t("home")} | ATHLON`);
     this.state.set("loading");
-    this.api
+    this.loadSubscription = this.api
       .products({
         locale,
         category: "sports-nutrition",

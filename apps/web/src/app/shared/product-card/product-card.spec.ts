@@ -2,6 +2,7 @@ import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { Product } from "../../core/api/catalog.models";
 import { ProductCard } from "./product-card";
+import { BasketService } from "../../core/basket/basket.service";
 
 const product: Product = {
   id: "product-1",
@@ -102,5 +103,26 @@ describe("ProductCard basket controls", () => {
     expect(title.getAttribute("title")).toBe(
       "Trec Whey 100 New Formula — Կրկնակի շոկոլադ",
     );
+  });
+
+  it("prevents an out-of-stock product from being added to the basket", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductCard],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ProductCard);
+    fixture.componentRef.setInput("product", {
+      ...product,
+      availability: "OUT_OF_STOCK",
+    });
+    fixture.detectChanges();
+
+    const addButton = fixture.nativeElement.querySelector(
+      "[data-testid='product-card-add-basket']",
+    ) as HTMLButtonElement;
+    addButton.click();
+
+    expect(addButton.disabled).toBe(true);
+    expect(TestBed.inject(BasketService).items()).toHaveLength(0);
   });
 });

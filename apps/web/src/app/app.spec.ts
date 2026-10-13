@@ -231,7 +231,155 @@ describe("ATHLON public application", () => {
     expect(languages).toEqual(["HY", "RU", "EN"]);
   });
 
-  it("uses only product type and price filters in the catalog", async () => {
+  it("renders a localized not-found view and document title", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/ru/not-a-real-page");
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Страница не найдена");
+    expect(fixture.nativeElement.textContent).toContain("Главная");
+    expect(document.title).toBe("Страница не найдена | ATHLON");
+  });
+
+  it("updates the homepage locale and title when only the locale route changes", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/en");
+    fixture.detectChanges();
+    http.expectOne((request) => request.url.endsWith("/products")).flush({
+      items: [],
+      meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+    });
+    fixture.detectChanges();
+    expect(document.title).toBe("Home | ATHLON");
+
+    await router.navigateByUrl("/ru");
+    fixture.detectChanges();
+    expect(document.title).toBe("Главная | ATHLON");
+    http
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products") && request.params.get("locale") === "ru",
+      )
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+      });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Главная");
+  });
+
+  it("updates not-found content and title when locale changes without recreating the view", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/ru/not-a-real-page");
+    fixture.detectChanges();
+    expect(document.title).toBe("Страница не найдена | ATHLON");
+
+    await router.navigateByUrl("/en/still-not-a-real-page");
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Page not found");
+    expect(fixture.nativeElement.textContent).toContain("Home");
+    expect(document.title).toBe("Page not found | ATHLON");
+  });
+
+  it("updates basket title and language when locale changes without recreating the view", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/en/basket");
+    fixture.detectChanges();
+    http.expectOne((request) => request.url.endsWith("/public/settings")).flush({
+      cardPaymentsEnabled: false,
+    });
+    fixture.detectChanges();
+    expect(document.title).toBe("Basket | ATHLON");
+
+    await router.navigateByUrl("/ru/basket");
+    fixture.detectChanges();
+    expect(document.title).toBe("Корзина | ATHLON");
+    expect(fixture.nativeElement.textContent).toContain("Корзина пуста");
+  });
+
+  it("loads catalog brands once per locale across filter and page changes", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/en/catalog?page=1");
+    fixture.detectChanges();
+    http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
+    http.expectOne((request) => request.url.endsWith("/brands")).flush([
+      { id: "demo-brand", slug: "demo-brand", name: "Demo Brand" },
+    ]);
+    http.expectOne((request) => request.url.endsWith("/products")).flush({
+      items: [],
+      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+    });
+    fixture.detectChanges();
+
+    await router.navigateByUrl("/en/catalog?page=2&brand=demo-brand");
+    fixture.detectChanges();
+    http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
+    http.expectOne((request) => request.url.endsWith("/products")).flush({
+      items: [],
+      meta: { page: 2, pageSize: 24, total: 0, totalPages: 0 },
+    });
+    fixture.detectChanges();
+    http.expectNone((request) => request.url.endsWith("/brands"));
+
+    await router.navigateByUrl("/ru/catalog?page=1");
+    fixture.detectChanges();
+    const categories = http.match((request) => request.url.endsWith("/categories"));
+    categories
+      .filter((request) => !request.cancelled)
+      .forEach((request) => request.flush([]));
+    const localizedBrands = http.match(
+      (request) => request.url.endsWith("/brands") && request.params.get("locale") === "ru",
+    );
+    expect(localizedBrands.filter((request) => !request.cancelled)).toHaveLength(1);
+    localizedBrands
+      .filter((request) => !request.cancelled)
+      .forEach((request) =>
+        request.flush([{ id: "demo-brand", slug: "demo-brand", name: "Демо бренд" }]),
+      );
+    const products = http.match((request) => request.url.endsWith("/products"));
+    products
+      .filter((request) => !request.cancelled)
+      .forEach((request) =>
+        request.flush({
+          items: [],
+          meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+        }),
+      );
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Демо бренд");
+  });
+
+  it("retries brands after a transient brand request failure", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/en/catalog");
+    fixture.detectChanges();
+    http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
+    http.expectOne((request) => request.url.endsWith("/brands")).flush(
+      { message: "Temporary failure" },
+      { status: 503, statusText: "Unavailable" },
+    );
+    http.expectOne((request) => request.url.endsWith("/products")).flush(
+      { message: "Temporary failure" },
+      { status: 503, statusText: "Unavailable" },
+    );
+    fixture.detectChanges();
+
+    (fixture.nativeElement.querySelector('[data-testid="retry-home"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    http.expectOne((request) => request.url.endsWith("/categories")).flush([]);
+    http.expectOne((request) => request.url.endsWith("/brands")).flush([
+      { id: "recovered-brand", slug: "recovered-brand", name: "Recovered Brand" },
+    ]);
+    http.expectOne((request) => request.url.endsWith("/products")).flush({
+      items: [],
+      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain("Recovered Brand");
+  });
+
+  it("applies brand, availability, price and sorting filters in the catalog", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl(
       "/en/catalog/sports-nutrition?brand=demo-brand&availability=IN_STOCK&minPrice=5000&maxPrice=25000&sort=priceAsc&page=2&q=whey",
@@ -241,17 +389,20 @@ describe("ATHLON public application", () => {
     http
       .expectOne((request) => request.url.endsWith("/categories"))
       .flush([sportsNutritionCategory]);
+    http
+      .expectOne((request) => request.url.endsWith("/brands"))
+      .flush([{ id: "demo-brand", slug: "demo-brand", name: "Demo Brand" }]);
     const productsRequest = http.expectOne((request) =>
       request.url.endsWith("/products"),
     );
     expect(productsRequest.request.params.get("category")).toBe(
       "sports-nutrition",
     );
-    expect(productsRequest.request.params.has("brand")).toBe(false);
-    expect(productsRequest.request.params.has("availability")).toBe(false);
+    expect(productsRequest.request.params.get("brand")).toBe("demo-brand");
+    expect(productsRequest.request.params.get("availability")).toBe("IN_STOCK");
     expect(productsRequest.request.params.get("minPrice")).toBe("5000");
     expect(productsRequest.request.params.get("maxPrice")).toBe("25000");
-    expect(productsRequest.request.params.has("sort")).toBe(false);
+    expect(productsRequest.request.params.get("sort")).toBe("priceAsc");
     expect(productsRequest.request.params.get("page")).toBe("2");
     expect(productsRequest.request.params.get("q")).toBe("whey");
     productsRequest.flush({
@@ -266,23 +417,79 @@ describe("ATHLON public application", () => {
     ) as HTMLInputElement[];
     expect(
       filterControls.map((control) => control.getAttribute("name")),
-    ).toEqual(["category", "minPrice", "maxPrice"]);
+    ).toEqual([
+      "category",
+      "brand",
+      "availability",
+      "sort",
+      "minPrice",
+      "maxPrice",
+    ]);
     expect(fixture.nativeElement.textContent).toContain("All product types");
-    expect(fixture.nativeElement.textContent).not.toContain("All brands");
-    expect(fixture.nativeElement.textContent).not.toContain("Any availability");
-    expect(fixture.nativeElement.textContent).not.toContain("Recommended");
+    expect(fixture.nativeElement.textContent).toContain("All brands");
+    expect(fixture.nativeElement.textContent).toContain("Any availability");
+    expect(fixture.nativeElement.textContent).toContain("Lowest price");
     expect(
       fixture.nativeElement.querySelector("[data-testid=catalog-breadcrumbs]"),
     ).toBeTruthy();
   });
 
-  it("cancels stale catalog requests when URL parameters change", async () => {
+  it("resets catalog filters while keeping the current search query", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl(
+      "/en/catalog/protein?q=long%20query&brand=demo-brand&availability=IN_STOCK&minPrice=5000&sort=priceAsc&page=2",
+    );
+    fixture.detectChanges();
+    http
+      .expectOne((request) => request.url.endsWith("/categories"))
+      .flush([sportsNutritionCategory]);
+    http
+      .expectOne((request) => request.url.endsWith("/brands"))
+      .flush([{ id: "demo-brand", slug: "demo-brand", name: "Demo Brand" }]);
+    http
+      .expectOne((request) => request.url.endsWith("/products"))
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+      });
+    fixture.detectChanges();
+
+    (
+      fixture.nativeElement.querySelector(
+        "[data-testid='catalog-reset']",
+      ) as HTMLButtonElement
+    ).click();
+    await fixture.whenStable();
+    expect(router.url).toBe("/en/catalog/sports-nutrition?q=long%20query");
+
+    const categories = http.match((request) =>
+      request.url.endsWith("/categories"),
+    );
+    const products = http.match((request) => request.url.endsWith("/products"));
+    categories
+      .filter((request) => !request.cancelled)
+      .at(-1)!
+      .flush([sportsNutritionCategory]);
+    http.expectNone((request) => request.url.endsWith("/brands"));
+    products
+      .filter((request) => !request.cancelled)
+      .at(-1)!
+      .flush({
+        items: [],
+        meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+      });
+  });
+
+  it("cancels stale catalog requests and reuses the in-flight brands request", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru/catalog?page=1");
     fixture.detectChanges();
 
     const oldCategories = http.expectOne((request) =>
       request.url.endsWith("/categories"),
+    );
+    const oldBrands = http.expectOne((request) =>
+      request.url.endsWith("/brands"),
     );
     const oldProducts = http.expectOne(
       (request) =>
@@ -293,11 +500,14 @@ describe("ATHLON public application", () => {
     fixture.detectChanges();
 
     expect(oldCategories.cancelled).toBe(true);
+    expect(oldBrands.cancelled).toBe(false);
     expect(oldProducts.cancelled).toBe(true);
 
     http
       .expectOne((request) => request.url.endsWith("/categories"))
       .flush([sportsNutritionCategory]);
+    http.expectNone((request) => request.url.endsWith("/brands"));
+    oldBrands.flush([]);
     http
       .expectOne(
         (request) =>
@@ -319,8 +529,13 @@ describe("ATHLON public application", () => {
       .expectOne((request) => request.url.endsWith("/products/demo-whey"))
       .flush({
         ...product,
+        availability: "OUT_OF_STOCK",
         description: "Полное описание продукта",
-        characteristics: { weight: "900 г", servings: 30 },
+        characteristics: {
+          netWeight: "900 г",
+          servings: 30,
+          flavor: "Unflavored",
+        },
         images: [
           {
             id: "image-1",
@@ -329,6 +544,14 @@ describe("ATHLON public application", () => {
             detailUrl: "/media/detail.webp",
             alt: "Whey Protein",
             primary: true,
+          },
+          {
+            id: "image-2",
+            thumbnailUrl: "/media/thumb-2.webp",
+            cardUrl: "/media/card-2.webp",
+            detailUrl: "/media/detail-2.webp",
+            alt: "Whey Protein back label",
+            primary: false,
           },
         ],
       });
@@ -355,7 +578,17 @@ describe("ATHLON public application", () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain("900 г");
-    expect(fixture.nativeElement.textContent).toContain("В наличии");
+    expect(fixture.nativeElement.textContent).toContain("Вес нетто");
+    expect(fixture.nativeElement.textContent).toContain("Порций");
+    expect(fixture.nativeElement.textContent).toContain("Без вкуса");
+    expect(fixture.nativeElement.textContent).toContain("Нет в наличии");
+    const buyButton = fixture.nativeElement.querySelector(
+      ".basket-cta",
+    ) as HTMLButtonElement;
+    expect(buyButton.disabled).toBe(true);
+    expect(
+      fixture.nativeElement.querySelector("[aria-pressed='true']"),
+    ).not.toBeNull();
     expect(
       fixture.nativeElement.querySelector("[data-testid=availability-cta]")
         ?.textContent,

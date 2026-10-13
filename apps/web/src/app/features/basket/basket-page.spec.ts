@@ -11,6 +11,7 @@ import {
   Router,
 } from "@angular/router";
 import { vi } from "vitest";
+import { BehaviorSubject } from "rxjs";
 import { BasketService } from "../../core/basket/basket.service";
 import { BasketPage } from "./basket-page";
 
@@ -38,7 +39,10 @@ const basketRouteStub = {
     paramMap: convertToParamMap({ locale: "hy" }),
     queryParamMap: convertToParamMap({}),
   },
-  parent: { snapshot: { paramMap: convertToParamMap({ locale: "hy" }) } },
+  parent: {
+    snapshot: { paramMap: convertToParamMap({ locale: "hy" }) },
+    paramMap: new BehaviorSubject(convertToParamMap({ locale: "hy" })),
+  },
 };
 
 function useCardPaymentTestRoute(session?: string): void {
@@ -50,6 +54,9 @@ function useCardPaymentTestRoute(session?: string): void {
   basketRouteStub.parent.snapshot.paramMap = convertToParamMap({
     locale: "en",
   });
+  basketRouteStub.parent.paramMap.next(
+    convertToParamMap({ locale: "en" }),
+  );
 }
 
 function createBasketFixture(
@@ -105,6 +112,9 @@ describe("BasketPage", () => {
     basketRouteStub.parent.snapshot.paramMap = convertToParamMap({
       locale: "hy",
     });
+    basketRouteStub.parent.paramMap.next(
+      convertToParamMap({ locale: "hy" }),
+    );
     await TestBed.configureTestingModule({
       imports: [BasketPage],
       providers: [
@@ -331,6 +341,17 @@ describe("BasketPage", () => {
         ?.required,
     ).toBe(true);
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    const nameInput = form.querySelector<HTMLInputElement>("#order-name")!;
+    expect(nameInput.getAttribute("aria-describedby")).toBeNull();
+
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(nameInput.getAttribute("aria-describedby")).toBe("order-name-error");
+    expect(form.querySelector("#order-name-error")).not.toBeNull();
+    expect(
+      form.querySelector<HTMLInputElement>("#order-email")?.getAttribute("aria-describedby"),
+    ).toBe("order-email-error");
   });
 
   it("redirects only for a pending card response and preserves the basket", () => {
@@ -391,6 +412,13 @@ describe("BasketPage", () => {
     expect(
       fixture.nativeElement.querySelector('[role="alert"]').textContent,
     ).toContain("ճիշտ էլ. փոստը");
+    expect(
+      form.querySelector('[name="customerName"]')?.getAttribute("aria-invalid"),
+    ).toBe("true");
+    expect(form.querySelector("#order-name-error")?.textContent).toContain(
+      "Մուտքագրեք անունն ու ազգանունը",
+    );
+    expect(document.activeElement).toBe(form.querySelector("#order-name"));
   });
 
   it("sends the basket and customer details, then clears the basket on acceptance", () => {

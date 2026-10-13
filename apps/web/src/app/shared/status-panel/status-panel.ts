@@ -72,8 +72,8 @@ import { I18nService } from "../../core/i18n/i18n.service";
       color: #6e6e74;
     }
     .mark {
-      width: 42px;
-      height: 42px;
+      width: 44px;
+      height: 44px;
       display: grid;
       place-items: center;
       border-radius: 50%;

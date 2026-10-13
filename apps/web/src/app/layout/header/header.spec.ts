@@ -63,6 +63,22 @@ describe("Header logo presentation", () => {
     expect(fixture.nativeElement.querySelector(".menu-button")).toBeNull();
   });
 
+  it("keeps a direct catalog entry available in the compact header", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector(
+      "[data-testid='mobile-catalog-link']",
+    ) as HTMLAnchorElement;
+
+    expect(link).not.toBeNull();
+    expect(link.getAttribute("href")).toBe("/hy/catalog");
+    expect(link.textContent.trim()).toBe("Կատալոգ");
+  });
+
   it("renders language links for desktop and a language dropdown for mobile", async () => {
     await TestBed.configureTestingModule({
       imports: [Header],

@@ -37,6 +37,13 @@ html {
   background: var(--athlon-black);
 }
 
+app-root,
+app-public-shell,
+main,
+.page-width {
+  min-width: 0;
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
@@ -59,9 +66,12 @@ a {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
-  outline: 3px solid #111;
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #ff5a62;
   outline-offset: 3px;
+  box-shadow: 0 0 0 2px #fff;
 }
 
 img {

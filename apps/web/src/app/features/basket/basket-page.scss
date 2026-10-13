@@ -90,7 +90,7 @@ h1 {
 }
 
 .basket-item input {
-  min-height: 42px;
+  min-height: 44px;
   width: 100%;
   border: 1px solid #d5d5d9;
   border-radius: 8px;
@@ -116,7 +116,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid #171719;
   border-radius: 12px;
   padding: 0 14px;
@@ -168,6 +168,18 @@ h1 {
   color: #44444a;
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.order-form .field-error {
+  color: #9e2020;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.order-form [aria-invalid="true"] {
+  border-color: #a52121;
+  box-shadow: 0 0 0 1px #a52121;
 }
 
 .order-form input,
@@ -231,6 +243,10 @@ h1 {
 .order-form .order-button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.order-form .order-button {
+  min-height: 48px;
 }
 
 .order-feedback {

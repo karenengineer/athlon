@@ -3,7 +3,7 @@ import { provideRouter } from "@angular/router";
 import { Footer } from "./footer";
 
 describe("Footer social links", () => {
-  it("shows all public social icons in the footer", async () => {
+  it("shows only configured public social destinations", async () => {
     await TestBed.configureTestingModule({
       imports: [Footer],
       providers: [provideRouter([])],
@@ -20,17 +20,10 @@ describe("Footer social links", () => {
     expect(links.map((link) => link.dataset["social"])).toEqual([
       "instagram",
       "facebook",
-      "whatsapp",
-      "telegram",
     ]);
     expect(
       links.map((link) => link.querySelector("img")?.getAttribute("src")),
-    ).toEqual([
-      "/social/instagram.svg",
-      "/social/facebook.svg",
-      "/social/whatsapp.svg",
-      "/social/telegram.svg",
-    ]);
+    ).toEqual(["/social/instagram.svg", "/social/facebook.svg"]);
     expect(links[0].href).toBe("https://www.instagram.com/__athlon__/");
     expect(links[0].getAttribute("aria-disabled")).toBeNull();
     expect(links[1].href).toBe(

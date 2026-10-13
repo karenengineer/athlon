@@ -3,6 +3,7 @@ import { HttpErrorResponse } from "@angular/common/http";
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { Title } from "@angular/platform-browser";
 import { catchError, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { BasketService } from "../../core/basket/basket.service";
@@ -25,6 +26,7 @@ export class BasketPage {
   readonly orderSuccess = signal(false);
   readonly paymentPending = signal(false);
   readonly orderError = signal("");
+  readonly validationAttempted = signal(false);
   readonly cardPaymentsEnabled = signal(false);
   readonly cardPaymentTestMode: boolean;
   readonly cardPaymentTestResult = signal("");
@@ -36,11 +38,17 @@ export class BasketPage {
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly title = inject(Title);
   private readonly cardPaymentTestApi = inject(CardPaymentTestApiService);
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
-    this.i18n.setLocale(this.route.parent?.snapshot.paramMap.get("locale"));
+    this.route.parent?.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        this.i18n.setLocale(params.get("locale"));
+        this.title.setTitle(`${this.i18n.t("basket")} | ATHLON`);
+      });
     this.cardPaymentTestMode =
       this.route.snapshot.data["cardPaymentTestMode"] === true;
     if (this.cardPaymentTestMode) {
@@ -89,6 +97,7 @@ export class BasketPage {
     this.orderError.set("");
     this.orderSuccess.set(false);
     this.paymentPending.set(false);
+    this.validationAttempted.set(true);
 
     const name = this.customer.name.trim();
     const email = this.customer.email.trim();
@@ -101,6 +110,16 @@ export class BasketPage {
       !address
     ) {
       this.orderError.set(this.i18n.t("orderRequired"));
+      const invalidId = !name
+        ? "order-name"
+        : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+          ? "order-email"
+          : !phone
+            ? "order-phone"
+            : "order-address";
+      (event.currentTarget as HTMLFormElement | null)
+        ?.querySelector<HTMLElement>(`#${invalidId}`)
+        ?.focus();
       return;
     }
     if (this.submitting() || !this.basket.items().length) return;
@@ -189,6 +208,13 @@ export class BasketPage {
     }
     this.paymentMethod.set("CASH_ON_DELIVERY");
     savePaymentMethod("CASH_ON_DELIVERY");
+  }
+
+  fieldHasError(field: "name" | "email" | "phone" | "address"): boolean {
+    if (!this.validationAttempted()) return false;
+    const value = this.customer[field].trim();
+    if (field === "email") return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    return !value;
   }
 
   redirectToCheckout(checkoutUrl: string): void {
