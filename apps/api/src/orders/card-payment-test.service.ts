@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   GoneException,
   Injectable,
   NotFoundException,
@@ -10,6 +11,7 @@ import { Prisma } from "../generated/prisma/client";
 import { Locale } from "../generated/prisma/enums";
 import { parseLocale, selectTranslation } from "../common/localization/locale";
 import { PrismaService } from "../database/prisma.service";
+import { CardPaymentTestOwner } from "./card-payment-test-guest-context.service";
 
 export type MockOutcome = "SUCCESS" | "DECLINED" | "CANCELLED" | "TIMEOUT";
 export type MockStatus =
@@ -53,7 +55,7 @@ const MAX_SESSIONS = 500;
 export class CardPaymentTestService {
   private readonly sessions = new Map<
     string,
-    CardPaymentTestSession & { expiresAtMs: number }
+    CardPaymentTestSession & { expiresAtMs: number; ownerId: string }
   >();
 
   constructor(
@@ -69,6 +71,7 @@ export class CardPaymentTestService {
 
   async createSession(
     input: CreateCardPaymentTestSessionInput,
+    owner: CardPaymentTestOwner,
   ): Promise<CardPaymentTestSession> {
     this.assertEnabled();
     if (
@@ -139,13 +142,21 @@ export class CardPaymentTestService {
       };
     });
 
+    this.assertEnabled();
     this.pruneExpired();
     if (this.sessions.size >= MAX_SESSIONS) {
       throw new ServiceUnavailableException("Too many active mock sessions");
     }
 
     const now = Date.now();
-    const session: CardPaymentTestSession & { expiresAtMs: number } = {
+    if (owner.expiresAtMs <= now) {
+      throw new ForbiddenException("Mock browser expired");
+    }
+    const expiresAtMs = Math.min(now + SESSION_TTL_MS, owner.expiresAtMs);
+    const session: CardPaymentTestSession & {
+      expiresAtMs: number;
+      ownerId: string;
+    } = {
       reference: crypto.randomUUID(),
       mode: "MOCK",
       status: "PENDING",
@@ -153,24 +164,26 @@ export class CardPaymentTestService {
       currency: "AMD",
       total: total.toString(),
       items,
-      expiresAt: new Date(now + SESSION_TTL_MS).toISOString(),
-      expiresAtMs: now + SESSION_TTL_MS,
+      expiresAt: new Date(expiresAtMs).toISOString(),
+      expiresAtMs,
+      ownerId: owner.id,
     };
     this.sessions.set(session.reference, session);
     return this.toPublicSession(session);
   }
 
-  getSession(reference: string): CardPaymentTestSession {
+  getSession(reference: string, ownerId: string): CardPaymentTestSession {
     this.assertEnabled();
-    return this.toPublicSession(this.findSession(reference));
+    return this.toPublicSession(this.findSession(reference, ownerId));
   }
 
   completeSession(
     reference: string,
     outcome: MockOutcome,
+    ownerId: string,
   ): CardPaymentTestSession {
     this.assertEnabled();
-    const session = this.findSession(reference);
+    const session = this.findSession(reference, ownerId);
     const finalStatus = this.statusFor(outcome);
     if (session.status !== "PENDING") {
       if (session.status === finalStatus) return this.toPublicSession(session);
@@ -182,9 +195,10 @@ export class CardPaymentTestService {
     return this.toPublicSession(session);
   }
 
-  private findSession(reference: string) {
+  private findSession(reference: string, ownerId: string) {
     const session = this.sessions.get(reference);
-    if (!session) throw new NotFoundException("Mock session not found");
+    if (!session || session.ownerId !== ownerId)
+      throw new NotFoundException("Mock session not found");
     if (session.expiresAtMs <= Date.now()) {
       this.sessions.delete(reference);
       throw new GoneException("Mock session expired");

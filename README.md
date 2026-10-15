@@ -103,11 +103,11 @@ proof of payment; only the documented server-authenticated bank result can confi
 
 ### Isolated card-checkout test flow (mock only)
 
-The separate card-checkout test flow is an authenticated-admin-only simulator. It does
-not contact Ameriabank, create an order, send order emails, or charge a card. It is
-disabled by default and has no link in public navigation. After enabling the feature
-flag in a private API environment and restarting the API, open one of these URLs while
-signed in as an administrator:
+The separate card-checkout test flow is a guest mock simulator: no admin login,
+customer account, or profile is required. It does not contact Ameriabank, create an
+order, send order emails, or charge a card. It is disabled by default and has no link
+in public navigation. After enabling the feature flag in a testing environment and
+restarting the API, open one of these URLs:
 
 | Locale   | Test checkout URL       |
 | -------- | ----------------------- |
@@ -115,16 +115,37 @@ signed in as an administrator:
 | Russian  | `/card-payment-test/ru` |
 | English  | `/card-payment-test/en` |
 
-Set `CARD_PAYMENT_TEST_FLOW_ENABLED=true` only in a private local or deployment
-environment (for local development, `.env`); keep the committed examples and
-production configuration disabled unless an administrator intentionally enables this
-test. Restart the API after changing it. The test checkout uses the current catalog
-prices and lets an administrator simulate success, decline, cancellation, and timeout.
+Set `CARD_PAYMENT_TEST_FLOW_ENABLED=true` in the local `.env` to test; restart the
+API after changing it. Keep the committed examples and production configuration
+disabled unless enabling guest mock testing is explicitly approved. Once enabled,
+any visitor can open the test URLs without a login, including in production; a
+hidden navigation link is not an access restriction. Enabling this flag does not
+enable real card payments or change ordinary checkout.
+
+The test API lives at `/api/v1/public/card-payment-test`. Its config endpoint
+bootstraps a short-lived, host-only HttpOnly SameSite=Strict browser cookie and
+returns a separate CSRF token kept only in frontend memory. The cookie is Secure in
+production. Each mock session belongs to that temporary browser context; another
+browser cannot read or change it using its reference alone. Mutations also require
+the dedicated CSRF header and an exact configured `CORS_ORIGINS` Origin (normally
+`http://localhost:4200` locally). Config reads may omit Origin but reject supplied
+foreign origins. Requests are rate-limited, and temporary contexts and sessions
+have bounded expiry and capacity. No admin cookies or credentials are needed.
+
+The test checkout uses the current catalog prices and lets a tester simulate success,
+decline, cancellation, and timeout.
 Its persistent `TEST / MOCK` notice means no money moves; it is neither an Ameria
 sandbox nor production payment. No card-number or CVV fields are shown.
+Customer fields entered in mock checkout stay in component memory, are not sent to
+the mock API, and do not alter the ordinary checkout's saved draft. No customer
+profile or saved card is created. Future real guest payments must use Ameria-hosted
+one-time card entry: ATHLON must never receive, log, or store PAN/CVV. Real orders
+still retain the minimal contact, delivery, order and payment-reference records
+needed for fulfilment and support, separately from any customer profile.
 
 Mock sessions are held in API process memory for 15 minutes and are lost when that API
-process restarts. The current production Compose topology runs one API container. If
+process restarts; expired browser ownership may require re-opening the test route
+and starting a new mock session. The current production Compose topology runs one API container. If
 API replicas are introduced, keep this flow disabled or move sessions to shared,
 short-lived storage before enabling it across replicas. Ameria sandbox testing remains
 unavailable until ATHLON has the merchant agreement, official integration manual, and
