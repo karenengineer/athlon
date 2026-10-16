@@ -4,6 +4,7 @@ import {
   GoneException,
   Injectable,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -12,6 +13,7 @@ import { Locale } from "../generated/prisma/enums";
 import { parseLocale, selectTranslation } from "../common/localization/locale";
 import { PrismaService } from "../database/prisma.service";
 import { CardPaymentTestOwner } from "./card-payment-test-guest-context.service";
+import { CardPaymentSandboxService } from "./card-payment-sandbox.service";
 
 export type MockOutcome = "SUCCESS" | "DECLINED" | "CANCELLED" | "TIMEOUT";
 export type MockStatus =
@@ -23,11 +25,13 @@ export type MockStatus =
 
 export interface CardPaymentTestSession {
   reference: string;
-  mode: "MOCK";
+  mode: "MOCK" | "AMERIA_SANDBOX";
   status: MockStatus;
   locale: Locale;
   currency: "AMD";
   total: string;
+  basketTotal?: string;
+  checkoutUrl?: string;
   items: Array<{
     productId: string;
     sku: string;
@@ -40,6 +44,7 @@ export interface CardPaymentTestSession {
 }
 
 export interface CreateCardPaymentTestSessionInput {
+  idempotencyKey?: string;
   locale: string;
   items: Array<{
     productId: string;
@@ -61,6 +66,7 @@ export class CardPaymentTestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    @Optional() private readonly sandbox?: CardPaymentSandboxService,
   ) {}
 
   isEnabled(): boolean {
@@ -69,11 +75,20 @@ export class CardPaymentTestService {
     );
   }
 
+  getMode(): "MOCK" | "AMERIA_SANDBOX" {
+    return this.config.get<string>("CARD_PAYMENT_TEST_MODE") ===
+      "AMERIA_SANDBOX"
+      ? "AMERIA_SANDBOX"
+      : "MOCK";
+  }
+
   async createSession(
     input: CreateCardPaymentTestSessionInput,
     owner: CardPaymentTestOwner,
   ): Promise<CardPaymentTestSession> {
     this.assertEnabled();
+    if (this.getMode() === "AMERIA_SANDBOX" && !owner.sandboxAccess)
+      throw new ForbiddenException("Sandbox access required");
     if (
       !Array.isArray(input.items) ||
       input.items.length < 1 ||
@@ -143,6 +158,19 @@ export class CardPaymentTestService {
     });
 
     this.assertEnabled();
+    if (this.getMode() === "AMERIA_SANDBOX") {
+      if (!this.sandbox)
+        throw new ServiceUnavailableException("Sandbox is unavailable");
+      return this.sandbox.create(
+        {
+          locale,
+          items,
+          total: total.toString(),
+          idempotencyKey: input.idempotencyKey,
+        },
+        owner,
+      );
+    }
     this.pruneExpired();
     if (this.sessions.size >= MAX_SESSIONS) {
       throw new ServiceUnavailableException("Too many active mock sessions");
@@ -172,8 +200,16 @@ export class CardPaymentTestService {
     return this.toPublicSession(session);
   }
 
-  getSession(reference: string, ownerId: string): CardPaymentTestSession {
+  getSession(
+    reference: string,
+    ownerId: string,
+  ): CardPaymentTestSession | Promise<CardPaymentTestSession> {
     this.assertEnabled();
+    if (this.getMode() === "AMERIA_SANDBOX") {
+      if (!this.sandbox)
+        throw new ServiceUnavailableException("Sandbox is unavailable");
+      return this.sandbox.get(reference, ownerId);
+    }
     return this.toPublicSession(this.findSession(reference, ownerId));
   }
 
@@ -183,6 +219,10 @@ export class CardPaymentTestService {
     ownerId: string,
   ): CardPaymentTestSession {
     this.assertEnabled();
+    if (this.getMode() === "AMERIA_SANDBOX")
+      throw new ForbiddenException(
+        "Sandbox outcomes are verified by the bank only",
+      );
     const session = this.findSession(reference, ownerId);
     const finalStatus = this.statusFor(outcome);
     if (session.status !== "PENDING") {

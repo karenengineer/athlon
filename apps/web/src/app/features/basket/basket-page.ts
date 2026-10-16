@@ -10,6 +10,7 @@ import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import {
   CardPaymentTestApiService,
+  CardPaymentTestConfig,
   MockPaymentSession,
 } from "../admin/card-payment-test/card-payment-test-api.service";
 
@@ -32,6 +33,16 @@ export class BasketPage {
   readonly cardPaymentTestMode =
     this.route.snapshot.data["cardPaymentTestMode"] === true;
   readonly cardPaymentTestResult = signal("");
+  readonly sandboxMode = signal(false);
+  readonly testReady = signal(false);
+  readonly sandboxAccessRequired = signal(true);
+  readonly sandboxAccessBusy = signal(false);
+  readonly sandboxAccessError = signal(false);
+  readonly sandboxStatusPending = signal(false);
+  readonly verifyingSandbox = signal(false);
+  readonly sandboxStorageBlocked = signal(false);
+  readonly sandboxAttemptComplete = signal(false);
+  sandboxAccess = "";
   readonly paymentMethod = signal<"CARD" | "CASH_ON_DELIVERY">(
     this.cardPaymentTestMode ? "CARD" : loadPaymentMethod(),
   );
@@ -54,7 +65,9 @@ export class BasketPage {
       });
     if (this.cardPaymentTestMode) {
       this.paymentMethod.set("CARD");
-      this.verifyCardPaymentTestReturn();
+      const config = this.cardPaymentTestApi.configuration();
+      if (config) this.applyTestConfig(config);
+      else this.loadTestConfig();
       return;
     }
     this.api
@@ -68,28 +81,83 @@ export class BasketPage {
       );
   }
 
+  unlockSandbox(event: SubmitEvent): void {
+    event.preventDefault();
+    if (this.sandboxAccessBusy() || !this.sandboxAccess.trim()) return;
+    const accessToken = this.sandboxAccess;
+    this.sandboxAccess = "";
+    (event.currentTarget as HTMLFormElement | null)?.reset();
+    this.sandboxAccessBusy.set(true);
+    this.sandboxAccessError.set(false);
+    this.cardPaymentTestApi
+      .unlockAccess(accessToken)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.sandboxAccessBusy.set(false);
+          this.loadTestConfig();
+        },
+        error: () => {
+          this.sandboxAccessBusy.set(false);
+          this.sandboxAccessError.set(true);
+        },
+      });
+  }
+
+  recheckSandbox(): void {
+    if (!this.verifyingSandbox()) this.verifyCardPaymentTestReturn();
+  }
+
+  private loadTestConfig(): void {
+    this.cardPaymentTestApi
+      .config()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (config) => this.applyTestConfig(config),
+        error: () => this.orderError.set(this.i18n.t("paymentTestError")),
+      });
+  }
+
+  private applyTestConfig(config: CardPaymentTestConfig): void {
+    this.testReady.set(
+      config.enabled === true &&
+        (config.mode === "MOCK" || config.mode === "AMERIA_SANDBOX") &&
+        typeof config.csrfToken === "string" &&
+        !!config.csrfToken.trim(),
+    );
+    this.sandboxMode.set(config.mode === "AMERIA_SANDBOX");
+    this.sandboxAccessRequired.set(
+      config.mode === "AMERIA_SANDBOX" && config.accessRequired !== false,
+    );
+    if (config.enabled && !this.sandboxAccessRequired())
+      this.verifyCardPaymentTestReturn();
+  }
+
   update(id: string, value: string): void {
     if (this.submitting()) return;
     this.clearIdempotencyKey();
     this.basket.update(id, Number(value));
+    this.sandboxAttemptComplete.set(false);
   }
 
   remove(id: string): void {
     if (this.submitting()) return;
     this.clearIdempotencyKey();
     this.basket.remove(id);
+    this.sandboxAttemptComplete.set(false);
   }
 
   clear(): void {
     if (this.submitting()) return;
     this.clearIdempotencyKey();
     this.basket.clear();
+    this.sandboxAttemptComplete.set(false);
   }
 
   updateCustomerField(field: keyof typeof this.customer, value: string): void {
     if (this.customer[field] === value) return;
     this.customer[field] = value;
-    this.clearIdempotencyKey();
+    if (!this.sandboxMode()) this.clearIdempotencyKey();
     if (!this.cardPaymentTestMode) saveCustomerDraft(this.customer);
   }
 
@@ -126,6 +194,16 @@ export class BasketPage {
     if (this.submitting() || !this.basket.items().length) return;
 
     if (this.cardPaymentTestMode) {
+      if (
+        !this.testReady() ||
+        (this.sandboxMode() &&
+          (this.sandboxAccessRequired() ||
+            this.sandboxStorageBlocked() ||
+            this.sandboxAttemptComplete() ||
+            this.sandboxStatusPending() ||
+            this.verifyingSandbox()))
+      )
+        return;
       this.submitCardPaymentTest();
       return;
     }
@@ -228,10 +306,27 @@ export class BasketPage {
   }
 
   private submitCardPaymentTest(): void {
+    if (this.sandboxMode()) {
+      try {
+        this.idempotencyKey = retainSandboxRequestKey({
+          locale: this.i18n.locale(),
+          items: this.basket.items().map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+            expectedUnitPrice: item.price,
+          })),
+        });
+      } catch {
+        this.sandboxStorageBlocked.set(true);
+        this.orderError.set(this.i18n.t("paymentSandboxStorageError"));
+        return;
+      }
+    }
     this.submitting.set(true);
     this.cardPaymentTestResult.set("");
     this.cardPaymentTestApi
       .createSession({
+        ...(this.sandboxMode() ? { idempotencyKey: this.idempotencyKey } : {}),
         locale: this.i18n.locale(),
         items: this.basket.items().map((item) => ({
           productId: item.id,
@@ -242,6 +337,33 @@ export class BasketPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (session) => {
+          if (this.sandboxMode()) {
+            if (
+              session.mode === "AMERIA_SANDBOX" &&
+              session.total === "10" &&
+              session.currency === "AMD" &&
+              session.status === "SUCCEEDED"
+            ) {
+              this.sandboxAttemptComplete.set(true);
+              this.cardPaymentTestResult.set(this.returnMessage(session));
+              this.submitting.set(false);
+              return;
+            }
+            if (
+              session.mode === "AMERIA_SANDBOX" &&
+              session.status === "PENDING" &&
+              session.total === "10" &&
+              session.currency === "AMD" &&
+              session.checkoutUrl &&
+              isSandboxCheckoutUrl(session.checkoutUrl, this.i18n.locale())
+            ) {
+              this.redirectToCheckout(session.checkoutUrl);
+            } else {
+              this.orderError.set(this.i18n.t("paymentTestError"));
+              this.submitting.set(false);
+            }
+            return;
+          }
           if (session.mode !== "MOCK" || session.status !== "PENDING") {
             this.orderError.set(this.i18n.t("paymentTestError"));
             this.submitting.set(false);
@@ -264,16 +386,36 @@ export class BasketPage {
   private verifyCardPaymentTestReturn(): void {
     const reference = this.route.snapshot.queryParamMap.get("session");
     if (!reference) return;
+    this.verifyingSandbox.set(true);
     this.cardPaymentTestApi
       .getSession(reference)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (session) => {
-          if (session.mode !== "MOCK") {
+          this.verifyingSandbox.set(false);
+          if (
+            session.reference !== reference ||
+            session.mode !== (this.sandboxMode() ? "AMERIA_SANDBOX" : "MOCK") ||
+            (this.sandboxMode() &&
+              (session.total !== "10" || session.currency !== "AMD"))
+          ) {
             this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
             return;
           }
           this.cardPaymentTestResult.set(this.returnMessage(session));
+          if (this.sandboxMode()) {
+            this.sandboxStatusPending.set(session.status === "PENDING");
+            this.sandboxAttemptComplete.set(session.status === "SUCCEEDED");
+            if (["FAILED", "CANCELLED", "EXPIRED"].includes(session.status)) {
+              try {
+                window.sessionStorage.removeItem(SANDBOX_REQUEST_KEY);
+              } catch {
+                this.sandboxStorageBlocked.set(true);
+              }
+              this.clearIdempotencyKey();
+            }
+            return;
+          }
           void this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { session: null },
@@ -281,12 +423,29 @@ export class BasketPage {
             replaceUrl: true,
           });
         },
-        error: () =>
-          this.cardPaymentTestResult.set(this.i18n.t("paymentTestError")),
+        error: () => {
+          this.verifyingSandbox.set(false);
+          this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
+          if (this.sandboxMode()) this.sandboxStatusPending.set(true);
+        },
       });
   }
 
   private returnMessage(session: MockPaymentSession): string {
+    if (session.mode === "AMERIA_SANDBOX") {
+      switch (session.status) {
+        case "SUCCEEDED":
+          return this.i18n.t("paymentSandboxSuccess");
+        case "FAILED":
+          return this.i18n.t("orderPaymentFailed");
+        case "CANCELLED":
+          return this.i18n.t("orderPaymentCancelled");
+        case "EXPIRED":
+          return this.i18n.t("orderPaymentExpired");
+        default:
+          return this.i18n.t("paymentSandboxPending");
+      }
+    }
     switch (session.status) {
       case "SUCCEEDED":
         return this.i18n.t("paymentTestReturnSuccess");
@@ -302,9 +461,66 @@ export class BasketPage {
   }
 }
 
+function isSandboxCheckoutUrl(value: string, locale: string): boolean {
+  try {
+    const url = new URL(value);
+    const language = locale === "hy" ? "am" : locale;
+    return (
+      value.startsWith("https://servicestest.ameriabank.am/") &&
+      url.origin === "https://servicestest.ameriabank.am" &&
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      !url.hash &&
+      url.pathname === "/VPOS/Payments/Pay" &&
+      url.searchParams.getAll("id").length === 1 &&
+      /^[A-Za-z0-9-]{1,100}$/.test(url.searchParams.get("id") ?? "") &&
+      url.searchParams.getAll("lang").length === 1 &&
+      url.searchParams.get("lang") === language &&
+      Array.from(url.searchParams.keys()).every(
+        (key) => key === "id" || key === "lang",
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
 const CUSTOMER_DRAFT_KEY = "athlon_checkout_customer_v1";
 const IDEMPOTENCY_KEY = "athlon_checkout_idempotency_v1";
 const PAYMENT_METHOD_KEY = "athlon_checkout_payment_method_v1";
+const SANDBOX_REQUEST_KEY = "athlon_sandbox_request_v1";
+
+function retainSandboxRequestKey(input: unknown): string {
+  // Only a random request ID and basket fingerprint are stored, never an access
+  // code, bank credential, or customer data. Storage failures block new charges.
+  const fingerprint = JSON.stringify(input);
+  const storage = window.sessionStorage;
+  const raw = storage.getItem(SANDBOX_REQUEST_KEY);
+  if (raw !== null) {
+    const record: unknown = JSON.parse(raw);
+    if (
+      !record ||
+      typeof record !== "object" ||
+      !("key" in record) ||
+      !("fingerprint" in record) ||
+      typeof record.key !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        record.key,
+      ) ||
+      typeof record.fingerprint !== "string"
+    )
+      throw new Error("Invalid sandbox request record");
+    if (record.fingerprint === fingerprint) return record.key;
+  }
+  const key = globalThis.crypto.randomUUID();
+  const next = JSON.stringify({ key, fingerprint });
+  storage.setItem(SANDBOX_REQUEST_KEY, next);
+  if (storage.getItem(SANDBOX_REQUEST_KEY) !== next)
+    throw new Error("Sandbox request was not retained");
+  return key;
+}
 
 function loadCustomerDraft() {
   const empty = { name: "", email: "", phone: "", address: "" };

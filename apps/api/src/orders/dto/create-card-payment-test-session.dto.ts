@@ -4,6 +4,7 @@ import {
   IsArray,
   IsIn,
   IsInt,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -30,6 +31,9 @@ class CardPaymentTestItemDto {
 }
 
 export class CreateCardPaymentTestSessionDto {
+  @IsOptional()
+  @IsUUID()
+  idempotencyKey?: string;
   @IsIn(["hy", "ru", "en"])
   locale!: "hy" | "ru" | "en";
 

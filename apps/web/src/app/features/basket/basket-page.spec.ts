@@ -68,6 +68,10 @@ function createBasketFixture(
   const fixture = TestBed.createComponent(BasketPage);
   fixture.detectChanges();
   if (!testMode) flushSettings(cardPaymentsEnabled);
+  else if (!testSession)
+    TestBed.inject(HttpTestingController)
+      .expectOne("/api/v1/public/card-payment-test/config")
+      .flush({ enabled: true, mode: "MOCK", csrfToken: "guest-token" });
   fixture.detectChanges();
   return { fixture, basket };
 }
@@ -214,9 +218,6 @@ describe("BasketPage", () => {
     form.dispatchEvent(
       new Event("submit", { bubbles: true, cancelable: true }),
     );
-    http
-      .expectOne("/api/v1/public/card-payment-test/config")
-      .flush({ enabled: true, mode: "MOCK", csrfToken: "guest-token" });
     const request = http.expectOne("/api/v1/public/card-payment-test/sessions");
     expect(request.request.body).toEqual({
       locale: "en",

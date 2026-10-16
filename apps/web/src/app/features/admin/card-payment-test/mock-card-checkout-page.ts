@@ -43,6 +43,12 @@ export class MockCardCheckoutPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (session) => {
+          if (session.mode !== "MOCK") {
+            this.session.set(null);
+            this.error.set(true);
+            this.busy.set(false);
+            return;
+          }
           this.session.set(session);
           this.busy.set(false);
         },
@@ -55,7 +61,13 @@ export class MockCardCheckoutPage {
 
   chooseOutcome(outcome: MockPaymentOutcome): void {
     const session = this.session();
-    if (!session || session.status !== "PENDING" || this.busy()) return;
+    if (
+      !session ||
+      session.mode !== "MOCK" ||
+      session.status !== "PENDING" ||
+      this.busy()
+    )
+      return;
     this.busy.set(true);
     this.error.set(false);
     this.api

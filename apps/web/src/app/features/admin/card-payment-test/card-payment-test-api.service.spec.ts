@@ -92,6 +92,53 @@ describe("CardPaymentTestApiService guest sessions", () => {
     await expect(result).resolves.toEqual(session);
   });
 
+  it("unlocks sandbox access with owner cookie and CSRF, retaining no access code", async () => {
+    const result = firstValueFrom(api.unlockAccess("private-test-access"));
+    http.expectOne(`${endpoint}/config`).flush({
+      enabled: true,
+      mode: "AMERIA_SANDBOX",
+      csrfToken: "sandbox-csrf",
+      accessRequired: true,
+    });
+    const request = http.expectOne(`${endpoint}/access`);
+    expect(request.request.withCredentials).toBe(true);
+    expect(request.request.headers.get("x-card-payment-test-csrf")).toBe(
+      "sandbox-csrf",
+    );
+    expect(request.request.body).toEqual({
+      accessToken: "private-test-access",
+    });
+    request.flush({ unlocked: true });
+    await expect(result).resolves.toEqual({ unlocked: true });
+    expect(JSON.stringify(Object.values(sessionStorage))).not.toContain(
+      "private-test-access",
+    );
+    expect(JSON.stringify(Object.values(localStorage))).not.toContain(
+      "private-test-access",
+    );
+    const reload = firstValueFrom(api.config());
+    http.expectOne(`${endpoint}/config`).flush({
+      enabled: true,
+      mode: "AMERIA_SANDBOX",
+      csrfToken: "sandbox-csrf",
+      accessRequired: false,
+    });
+    await reload;
+    const created = firstValueFrom(
+      api.createSession({
+        locale: "hy",
+        items: [],
+        idempotencyKey: "7f5d8fd1-0d5b-4c67-99f0-21b3ac68df32",
+      }),
+    );
+    const create = http.expectOne(`${endpoint}/sessions`);
+    expect(create.request.body.idempotencyKey).toBe(
+      "7f5d8fd1-0d5b-4c67-99f0-21b3ac68df32",
+    );
+    create.flush({ ...session, mode: "AMERIA_SANDBOX", total: "10" });
+    await created;
+  });
+
   it("acquires config after reload before reading a guest session and uses its token for outcomes", async () => {
     const read = firstValueFrom(api.getSession("reference/1"));
     authorize("reloaded-token");

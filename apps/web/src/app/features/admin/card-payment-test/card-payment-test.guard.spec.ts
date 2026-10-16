@@ -51,6 +51,38 @@ describe("cardPaymentTestGuard guest HTTP integration", () => {
   }
 
   it.each(["hy", "ru", "en"])(
+    "allows the sandbox entry page in %s while keeping the mock simulator blocked",
+    async (locale) => {
+      const entry = TestBed.runInInjectionContext(() =>
+        cardPaymentTestGuard(
+          { paramMap: convertToParamMap({ locale }) } as ActivatedRouteSnapshot,
+          { url: `/card-payment-test/${locale}` } as never,
+        ),
+      );
+      const result = firstValueFrom(
+        entry as import("rxjs").Observable<boolean | UrlTree>,
+      );
+      http.expectOne(configUrl).flush({
+        enabled: true,
+        mode: "AMERIA_SANDBOX",
+        csrfToken: "guest-token",
+        accessRequired: true,
+      });
+      expect(await result).toBe(true);
+      const simulator = runGuard(locale);
+      http.expectOne(configUrl).flush({
+        enabled: true,
+        mode: "AMERIA_SANDBOX",
+        csrfToken: "guest-token",
+        accessRequired: false,
+      });
+      expect(
+        TestBed.inject(Router).serializeUrl((await simulator) as UrlTree),
+      ).toBe(`/${locale}`);
+    },
+  );
+
+  it.each(["hy", "ru", "en"])(
     "allows guest MOCK checkout in %s without any admin HTTP calls",
     async (locale) => {
       const result = runGuard(locale);

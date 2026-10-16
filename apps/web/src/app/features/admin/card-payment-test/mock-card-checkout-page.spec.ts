@@ -139,4 +139,18 @@ describe("MockCardCheckoutPage", () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain("ТЕСТ / МАКЕТ");
   });
+
+  it("refuses to expose mock outcome controls for a bank sandbox session", () => {
+    api.getSession.mockReturnValue(
+      of({ ...session, mode: "AMERIA_SANDBOX", total: "10" }),
+    );
+    const fixture = TestBed.createComponent(MockCardCheckoutPage);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector("[data-outcome]")).toBeNull();
+    fixture.componentInstance.chooseOutcome("SUCCESS");
+    expect(api.completeSession).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector('[role="alert"]'),
+    ).not.toBeNull();
+  });
 });
