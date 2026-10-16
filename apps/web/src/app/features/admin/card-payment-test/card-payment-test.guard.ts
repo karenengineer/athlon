@@ -8,17 +8,21 @@ export const cardPaymentTestGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const locale = route.paramMap.get("locale");
   if (!supportedLocales.includes(locale as (typeof supportedLocales)[number])) {
-    return router.createUrlTree(["/admin"]);
+    return router.createUrlTree(["/hy"]);
   }
+  const home = () => router.createUrlTree([`/${locale}`]);
 
   return inject(CardPaymentTestApiService)
     .config()
     .pipe(
       map((config) =>
-        config.enabled === true && config.mode === "MOCK"
+        config.enabled === true &&
+        config.mode === "MOCK" &&
+        typeof config.csrfToken === "string" &&
+        config.csrfToken.trim()
           ? true
-          : router.createUrlTree(["/admin"]),
+          : home(),
       ),
-      catchError(() => of(router.createUrlTree(["/admin"]))),
+      catchError(() => of(home())),
     );
 };

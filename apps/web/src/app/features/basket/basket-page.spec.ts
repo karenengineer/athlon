@@ -214,7 +214,10 @@ describe("BasketPage", () => {
     form.dispatchEvent(
       new Event("submit", { bubbles: true, cancelable: true }),
     );
-    const request = http.expectOne("/api/v1/admin/card-payment-test/sessions");
+    http
+      .expectOne("/api/v1/public/card-payment-test/config")
+      .flush({ enabled: true, mode: "MOCK", csrfToken: "guest-token" });
+    const request = http.expectOne("/api/v1/public/card-payment-test/sessions");
     expect(request.request.body).toEqual({
       locale: "en",
       items: [
@@ -240,8 +243,55 @@ describe("BasketPage", () => {
       "mock-ref",
     ]);
     expect(basket.items()).toHaveLength(1);
-    expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toContain(
-      "ani@example.com",
+    expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toBeNull();
+  });
+
+  it("keeps mock customer input in memory without reading or changing ordinary checkout drafts", () => {
+    const draft = JSON.stringify({
+      name: "Ordinary Buyer",
+      email: "buyer@example.test",
+      phone: "+37400000000",
+      address: "Ordinary delivery",
+    });
+    sessionStorage.setItem("athlon_checkout_customer_v1", draft);
+    sessionStorage.setItem(
+      "athlon_checkout_idempotency_v1",
+      "existing-order-key",
+    );
+    sessionStorage.setItem(
+      "athlon_checkout_payment_method_v1",
+      "CASH_ON_DELIVERY",
+    );
+    const read = vi.spyOn(Storage.prototype, "getItem");
+    const { fixture } = createBasketFixture(false, undefined);
+    expect(fixture.componentInstance.customer).toEqual({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    });
+    expect(read.mock.calls.map(([key]) => key)).not.toContain(
+      "athlon_checkout_customer_v1",
+    );
+    expect(read.mock.calls.map(([key]) => key)).not.toContain(
+      "athlon_checkout_idempotency_v1",
+    );
+    expect(read.mock.calls.map(([key]) => key)).not.toContain(
+      "athlon_checkout_payment_method_v1",
+    );
+    read.mockRestore();
+    fixture.componentInstance.updateCustomerField("email", "mock@example.test");
+    fixture.componentInstance.update(
+      "4ebeb944-3503-47a2-9843-d37f1eb34768",
+      "2",
+    );
+    expect(fixture.componentInstance.customer.email).toBe("mock@example.test");
+    expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toBe(draft);
+    expect(sessionStorage.getItem("athlon_checkout_idempotency_v1")).toBe(
+      "existing-order-key",
+    );
+    expect(sessionStorage.getItem("athlon_checkout_payment_method_v1")).toBe(
+      "CASH_ON_DELIVERY",
     );
   });
 
@@ -276,8 +326,11 @@ describe("BasketPage", () => {
       );
       const { fixture, basket } = createBasketFixture(false, "mock-ref");
       const navigate = vi.spyOn(TestBed.inject(Router), "navigate");
+      http
+        .expectOne("/api/v1/public/card-payment-test/config")
+        .flush({ enabled: true, mode: "MOCK", csrfToken: "guest-token" });
       const resultRequest = http.expectOne(
-        "/api/v1/admin/card-payment-test/sessions/mock-ref",
+        "/api/v1/public/card-payment-test/sessions/mock-ref",
       );
       resultRequest.flush({
         reference: "mock-ref",

@@ -28,15 +28,18 @@ export class BasketPage {
   readonly orderError = signal("");
   readonly validationAttempted = signal(false);
   readonly cardPaymentsEnabled = signal(false);
-  readonly cardPaymentTestMode: boolean;
+  private readonly route = inject(ActivatedRoute);
+  readonly cardPaymentTestMode =
+    this.route.snapshot.data["cardPaymentTestMode"] === true;
   readonly cardPaymentTestResult = signal("");
   readonly paymentMethod = signal<"CARD" | "CASH_ON_DELIVERY">(
-    loadPaymentMethod(),
+    this.cardPaymentTestMode ? "CARD" : loadPaymentMethod(),
   );
-  readonly customer = loadCustomerDraft();
-  private idempotencyKey = loadIdempotencyKey();
+  readonly customer = this.cardPaymentTestMode
+    ? { name: "", email: "", phone: "", address: "" }
+    : loadCustomerDraft();
+  private idempotencyKey = this.cardPaymentTestMode ? "" : loadIdempotencyKey();
   private readonly api = inject(CatalogApiService);
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly title = inject(Title);
   private readonly cardPaymentTestApi = inject(CardPaymentTestApiService);
@@ -49,8 +52,6 @@ export class BasketPage {
         this.i18n.setLocale(params.get("locale"));
         this.title.setTitle(`${this.i18n.t("basket")} | ATHLON`);
       });
-    this.cardPaymentTestMode =
-      this.route.snapshot.data["cardPaymentTestMode"] === true;
     if (this.cardPaymentTestMode) {
       this.paymentMethod.set("CARD");
       this.verifyCardPaymentTestReturn();
@@ -89,7 +90,7 @@ export class BasketPage {
     if (this.customer[field] === value) return;
     this.customer[field] = value;
     this.clearIdempotencyKey();
-    saveCustomerDraft(this.customer);
+    if (!this.cardPaymentTestMode) saveCustomerDraft(this.customer);
   }
 
   submitOrder(event: SubmitEvent): void {
@@ -223,7 +224,7 @@ export class BasketPage {
 
   private clearIdempotencyKey(): void {
     this.idempotencyKey = "";
-    clearStoredIdempotencyKey();
+    if (!this.cardPaymentTestMode) clearStoredIdempotencyKey();
   }
 
   private submitCardPaymentTest(): void {

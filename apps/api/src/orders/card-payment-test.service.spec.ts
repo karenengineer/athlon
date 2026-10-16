@@ -38,6 +38,8 @@ const validInput: {
   items: [validItem],
 };
 
+const owner = { id: "test-browser", expiresAtMs: Number.MAX_SAFE_INTEGER };
+
 describe("CardPaymentTestService", () => {
   const productFindMany = jest.fn();
   let service: CardPaymentTestService;
@@ -53,10 +55,13 @@ describe("CardPaymentTestService", () => {
   });
 
   it("uses current published product data and localized names to calculate AMD totals", async () => {
-    const session = await service.createSession({
-      ...validInput,
-      locale: "en",
-    });
+    const session = await service.createSession(
+      {
+        ...validInput,
+        locale: "en",
+      },
+      owner,
+    );
 
     expect(session).toMatchObject({
       mode: "MOCK",
@@ -85,10 +90,13 @@ describe("CardPaymentTestService", () => {
 
   it("rejects a basket price that differs from the current catalog price", async () => {
     await expect(
-      service.createSession({
-        ...validInput,
-        items: [{ ...validItem, expectedUnitPrice: "11999" }],
-      }),
+      service.createSession(
+        {
+          ...validInput,
+          items: [{ ...validItem, expectedUnitPrice: "11999" }],
+        },
+        owner,
+      ),
     ).rejects.toMatchObject({ status: 409 });
   });
 
@@ -101,15 +109,20 @@ describe("CardPaymentTestService", () => {
     ["unpriced", { ...publishedProduct, price: null }],
   ])("rejects %s catalog products", async (_label, product) => {
     productFindMany.mockResolvedValue([product]);
-    await expect(service.createSession(validInput)).rejects.toBeDefined();
+    await expect(
+      service.createSession(validInput, owner),
+    ).rejects.toBeDefined();
   });
 
   it.each([0, 21, 1.5])("rejects invalid quantity %s", async (quantity) => {
     await expect(
-      service.createSession({
-        ...validInput,
-        items: [{ ...validItem, quantity }],
-      }),
+      service.createSession(
+        {
+          ...validInput,
+          items: [{ ...validItem, quantity }],
+        },
+        owner,
+      ),
     ).rejects.toBeDefined();
     expect(productFindMany).not.toHaveBeenCalled();
   });
@@ -123,17 +136,19 @@ describe("CardPaymentTestService", () => {
     }));
 
     await expect(
-      service.createSession({ locale: "hy", items: duplicate }),
+      service.createSession({ locale: "hy", items: duplicate }, owner),
     ).rejects.toBeDefined();
     await expect(
-      service.createSession({ locale: "hy", items: tooMany }),
+      service.createSession({ locale: "hy", items: tooMany }, owner),
     ).rejects.toBeDefined();
     expect(productFindMany).not.toHaveBeenCalled();
   });
 
   it("only looks up published products and rejects products absent from that result", async () => {
     productFindMany.mockResolvedValue([]);
-    await expect(service.createSession(validInput)).rejects.toBeDefined();
+    await expect(
+      service.createSession(validInput, owner),
+    ).rejects.toBeDefined();
     expect(productFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: [publishedProduct.id] }, published: true },
@@ -142,13 +157,13 @@ describe("CardPaymentTestService", () => {
   });
 
   it("rejects unknown references and reports expired sessions", async () => {
-    expect(() => service.getSession("unknown")).toThrow(
+    expect(() => service.getSession("unknown", owner.id)).toThrow(
       "Mock session not found",
     );
     jest.useFakeTimers().setSystemTime(new Date("2026-10-11T10:00:00Z"));
-    const session = await service.createSession(validInput);
+    const session = await service.createSession(validInput, owner);
     jest.advanceTimersByTime(15 * 60 * 1000 + 1);
-    expect(() => service.getSession(session.reference)).toThrow(
+    expect(() => service.getSession(session.reference, owner.id)).toThrow(
       "Mock session expired",
     );
   });
@@ -156,22 +171,30 @@ describe("CardPaymentTestService", () => {
   it("keeps the session map bounded and prunes expired entries on writes", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-10-11T10:00:00Z"));
     const sessions = await Promise.all(
-      Array.from({ length: 500 }, () => service.createSession(validInput)),
+      Array.from({ length: 500 }, () =>
+        service.createSession(validInput, owner),
+      ),
     );
     jest.advanceTimersByTime(15 * 60 * 1000 + 1);
-    const newest = await service.createSession(validInput);
+    const newest = await service.createSession(validInput, owner);
 
-    expect(() => service.getSession(sessions[499]!.reference)).toThrow(
-      "Mock session not found",
+    expect(() =>
+      service.getSession(sessions[499]!.reference, owner.id),
+    ).toThrow("Mock session not found");
+    expect(service.getSession(newest.reference, owner.id).status).toBe(
+      "PENDING",
     );
-    expect(service.getSession(newest.reference).status).toBe("PENDING");
   });
 
   it("refuses to exceed 500 live sessions", async () => {
     await Promise.all(
-      Array.from({ length: 500 }, () => service.createSession(validInput)),
+      Array.from({ length: 500 }, () =>
+        service.createSession(validInput, owner),
+      ),
     );
-    await expect(service.createSession(validInput)).rejects.toMatchObject({
+    await expect(
+      service.createSession(validInput, owner),
+    ).rejects.toMatchObject({
       status: 503,
     });
   });
@@ -184,31 +207,35 @@ describe("CardPaymentTestService", () => {
   ] as const)(
     "maps %s to %s and makes same-outcome retries idempotent",
     async (outcome, status) => {
-      const session = await service.createSession(validInput);
-      expect(service.completeSession(session.reference, outcome)).toMatchObject(
-        {
-          status,
-        },
-      );
-      expect(service.completeSession(session.reference, outcome)).toMatchObject(
-        {
-          status,
-        },
-      );
+      const session = await service.createSession(validInput, owner);
+      expect(
+        service.completeSession(session.reference, outcome, owner.id),
+      ).toMatchObject({
+        status,
+      });
+      expect(
+        service.completeSession(session.reference, outcome, owner.id),
+      ).toMatchObject({
+        status,
+      });
     },
   );
 
   it("rejects a conflicting replay after a final mock outcome", async () => {
-    const session = await service.createSession(validInput);
-    service.completeSession(session.reference, "SUCCESS");
+    const session = await service.createSession(validInput, owner);
+    service.completeSession(session.reference, "SUCCESS", owner.id);
     expect(() =>
-      service.completeSession(session.reference, "DECLINED"),
+      service.completeSession(session.reference, "DECLINED", owner.id),
     ).toThrow("Mock session already has a different outcome");
   });
 
   it("completes mock success without creating an order or calling payment/email providers", async () => {
-    const session = await service.createSession(validInput);
-    const result = service.completeSession(session.reference, "SUCCESS");
+    const session = await service.createSession(validInput, owner);
+    const result = service.completeSession(
+      session.reference,
+      "SUCCESS",
+      owner.id,
+    );
 
     expect(result).toMatchObject({ mode: "MOCK", status: "SUCCEEDED" });
     expect(productFindMany).toHaveBeenCalledTimes(1);
@@ -220,9 +247,38 @@ describe("CardPaymentTestService", () => {
       { get: jest.fn().mockReturnValue(false) } as unknown as ConfigService,
     );
 
-    await expect(service.createSession(validInput)).rejects.toMatchObject({
+    await expect(
+      service.createSession(validInput, owner),
+    ).rejects.toMatchObject({
       status: 404,
     });
     expect(productFindMany).not.toHaveBeenCalled();
+  });
+
+  it("does not create a session if the feature is disabled during catalog lookup", async () => {
+    const config = new ConfigService({ CARD_PAYMENT_TEST_FLOW_ENABLED: true });
+    service = new CardPaymentTestService(
+      { product: { findMany: productFindMany } } as unknown as PrismaService,
+      config,
+    );
+    productFindMany.mockImplementation(() => {
+      config.set("CARD_PAYMENT_TEST_FLOW_ENABLED", false);
+      return Promise.resolve([publishedProduct]);
+    });
+    await expect(
+      service.createSession(validInput, owner),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("rejects session creation if the browser expires during catalog lookup", async () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-10-11T10:00:00Z"));
+    const expiring = { id: owner.id, expiresAtMs: Date.now() + 1000 };
+    productFindMany.mockImplementation(() => {
+      jest.advanceTimersByTime(1000);
+      return Promise.resolve([publishedProduct]);
+    });
+    await expect(
+      service.createSession(validInput, expiring),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });
