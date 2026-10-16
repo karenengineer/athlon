@@ -147,10 +147,10 @@ describe("ATHLON public application", () => {
     });
   }
 
-  for (const [locale, title] of [
-    ["hy", "Կառուցիր մարմինդ հոգուդ համապատասխան"],
-    ["ru", "Создай тело под стать своему духу"],
-    ["en", "Build a body to match your spirit"],
+  for (const [locale, title, communityTitle] of [
+    ["hy", "Կառուցիր մարմինդ հոգուդ համապատասխան", "Միացիր ATHLON-ին"],
+    ["ru", "Создай тело под стать своему духу", "Присоединяйся к ATHLON"],
+    ["en", "Build a body to match your spirit", "Join ATHLON"],
   ]) {
     it(`shows the updated homepage slogan in ${locale}`, async () => {
       const fixture = TestBed.createComponent(App);
@@ -169,10 +169,8 @@ describe("ATHLON public application", () => {
         fixture.nativeElement.querySelector(".hero h1").textContent.trim(),
       ).toBe(title);
       expect(
-        fixture.nativeElement
-          .querySelector(".brand-proof h2")
-          .textContent.trim(),
-      ).toBe(title);
+        fixture.nativeElement.querySelector(".community h2").textContent.trim(),
+      ).toBe(communityTitle);
     });
   }
 
