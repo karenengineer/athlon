@@ -410,7 +410,7 @@ describe("ATHLON public application", () => {
     expect(fixture.nativeElement.textContent).toContain("Recovered Brand");
   });
 
-  it("applies brand, availability, price and sorting filters in the catalog", async () => {
+  it("applies edited catalog filters through the form action", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl(
       "/en/catalog/sports-nutrition?brand=demo-brand&availability=IN_STOCK&minPrice=5000&maxPrice=25000&sort=priceAsc&page=2&q=whey",
@@ -463,6 +463,66 @@ describe("ATHLON public application", () => {
     expect(
       fixture.nativeElement.querySelector("[data-testid=catalog-breadcrumbs]"),
     ).toBeTruthy();
+
+    await fixture.whenStable();
+    const values = [
+      "protein",
+      "demo-brand",
+      "PREORDER",
+      "priceDesc",
+      "0",
+      "30000",
+    ];
+    filterControls.forEach((control, index) => {
+      control.value = values[index];
+      control.dispatchEvent(
+        new Event(control instanceof HTMLSelectElement ? "change" : "input"),
+      );
+    });
+    fixture.detectChanges();
+    (
+      fixture.nativeElement.querySelector(
+        ".filters button[type='submit']",
+      ) as HTMLButtonElement
+    ).click();
+    await fixture.whenStable();
+
+    expect(router.url).toBe(
+      "/en/catalog/protein?q=whey&brand=demo-brand&availability=PREORDER&minPrice=0&maxPrice=30000&sort=priceDesc",
+    );
+    http
+      .match((request) => request.url.endsWith("/categories"))
+      .filter((request) => !request.cancelled)
+      .at(-1)!
+      .flush([sportsNutritionCategory]);
+    http.expectNone((request) => request.url.endsWith("/brands"));
+    const filteredRequests = http
+      .match((request) => request.url.endsWith("/products"))
+      .filter((request) => !request.cancelled);
+    expect(filteredRequests).toHaveLength(1);
+    const filteredProducts = filteredRequests[0];
+    expect(
+      Object.fromEntries(
+        filteredProducts.request.params
+          .keys()
+          .map((key) => [key, filteredProducts.request.params.get(key)]),
+      ),
+    ).toEqual({
+      locale: "en",
+      category: "protein",
+      brand: "demo-brand",
+      availability: "PREORDER",
+      minPrice: "0",
+      maxPrice: "30000",
+      sort: "priceDesc",
+      page: "1",
+      pageSize: "24",
+      q: "whey",
+    });
+    filteredProducts.flush({
+      items: [],
+      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+    });
   });
 
   it("resets catalog filters while keeping the current search query", async () => {
