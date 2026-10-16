@@ -75,39 +75,39 @@ or logs. The notification recipient is fixed in API code and cannot be supplied 
 browser request. Do not use the production inbox for test orders; automated tests mock
 the provider and database.
 
-### Ameriabank card payment activation (not available yet)
+### Ameriabank card payments and isolated sandbox testing
 
-Card payment is intentionally disabled. The public settings endpoint remains false and
-the payment adapter performs no bank requests until ATHLON has an active Ameria
-merchant account and the bank supplies the official integration manual and sandbox
-credentials. Do not set `AMERIA_PAYMENTS_ENABLED=true` based only on the placeholder
-fields: the integration must first be completed against the exact manual, tested with
-mocked calls, and reviewed. Never send merchant credentials through chat or commit
-them to source control.
+Ordinary customer card payments remain disabled: keep `AMERIA_PAYMENTS_ENABLED=false`.
+The existing live-payment readiness gate and public card-payment setting remain false.
+The isolated test route supports `MOCK` and `AMERIA_SANDBOX`; enabling either mode does
+not enable card payments in ordinary checkout. Both modes create no customer order,
+inventory or finance entry, fulfillment action, or order email.
 
-Before implementation/activation, request the following from Ameriabank:
+Ameriabank's merchant-issued vPOS 3.1 manual and ATHLON test-environment instructions
+define the sandbox flow. Sandbox mode uses one-step payments only, with the server
+fixing every bank request to **AMD 10** (`Currency=051`, `Amount=10`) regardless of the
+basket's catalog total. The bank-approved merchant OrderID range is
+**30543001–30544000**, inclusive. IDs are allocated durably, never cycled or reused,
+and remain consumed even when initialization fails or its response is lost. The range
+allows at most 1,000 allocated attempts. Before testing, reconcile any IDs already
+used manually or by another integration with the bank and ensure they cannot be
+allocated again. Stop on exhaustion and obtain a new bank-approved range; do not
+reset the allocator or delete test records to regain IDs.
 
-1. Merchant onboarding and sandbox access for ATHLON.
-2. The current vPOS technical manual, including the official test/production API
-   endpoints, request and response schemas, signed callback or status-query rules,
-   amount/currency format, allowed state transitions, and any confirm/capture step.
-3. The approved storefront domain, return/cancel URLs, callback URL requirements, and
-   any website/legal-policy checks needed for merchant approval.
-4. A safe process for privately provisioning sandbox credentials and, only later, live
-   credentials in the production secret store.
+The bank credentials and test card data are not included in the repository. ATHLON
+uses the exact sandbox API at
+`https://servicestest.ameriabank.am/VPOS/api/VPOS/` and redirects only to
+`https://servicestest.ameriabank.am/VPOS/Payments/Pay` for hosted card entry. Enter the
+bank's test card data only on that hosted page. ATHLON never receives, stores, or logs
+PAN/CVV. A return redirect or its query parameters cannot confirm payment: the server
+must authenticate to `GetPaymentDetails` and verify the stored payment ID, merchant
+OrderID, AMD amount/currency, and final bank status. Two-step authorization/capture,
+refund, and cancel bank operations are not implemented; their availability in the
+bank's account does not expose them through this page.
 
-Keep `AMERIA_PAYMENTS_ENABLED=false` in development and production until the official
-flow is implemented and independently verified. Sandbox activation/transactions and
-production activation/charges require explicit approval. A browser redirect is never
-proof of payment; only the documented server-authenticated bank result can confirm it.
-
-### Isolated card-checkout test flow (mock only)
-
-The separate card-checkout test flow is a guest mock simulator: no admin login,
-customer account, or profile is required. It does not contact Ameriabank, create an
-order, send order emails, or charge a card. It is disabled by default and has no link
-in public navigation. After enabling the feature flag in a testing environment and
-restarting the API, open one of these URLs:
+The test page is separate from ordinary checkout, has no public navigation link, and
+requires no admin login, customer account, or profile. Open one of these routes after
+the test window is deliberately enabled:
 
 | Locale   | Test checkout URL       |
 | -------- | ----------------------- |
@@ -115,15 +115,15 @@ restarting the API, open one of these URLs:
 | Russian  | `/card-payment-test/ru` |
 | English  | `/card-payment-test/en` |
 
-Set `CARD_PAYMENT_TEST_FLOW_ENABLED=true` in the local `.env` to test; restart the
-API after changing it. Keep the committed examples and production configuration
-disabled unless enabling guest mock testing is explicitly approved. Once enabled,
-any visitor can open the test URLs without a login, including in production; a
-hidden navigation link is not an access restriction. Enabling this flag does not
-enable real card payments or change ordinary checkout.
+`MOCK` is the default mode and never contacts the bank. Its `TEST / MOCK` notice and
+success, decline, cancellation, and timeout choices describe simulated outcomes.
+`AMERIA_SANDBOX` requires a separate private test-page access code before starting or
+reading a sandbox payment. Enter that code in the page's access prompt; it is not a
+bank password, URL parameter, or browser-storage value. A hidden route is not an
+access restriction. Keep the code private and share it only with approved testers.
 
 The test API lives at `/api/v1/public/card-payment-test`. Its config endpoint
-bootstraps a short-lived, host-only HttpOnly SameSite=Strict browser cookie and
+bootstraps a short-lived, host-only HttpOnly browser cookie and
 returns a separate CSRF token kept only in frontend memory. The cookie is Secure in
 production. Each mock session belongs to that temporary browser context; another
 browser cannot read or change it using its reference alone. Mutations also require
@@ -132,24 +132,60 @@ the dedicated CSRF header and an exact configured `CORS_ORIGINS` Origin (normall
 foreign origins. Requests are rate-limited, and temporary contexts and sessions
 have bounded expiry and capacity. No admin cookies or credentials are needed.
 
-The test checkout uses the current catalog prices and lets a tester simulate success,
-decline, cancellation, and timeout.
-Its persistent `TEST / MOCK` notice means no money moves; it is neither an Ameria
-sandbox nor production payment. No card-number or CVV fields are shown.
-Customer fields entered in mock checkout stay in component memory, are not sent to
-the mock API, and do not alter the ordinary checkout's saved draft. No customer
-profile or saved card is created. Future real guest payments must use Ameria-hosted
-one-time card entry: ATHLON must never receive, log, or store PAN/CVV. Real orders
-still retain the minimal contact, delivery, order and payment-reference records
-needed for fulfilment and support, separately from any customer profile.
+The test checkout validates the selected products against current catalog data.
+Sandbox mode clearly shows the fixed AMD 10 bank amount separately from the basket
+total. No card-number or CVV fields appear on ATHLON. Customer fields stay in component
+memory and do not alter ordinary checkout's saved draft; no customer profile or saved
+card is created. Preserve the basket and form after a failed or interrupted attempt.
 
 Mock sessions are held in API process memory for 15 minutes and are lost when that API
 process restarts; expired browser ownership may require re-opening the test route
-and starting a new mock session. The current production Compose topology runs one API container. If
-API replicas are introduced, keep this flow disabled or move sessions to shared,
-short-lived storage before enabling it across replicas. Ameria sandbox testing remains
-unavailable until ATHLON has the merchant agreement, official integration manual, and
-sandbox credentials; this test flow does not substitute for those prerequisites.
+and starting a new mock session. Sandbox attempt allocation and payment references
+are persisted separately from customer orders; browser access remains short-lived.
+The current production Compose topology runs one API container. If API replicas are
+introduced, keep this flow disabled until browser ownership is shared across replicas.
+
+#### Secure sandbox configuration and rollout
+
+No credentials are needed for the repository's mocked bank tests. Production sandbox
+testing requires the credentials supplied privately by Ameriabank, the database
+migration, and an authorized deployment. Committed examples remain disabled. Never
+put sandbox credentials, the test-page access code, or card data in chat, commands,
+shell history, repository files, fixtures, build arguments, or logs. Do not run Compose
+configuration output against the real environment because it expands secrets.
+
+For an approved test window, use the existing trusted operator connection and a
+terminal editor to change only the following keys in protected `/opt/athlon/.env`.
+Keep mode `600`, preserve all unrelated secrets, and do not replace it with the example:
+
+| Variable                         | Test-window value or purpose                                                        |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| `CARD_PAYMENT_TEST_FLOW_ENABLED` | `true` only for the approved window; default `false`                                |
+| `CARD_PAYMENT_TEST_MODE`         | `AMERIA_SANDBOX`; allowed modes are `MOCK` and `AMERIA_SANDBOX`                     |
+| `AMERIA_SANDBOX_CLIENT_ID`       | Bank-supplied sandbox Client ID, entered privately                                  |
+| `AMERIA_SANDBOX_USERNAME`        | Bank-supplied sandbox username, entered privately                                   |
+| `AMERIA_SANDBOX_PASSWORD`        | Bank-supplied sandbox password, entered privately                                   |
+| `CARD_PAYMENT_TEST_ACCESS_TOKEN` | Separate high-entropy random access code, at least 32 characters, entered privately |
+| `AMERIA_SANDBOX_RETURN_ORIGIN`   | Exactly `https://athlon.am`                                                         |
+| `AMERIA_PAYMENTS_ENABLED`        | Keep `false`                                                                        |
+
+Blank optional credentials are passed safely to the API by Compose; incomplete sandbox
+configuration fails closed. No sandbox credential is sent to the web container. The
+legacy live-payment `AMERIA_*` credentials and URLs are not sandbox settings.
+
+Take and verify a database backup before the migration, review the OrderID history,
+then deploy the reviewed code through the normal release process. Do not seed or reset
+the database. Only after deployment and private configuration, open
+`https://athlon.am/card-payment-test/hy`, unlock it using the test-page code, select
+products, and continue to the bank-hosted test page. Use only the bank-provided test
+card and verify the returned result is server-confirmed. Actual bank requests and
+production configuration changes require authorization; local automated tests never
+make them.
+
+To close the window or stop a failing test, set `CARD_PAYMENT_TEST_FLOW_ENABLED=false`
+in the protected file and restart/redeploy the API. A source rollback must preserve
+the sandbox tables and consumed OrderIDs; restoring old allocator state risks reusing
+IDs. Retain the backup and reconcile any uncertain bank result before another attempt.
 
 The production API is reached through one Caddy reverse-proxy hop. Keep
 `TRUST_PROXY_HOPS=1` in the protected production environment so per-IP throttling uses

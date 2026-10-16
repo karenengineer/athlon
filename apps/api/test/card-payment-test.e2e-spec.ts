@@ -87,6 +87,7 @@ describe("Guest card-payment MOCK flow", () => {
       enabled: false,
       mode: "MOCK",
       csrfToken: null,
+      accessRequired: false,
     });
     expect(response.headers["set-cookie"]).toBeUndefined();
     await request(app.getHttpServer())
@@ -102,6 +103,7 @@ describe("Guest card-payment MOCK flow", () => {
       enabled: true,
       mode: "MOCK",
       csrfToken: expect.stringMatching(/^[a-f0-9]{64}$/),
+      accessRequired: false,
     });
     expect(guest.cookie).toMatch(
       /^athlon_card_payment_test_owner=[a-f0-9]{64}$/,

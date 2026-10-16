@@ -26,6 +26,7 @@ export const routes: Routes = [
       },
       {
         path: "payment/:reference",
+        canActivate: [cardPaymentTestGuard],
         loadComponent: () =>
           import(
             "./features/admin/card-payment-test/mock-card-checkout-page"

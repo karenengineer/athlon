@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import { inject, Injectable } from "@angular/core";
+import { inject, Injectable, signal } from "@angular/core";
 import { defer, Observable, of, switchMap, tap, throwError } from "rxjs";
 import { API_BASE_URL } from "../../../core/api/api-base-url";
 import { Locale } from "../../../core/i18n/i18n.service";
@@ -18,11 +18,13 @@ export type MockPaymentStatus =
 
 export interface MockPaymentSession {
   reference: string;
-  mode: "MOCK";
+  mode: "MOCK" | "AMERIA_SANDBOX";
   status: MockPaymentStatus;
   locale: Uppercase<Locale>;
   currency: "AMD";
   total: string;
+  basketTotal?: string;
+  checkoutUrl?: string;
   items: Array<{
     productId: string;
     sku: string;
@@ -36,11 +38,13 @@ export interface MockPaymentSession {
 
 export interface CardPaymentTestConfig {
   enabled: boolean;
-  mode: "MOCK";
+  mode: "MOCK" | "AMERIA_SANDBOX";
   csrfToken: string | null;
+  accessRequired?: boolean;
 }
 
 export interface CreateMockPaymentSessionInput {
+  idempotencyKey?: string;
   locale: Locale;
   items: Array<{
     productId: string;
@@ -51,6 +55,7 @@ export interface CreateMockPaymentSessionInput {
 
 @Injectable({ providedIn: "root" })
 export class CardPaymentTestApiService {
+  readonly configuration = signal<CardPaymentTestConfig | null>(null);
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly endpoint = `${this.baseUrl}/public/card-payment-test`;
@@ -59,15 +64,17 @@ export class CardPaymentTestApiService {
   config(): Observable<CardPaymentTestConfig> {
     return defer(() => {
       this.csrfToken = null;
+      this.configuration.set(null);
       return this.http
         .get<CardPaymentTestConfig>(`${this.endpoint}/config`, {
           withCredentials: true,
         })
         .pipe(
           tap((config) => {
+            this.configuration.set(config);
             if (
               config.enabled === true &&
-              config.mode === "MOCK" &&
+              (config.mode === "MOCK" || config.mode === "AMERIA_SANDBOX") &&
               typeof config.csrfToken === "string" &&
               config.csrfToken.trim()
             ) {
@@ -76,6 +83,19 @@ export class CardPaymentTestApiService {
           }),
         );
     });
+  }
+
+  unlockAccess(accessToken: string): Observable<{ unlocked: true }> {
+    return this.withGuestSession((token) =>
+      this.http.post<{ unlocked: true }>(
+        `${this.endpoint}/access`,
+        { accessToken },
+        {
+          withCredentials: true,
+          headers: { "x-card-payment-test-csrf": token },
+        },
+      ),
+    );
   }
 
   createSession(

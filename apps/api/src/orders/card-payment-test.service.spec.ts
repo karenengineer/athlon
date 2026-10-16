@@ -181,7 +181,7 @@ describe("CardPaymentTestService", () => {
     expect(() =>
       service.getSession(sessions[499]!.reference, owner.id),
     ).toThrow("Mock session not found");
-    expect(service.getSession(newest.reference, owner.id).status).toBe(
+    expect((await service.getSession(newest.reference, owner.id)).status).toBe(
       "PENDING",
     );
   });

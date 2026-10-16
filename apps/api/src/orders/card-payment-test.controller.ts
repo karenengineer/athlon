@@ -19,6 +19,7 @@ import { CardPaymentTestGuestGuard } from "./card-payment-test-guest.guard";
 import { CardPaymentTestService } from "./card-payment-test.service";
 import { CompleteCardPaymentTestSessionDto } from "./dto/complete-card-payment-test-session.dto";
 import { CreateCardPaymentTestSessionDto } from "./dto/create-card-payment-test-session.dto";
+import { CardPaymentTestAccessDto } from "./dto/card-payment-test-access.dto";
 
 @Controller("public/card-payment-test")
 @UseGuards(ThrottlerGuard)
@@ -39,9 +40,22 @@ export class CardPaymentTestController {
     const enabled = this.sessions.isEnabled();
     return {
       enabled,
-      mode: "MOCK" as const,
+      mode: this.sessions.getMode(),
       csrfToken: enabled ? this.guests.bootstrap(request, response) : null,
+      accessRequired: enabled && this.guests.accessRequired(request),
     };
+  }
+
+  @Post("access")
+  @Header("Cache-Control", "no-store")
+  @UseGuards(CardPaymentTestGuestGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  grantAccess(
+    @Body() input: CardPaymentTestAccessDto,
+    @Req() request: CardPaymentTestGuestRequest,
+  ) {
+    this.guests.grantAccess(request.cardPaymentTestOwner, input.accessToken);
+    return { unlocked: true };
   }
 
   @Post("sessions")

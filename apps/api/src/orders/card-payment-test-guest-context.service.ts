@@ -6,11 +6,12 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Request, Response } from "express";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 export interface CardPaymentTestOwner {
   id: string;
   expiresAtMs: number;
+  sandboxAccess?: boolean;
 }
 
 export interface CardPaymentTestGuestRequest extends Request {
@@ -86,7 +87,38 @@ export class CardPaymentTestGuestContextService {
         "Valid mock browser and CSRF token required",
       );
     }
-    return { id: owner.id, expiresAtMs: owner.expiresAtMs };
+    return {
+      id: owner.id,
+      expiresAtMs: owner.expiresAtMs,
+      ...(owner.sandboxAccess ? { sandboxAccess: true } : {}),
+    };
+  }
+
+  accessRequired(request: Request): boolean {
+    return (
+      this.config.get<string>("CARD_PAYMENT_TEST_MODE") === "AMERIA_SANDBOX" &&
+      this.findOwner(request)?.sandboxAccess !== true
+    );
+  }
+
+  grantAccess(owner: CardPaymentTestOwner, token: string): void {
+    const expected = this.config.get<string>(
+      "CARD_PAYMENT_TEST_ACCESS_TOKEN",
+      "",
+    );
+    const digest = (value: string) =>
+      createHash("sha256").update(value).digest();
+    const stored = this.owners.get(owner.id);
+    if (
+      this.config.get<string>("CARD_PAYMENT_TEST_MODE") !== "AMERIA_SANDBOX" ||
+      expected.length < 32 ||
+      typeof token !== "string" ||
+      !timingSafeEqual(digest(token), digest(expected)) ||
+      !stored ||
+      stored.expiresAtMs <= Date.now()
+    )
+      throw new ForbiddenException("Sandbox access denied");
+    stored.sandboxAccess = true;
   }
 
   private findOwner(request: Request): OwnerContext | undefined {
