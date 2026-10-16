@@ -16,6 +16,99 @@ import test from "node:test";
 import { parseDocument } from "yaml";
 
 const root = new URL("../../", import.meta.url);
+const composeAvailable =
+  spawnSync("docker", ["compose", "version"], {
+    env: { PATH: process.env.PATH },
+    encoding: "utf8",
+    timeout: 10000,
+  }).status === 0;
+const composeOptions = {
+  skip: composeAvailable ? false : "Docker Compose CLI is unavailable",
+};
+
+function renderProductionCompose(environment = {}) {
+  const result = spawnSync(
+    "docker",
+    [
+      "compose",
+      "--env-file",
+      "/dev/null",
+      "-f",
+      "infrastructure/docker-compose.production.yml",
+      "config",
+      "--format",
+      "json",
+    ],
+    {
+      cwd: root,
+      env: {
+        PATH: process.env.PATH,
+        COMPOSE_DISABLE_ENV_FILE: "1",
+        ...environment,
+      },
+      encoding: "utf8",
+      timeout: 10000,
+    },
+  );
+  assert.equal(
+    result.status,
+    0,
+    "production Compose must render without secrets",
+  );
+  return JSON.parse(result.stdout).services;
+}
+
+test(
+  "production Compose keeps sandbox disabled when optional settings are absent",
+  composeOptions,
+  () => {
+    const services = renderProductionCompose();
+    assert.equal(
+      services.api.environment.CARD_PAYMENT_TEST_FLOW_ENABLED,
+      "false",
+    );
+    assert.equal(services.api.environment.CARD_PAYMENT_TEST_MODE, "MOCK");
+    assert.equal(services.api.environment.AMERIA_PAYMENTS_ENABLED, "false");
+    for (const key of [
+      "AMERIA_SANDBOX_CLIENT_ID",
+      "AMERIA_SANDBOX_USERNAME",
+      "AMERIA_SANDBOX_PASSWORD",
+      "CARD_PAYMENT_TEST_ACCESS_TOKEN",
+    ]) {
+      assert.equal(services.api.environment[key], "");
+    }
+    assert.equal(
+      services.api.environment.AMERIA_SANDBOX_RETURN_ORIGIN,
+      "https://athlon.am",
+    );
+  },
+);
+
+test(
+  "production Compose forwards explicitly configured sandbox settings only to API",
+  composeOptions,
+  () => {
+    const sandbox = {
+      CARD_PAYMENT_TEST_FLOW_ENABLED: "true",
+      CARD_PAYMENT_TEST_MODE: "AMERIA_SANDBOX",
+      AMERIA_SANDBOX_CLIENT_ID: "fixture-client-id",
+      AMERIA_SANDBOX_USERNAME: "fixture-username",
+      AMERIA_SANDBOX_PASSWORD: "fixture-password",
+      CARD_PAYMENT_TEST_ACCESS_TOKEN: "fixture-access-code-32-characters-only",
+      AMERIA_SANDBOX_RETURN_ORIGIN: "https://athlon.am",
+    };
+    const services = renderProductionCompose(sandbox);
+    for (const [key, value] of Object.entries(sandbox)) {
+      assert.equal(services.api.environment[key], value);
+      for (const [name, service] of Object.entries(services)) {
+        if (name !== "api")
+          assert(!Object.hasOwn(service.environment ?? {}, key));
+      }
+    }
+    assert.equal(services.api.environment.AMERIA_PAYMENTS_ENABLED, "false");
+  },
+);
+
 function workflow(name) {
   const document = parseDocument(
     readFileSync(new URL(`.github/workflows/${name}.yml`, root), "utf8"),
@@ -30,7 +123,7 @@ const actionPins = new Set([
   "pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413",
 ]);
 const postgresE2eCommand =
-  "pnpm --filter @athlon/api test:e2e --testPathPatterns='(catalog-postgres|auth-refresh-postgres)\\.e2e-spec\\.ts$'";
+  "pnpm --filter @athlon/api test:e2e --testPathPatterns='(catalog-postgres|auth-refresh-postgres|card-payment-sandbox-postgres)\\.e2e-spec\\.ts$'";
 
 // These boundary tests catch privilege/trigger drift, bypassed gates, wrong
 // revision and notification masking. They parse real YAML, not a custom grammar.

@@ -57,4 +57,4 @@ jobs:
       - name: Verify isolated actual PostgreSQL suites
         env:
           ATHLON_PG_INTEGRATION: "1"
-        run: pnpm --filter @athlon/api test:e2e --testPathPatterns='(catalog-postgres|auth-refresh-postgres)\.e2e-spec\.ts$'
+        run: pnpm --filter @athlon/api test:e2e --testPathPatterns='(catalog-postgres|auth-refresh-postgres|card-payment-sandbox-postgres)\.e2e-spec\.ts$'

@@ -9,14 +9,50 @@
 
   @if (cardPaymentTestMode) {
   <p class="order-feedback" role="note">
+    @if (sandboxMode()) {
+    <strong>{{ i18n.t("paymentSandboxLabel") }} · AMD 10</strong><br />
+    <span>{{ i18n.t("paymentSandboxDescription") }}</span>
+    } @else {
     <strong>{{ i18n.t("paymentTestMockLabel") }}</strong>
     <span>{{ i18n.t("paymentTestNoCharge") }}</span>
+    }
   </p>
-  } @if (cardPaymentTestResult()) {
+  @if (sandboxMode() && sandboxAccessRequired()) {
+  <form class="sandbox-access order-form" (submit)="unlockSandbox($event)">
+    <label for="sandbox-access"
+      ><span>{{ i18n.t("paymentSandboxAccessLabel") }}</span>
+      <input
+        id="sandbox-access"
+        name="sandboxAccess"
+        type="password"
+        autocomplete="off"
+        maxlength="512"
+        [disabled]="sandboxAccessBusy()"
+        [value]="sandboxAccess"
+        (input)="sandboxAccess = $any($event.target).value"
+      />
+    </label>
+    <button type="submit" [disabled]="sandboxAccessBusy()">
+      {{ i18n.t("paymentSandboxAccessAction") }}
+    </button>
+    @if (sandboxAccessError()) {
+    <p role="alert">{{ i18n.t("paymentSandboxAccessError") }}</p>
+    }
+  </form>
+  } } @if (cardPaymentTestResult()) {
   <p class="order-feedback" role="status" aria-live="polite">
     {{ cardPaymentTestResult() }}
   </p>
-  } @if (basket.items().length) {
+  @if (sandboxMode() && sandboxStatusPending()) {
+  <button
+    class="sandbox-recheck"
+    type="button"
+    [disabled]="verifyingSandbox()"
+    (click)="recheckSandbox()"
+  >
+    {{ i18n.t("paymentSandboxRecheck") }}
+  </button>
+  } } @if (basket.items().length) {
   <div class="basket-layout">
     <div class="basket-list">
       @for (item of basket.items(); track item.id) {
@@ -198,7 +234,10 @@
           }
         </fieldset>
         } @if (cardPaymentTestMode) {
-        <p class="payment-note">{{ i18n.t("paymentTestNoCharge") }}</p>
+        <p class="payment-note">
+          {{ i18n.t(sandboxMode() ? "paymentSandboxDescription" :
+          "paymentTestNoCharge") }}
+        </p>
         } @else if (paymentMethod() === 'CASH_ON_DELIVERY') {
         <p class="payment-note">{{ i18n.t("orderPaymentOnDelivery") }}</p>
         } @if (paymentPending()) {
@@ -206,7 +245,11 @@
           {{ i18n.t("orderPaymentPending") }}
         </p>
         }
-        <button type="submit" class="order-button" [disabled]="submitting()">
+        <button
+          type="submit"
+          class="order-button"
+          [disabled]="submitting() || (cardPaymentTestMode && !testReady()) || (sandboxMode() && (sandboxAccessRequired() || sandboxStorageBlocked() || sandboxAttemptComplete() || sandboxStatusPending() || verifyingSandbox()))"
+        >
           {{ submitting() ? i18n.t("orderSending") : i18n.t("orderPlace") }}
         </button>
       </form>

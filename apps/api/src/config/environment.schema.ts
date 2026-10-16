@@ -54,4 +54,45 @@ export const environmentSchema = Joi.object({
   AMERIA_USERNAME: ameriaRequiredWhenEnabled,
   AMERIA_PASSWORD: ameriaRequiredWhenEnabled,
   CARD_PAYMENT_TEST_FLOW_ENABLED: Joi.boolean().default(false),
+  CARD_PAYMENT_TEST_MODE: Joi.string()
+    .valid("MOCK", "AMERIA_SANDBOX")
+    .default("MOCK"),
+  CARD_PAYMENT_TEST_ACCESS_TOKEN: Joi.string()
+    .min(32)
+    .max(512)
+    .when("CARD_PAYMENT_TEST_MODE", {
+      is: "AMERIA_SANDBOX",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(""),
+    }),
+  AMERIA_SANDBOX_CLIENT_ID: Joi.string()
+    .trim()
+    .min(1)
+    .when("CARD_PAYMENT_TEST_MODE", {
+      is: "AMERIA_SANDBOX",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(""),
+    }),
+  AMERIA_SANDBOX_USERNAME: Joi.string()
+    .trim()
+    .min(1)
+    .when("CARD_PAYMENT_TEST_MODE", {
+      is: "AMERIA_SANDBOX",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(""),
+    }),
+  AMERIA_SANDBOX_PASSWORD: Joi.string()
+    .min(1)
+    .when("CARD_PAYMENT_TEST_MODE", {
+      is: "AMERIA_SANDBOX",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(""),
+    }),
+  AMERIA_SANDBOX_RETURN_ORIGIN: Joi.string()
+    .valid("https://athlon.am")
+    .when("CARD_PAYMENT_TEST_MODE", {
+      is: "AMERIA_SANDBOX",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(""),
+    }),
 });
