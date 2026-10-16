@@ -81,17 +81,19 @@
         [(ngModel)]="maxPrice"
       />
     </label>
-    <button type="submit">{{ i18n.t("apply") }}</button>
-    @if (hasActiveFilters()) {
-    <button
-      type="button"
-      class="reset-button"
-      data-testid="catalog-reset"
-      (click)="resetFilters()"
-    >
-      {{ i18n.t("resetFilters") }}
-    </button>
-    }
+    <div class="filter-actions">
+      <button type="submit">{{ i18n.t("apply") }}</button>
+      @if (hasActiveFilters()) {
+      <button
+        type="button"
+        class="reset-button"
+        data-testid="catalog-reset"
+        (click)="resetFilters()"
+      >
+        {{ i18n.t("resetFilters") }}
+      </button>
+      }
+    </div>
   </form>
 
   @switch (state()) { @case ("loading") { <app-status-panel kind="loading" /> }

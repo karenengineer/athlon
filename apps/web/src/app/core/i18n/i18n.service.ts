@@ -13,6 +13,12 @@ type Copy = {
   heroEyebrow: string;
   heroTitle: string;
   heroText: string;
+  communityTitle: string;
+  communityText: string;
+  communityFollow: string;
+  communityCreatineAlt: string;
+  communityTrainingAlt: string;
+  communityWheyAlt: string;
   explore: string;
   showcaseEyebrow: string;
   showcaseTitle: string;
@@ -129,6 +135,12 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Создай тело под стать своему духу",
     heroText: "Спортивное питание для ежедневного прогресса.",
+    communityTitle: "Присоединяйся к ATHLON",
+    communityText: "Тренировки, новинки и спортивные будни.",
+    communityFollow: "Подписаться в Instagram",
+    communityCreatineAlt: "Креатин TREC Creatine и шейкер в спортзале",
+    communityTrainingAlt: "Спортсмен тренируется с гантелью",
+    communityWheyAlt: "Шоколадный протеин TREC Whey 100 и шейкер",
     explore: "Смотреть товары",
     showcaseEyebrow: "Спортивное питание",
     showcaseTitle: "Популярное сейчас",
@@ -259,6 +271,12 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
     heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
     heroText: "Սպորտային սնունդ ամենօրյա առաջընթացի համար։",
+    communityTitle: "Միացիր ATHLON-ին",
+    communityText: "Մարզումներ, նորություններ և սպորտային առօրյա։",
+    communityFollow: "Հետևել Instagram-ում",
+    communityCreatineAlt: "TREC Creatine կրեատին և շեյքեր մարզասրահում",
+    communityTrainingAlt: "Մարզիկը մարզվում է համրով",
+    communityWheyAlt: "Շոկոլադե TREC Whey 100 պրոտեին և շեյքեր",
     explore: "Դիտել ապրանքները",
     showcaseEyebrow: "Սպորտային սնունդ",
     showcaseTitle: "Հայտնի ապրանքներ",
@@ -388,6 +406,12 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Build a body to match your spirit",
     heroText: "Sports nutrition for everyday progress.",
+    communityTitle: "Join ATHLON",
+    communityText: "Training, new arrivals and everyday sport.",
+    communityFollow: "Follow on Instagram",
+    communityCreatineAlt: "TREC Creatine and shaker in the gym",
+    communityTrainingAlt: "Athlete training with a dumbbell",
+    communityWheyAlt: "Chocolate TREC Whey 100 protein and shaker",
     explore: "Explore products",
     showcaseEyebrow: "Sports nutrition",
     showcaseTitle: "Popular right now",

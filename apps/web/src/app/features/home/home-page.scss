@@ -45,17 +45,21 @@
   color: #323236;
 }
 
-h1 {
-  max-width: 610px;
+h1,
+.community h2 {
   margin: 0;
   font-family: var(--font-slogan);
-  font-size: 64px;
-  font-style: normal;
   font-weight: 900;
   letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  max-width: 610px;
+  font-size: 64px;
+  font-style: normal;
   text-transform: uppercase;
   line-height: 0.98;
-  overflow-wrap: anywhere;
 }
 
 .hero-text {
@@ -107,28 +111,13 @@ h1 {
   margin-bottom: 16px;
 }
 
-.section-heading h2,
-.brand-proof h2 {
+.section-heading h2 {
   margin: 0;
   color: #171719;
   font-size: clamp(1.6rem, 3vw, 2.4rem);
   font-style: italic;
   letter-spacing: -0.035em;
   text-transform: uppercase;
-}
-
-.brand-proof h2 {
-  font-family: var(--font-slogan);
-  font-style: normal;
-  font-weight: 900;
-  letter-spacing: -0.025em;
-  line-height: 1.12;
-}
-
-.section-heading p:not(.eyebrow),
-.brand-proof p:not(.eyebrow) {
-  margin: 5px 0 0;
-  color: #68686e;
 }
 
 .section-heading > a {
@@ -152,23 +141,133 @@ h1 {
   margin-top: 18px;
 }
 
-.brand-proof {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  align-items: center;
-  gap: 50px;
-  padding-block: 34px 56px;
+.community {
+  padding: 36px 0 32px;
+  color: #080809;
+  background: #f7f7f8;
 }
 
-.brand-proof picture {
-  width: 100%;
+.ig-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.ig-head > div {
   min-width: 0;
 }
 
-.brand-proof img {
+.ig-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 16px;
+  font-size: 0.75rem;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.ig-label::before {
+  height: 4px;
+  flex: 0 0 42px;
+  content: "";
+  background: #ef1230;
+}
+
+.community h2 {
+  font-size: clamp(2.25rem, 4.2vw, 3.8rem);
+  line-height: 1.12;
+}
+
+.ig-copy {
+  margin: 12px 0 0;
+  color: #68686e;
+  font-size: clamp(0.95rem, 1.6vw, 1.2rem);
+  line-height: 1.5;
+}
+
+.ig-profile,
+.community-follow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ig-profile {
+  min-height: 58px;
+  padding: 12px 24px;
+  border: 2px solid currentColor;
+  color: #080809;
+  font-size: 1.1rem;
+}
+
+svg {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+
+.ig-dot {
+  fill: currentColor;
+  stroke: none;
+}
+
+.ig-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ig-photo {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #e6e6e8;
+}
+
+.ig-photo img {
   width: 100%;
-  height: auto;
-  border-radius: 10px;
+  height: 100%;
+}
+
+.ig-photo svg {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px #0006);
+}
+
+.ig-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.community-follow {
+  width: min(100%, 360px);
+  min-height: 56px;
+  padding: 14px 24px;
+  color: #fff;
+  background: #e90f2e;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.community-follow span {
+  font-size: 1.5rem;
 }
 
 @media (max-width: 860px) {
@@ -185,12 +284,8 @@ h1 {
   .hero-copy h1 {
     width: 100%;
     max-width: 100%;
-    font-family: var(--font-slogan);
     font-size: 28px;
-    font-style: normal;
-    letter-spacing: -0.035em;
     line-height: 1.06;
-    overflow-wrap: anywhere;
   }
 
   .hero-text {
@@ -200,7 +295,6 @@ h1 {
 
   .hero-visual {
     width: 100%;
-    height: auto;
     aspect-ratio: 1280 / 634;
   }
 
@@ -217,10 +311,28 @@ h1 {
     flex-direction: column;
     gap: 8px;
   }
+}
 
-  .brand-proof {
+@media (max-width: 640px) {
+  .community {
+    padding-block: 28px;
+  }
+
+  .ig-head {
     grid-template-columns: 1fr;
     gap: 18px;
-    padding-block: 24px 42px;
+    margin-bottom: 22px;
+  }
+
+  .ig-profile {
+    justify-self: start;
+  }
+
+  .ig-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ig-action {
+    margin-top: 24px;
   }
 }

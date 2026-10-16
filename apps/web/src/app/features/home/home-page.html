@@ -55,20 +55,60 @@
   </div>
 </section>
 
-<section class="brand-proof page-width">
-  <picture>
-    <source srcset="/brand/athlon-packaging.webp" type="image/webp" />
-    <img
-      src="/brand/athlon-packaging.png"
-      width="1456"
-      height="1092"
-      loading="lazy"
-      alt="ATHLON branded packaging"
-    />
-  </picture>
-  <div>
-    <p class="eyebrow red">ATHLON</p>
-    <h2>{{ i18n.t("heroTitle") }}</h2>
-    <p>{{ i18n.t("heroText") }}</p>
+<section class="community" aria-labelledby="community-title">
+  <div class="page-width">
+    <header class="ig-head">
+      <div>
+        <p class="ig-label">ATHLON / COMMUNITY</p>
+        <h2 id="community-title">{{ i18n.t("communityTitle") }}</h2>
+        <p class="ig-copy">{{ i18n.t("communityText") }}</p>
+      </div>
+      <a
+        class="ig-profile"
+        [href]="instagramUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle class="ig-dot" cx="17.5" cy="6.5" r="1" />
+        </svg>
+        <span>&#64;__athlon__</span>
+      </a>
+    </header>
+
+    <div class="ig-grid">
+      @for (photo of communityPhotos; track photo.src) {
+      <div class="ig-photo">
+        <img
+          [src]="photo.src"
+          [srcset]="photo.srcset"
+          sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 700px) calc((100vw - 64px) / 3), (max-width: 1248px) calc((100vw - 80px) / 3), 389.333px"
+          [alt]="i18n.t(photo.alt)"
+          width="960"
+          height="960"
+          loading="lazy"
+          decoding="async"
+        />
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle class="ig-dot" cx="17.5" cy="6.5" r="1" />
+        </svg>
+      </div>
+      }
+    </div>
+
+    <div class="ig-action">
+      <a
+        class="community-follow"
+        [href]="instagramUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ i18n.t("communityFollow") }} <span aria-hidden="true">↗</span>
+      </a>
+    </div>
   </div>
 </section>
