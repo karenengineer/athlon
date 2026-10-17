@@ -13,7 +13,7 @@ export class CardPaymentTestController {
 
   @Get("config")
   getConfig() {
-    return { enabled: this.sessions.isEnabled(), mode: "MOCK" as const };
+    return { enabled: this.sessions.isEnabled(), mode: this.sessions.mode() };
   }
 
   @Post("sessions")
@@ -26,6 +26,13 @@ export class CardPaymentTestController {
   @Get("sessions/:reference")
   getSession(@Param("reference") reference: string) {
     return this.sessions.getSession(reference);
+  }
+
+  @Post("sessions/:reference/verify")
+  @UseGuards(CsrfGuard, ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  verifySession(@Param("reference") reference: string) {
+    return this.sessions.verifySession(reference);
   }
 
   @Post("sessions/:reference/outcome")

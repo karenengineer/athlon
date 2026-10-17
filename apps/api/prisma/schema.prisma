@@ -488,3 +488,11 @@ model OrderNotification {
   @@unique([orderId, eventType, recipientType])
   @@index([status, createdAt])
 }
+
+/// Ameriabank sandbox OrderIDs used by the admin-only card-payment test flow.
+/// The bank rejects reused OrderIDs, so allocations must survive API restarts.
+model CardPaymentTestOrderId {
+  orderId   Int      @id
+  reference String   @unique @db.Uuid
+  createdAt DateTime @default(now())
+}

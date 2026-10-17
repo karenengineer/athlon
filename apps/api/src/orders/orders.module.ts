@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { OrderEmailService } from "./order-email.service";
 import { OrderPersistenceService } from "./order-persistence.service";
 import { AmeriaPaymentsService } from "./ameria-payments.service";
+import { AmeriaSandboxClient } from "./ameria-sandbox.client";
 import { AmeriaVposClient } from "./ameria-vpos.client";
 import { CARD_PAYMENT_INITIALIZER } from "./orders.service";
 import { OrdersController } from "./orders.controller";
@@ -19,6 +20,7 @@ import { AuthModule } from "../auth/auth.module";
     OrderEmailService,
     OrderPersistenceService,
     AmeriaVposClient,
+    AmeriaSandboxClient,
     AmeriaPaymentsService,
     {
       provide: CARD_PAYMENT_INITIALIZER,

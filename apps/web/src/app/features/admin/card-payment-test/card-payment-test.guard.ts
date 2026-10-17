@@ -15,7 +15,8 @@ export const cardPaymentTestGuard: CanActivateFn = (route) => {
     .config()
     .pipe(
       map((config) =>
-        config.enabled === true && config.mode === "MOCK"
+        config.enabled === true &&
+        (config.mode === "MOCK" || config.mode === "AMERIA_SANDBOX")
           ? true
           : router.createUrlTree(["/admin"]),
       ),

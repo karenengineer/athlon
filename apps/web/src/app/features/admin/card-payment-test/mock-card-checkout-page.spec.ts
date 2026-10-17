@@ -10,6 +10,7 @@ import { MockCardCheckoutPage } from "./mock-card-checkout-page";
 
 describe("MockCardCheckoutPage", () => {
   const session: MockPaymentSession = {
+    checkoutUrl: null,
     reference: "mock-ref",
     mode: "MOCK" as const,
     status: "PENDING" as const,

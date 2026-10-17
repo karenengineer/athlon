@@ -96,3 +96,38 @@ describe("environmentSchema", () => {
     expect(userInfo.error).toBeDefined();
   });
 });
+
+describe("environmentSchema card payment sandbox", () => {
+  const base = {
+    DATABASE_URL: "postgresql://u:p@localhost:5432/db",
+    ACCESS_TOKEN_SECRET: "a".repeat(32),
+    REFRESH_TOKEN_SECRET: "b".repeat(32),
+  };
+
+  it("defaults to the mock test mode without sandbox credentials", () => {
+    const { error, value } = environmentSchema.validate(base);
+    expect(error).toBeUndefined();
+    expect(value.CARD_PAYMENT_TEST_MODE).toBe("MOCK");
+    expect(value.AMERIA_TEST_AMOUNT).toBe(10);
+  });
+
+  it("requires credentials and a return URL in sandbox mode", () => {
+    const { error } = environmentSchema.validate({
+      ...base,
+      CARD_PAYMENT_TEST_MODE: "AMERIA_SANDBOX",
+    });
+    expect(error?.message).toMatch(/AMERIA_TEST_/);
+  });
+
+  it("accepts a complete sandbox configuration", () => {
+    const { error } = environmentSchema.validate({
+      ...base,
+      CARD_PAYMENT_TEST_MODE: "AMERIA_SANDBOX",
+      AMERIA_TEST_CLIENT_ID: "c",
+      AMERIA_TEST_USERNAME: "u",
+      AMERIA_TEST_PASSWORD: "p",
+      AMERIA_TEST_BACK_URL_BASE: "https://athlon.am",
+    });
+    expect(error).toBeUndefined();
+  });
+});

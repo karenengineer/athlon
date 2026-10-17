@@ -89,6 +89,10 @@ type Copy = {
   phoneRequired: string;
   addressRequired: string;
   basketTotal: string;
+  paymentTestSandboxLabel: string;
+  paymentTestSandboxNote: string;
+  paymentTestSandboxSuccess: string;
+  paymentTestSandboxFailed: string;
   paymentTestMockLabel: string;
   paymentTestNoCharge: string;
   paymentTestTitle: string;
@@ -200,6 +204,13 @@ const copy: Record<Locale, Copy> = {
     phoneRequired: "Укажите номер телефона.",
     addressRequired: "Укажите адрес доставки.",
     basketTotal: "Итого",
+    paymentTestSandboxLabel: "ТЕСТ / ПЕСОЧНИЦА AMERIABANK",
+    paymentTestSandboxNote:
+      "Тестовая оплата 10 AMD в тестовой среде Ameriabank. Используйте тестовую карту банка. Реальный заказ не создаётся.",
+    paymentTestSandboxSuccess:
+      "Банк подтвердил тестовый платёж. Заказ не создан, корзина сохранена.",
+    paymentTestSandboxFailed:
+      "Тестовый платёж не завершён (отказ или отмена). Заказ не создан, корзина сохранена.",
     paymentTestMockLabel: "ТЕСТ / МАКЕТ",
     paymentTestNoCharge:
       "Тестовая симуляция: карта не списывается, заказ не создаётся.",
@@ -316,6 +327,13 @@ const copy: Record<Locale, Copy> = {
     phoneRequired: "Մուտքագրեք հեռախոսահամարը։",
     addressRequired: "Մուտքագրեք առաքման հասցեն։",
     basketTotal: "Ընդամենը",
+    paymentTestSandboxLabel: "ԹԵՍՏ / AMERIABANK SANDBOX",
+    paymentTestSandboxNote:
+      "Թեստային վճարում 10 ՀՀ դրամ Ameriabank-ի թեստային միջավայրում։ Օգտագործեք բանկի թեստային քարտը։ Իրական պատվեր չի ստեղծվում։",
+    paymentTestSandboxSuccess:
+      "Բանկը հաստատել է թեստային վճարումը։ Պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
+    paymentTestSandboxFailed:
+      "Թեստային վճարումը չի ավարտվել (մերժված կամ չեղարկված)։ Պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
     paymentTestMockLabel: "ԹԵՍՏ / ՄԱԿԵՏ",
     paymentTestNoCharge:
       "Թեստային սիմուլյացիա․ քարտից գումար չի գանձվում, պատվեր չի ստեղծվում։",
@@ -431,6 +449,13 @@ const copy: Record<Locale, Copy> = {
     phoneRequired: "Enter your phone number.",
     addressRequired: "Enter your delivery address.",
     basketTotal: "Total",
+    paymentTestSandboxLabel: "TEST / AMERIABANK SANDBOX",
+    paymentTestSandboxNote:
+      "Test payment of 10 AMD in Ameriabank's test environment. Use the bank's test card. No real order is created.",
+    paymentTestSandboxSuccess:
+      "The bank confirmed the test payment. No order was created and the basket is kept.",
+    paymentTestSandboxFailed:
+      "The test payment did not complete (declined or cancelled). No order was created and the basket is kept.",
     paymentTestMockLabel: "TEST / MOCK",
     paymentTestNoCharge:
       "Test simulation: no card is charged and no order is created.",

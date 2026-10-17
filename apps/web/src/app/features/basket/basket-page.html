@@ -9,8 +9,14 @@
 
   @if (cardPaymentTestMode) {
   <p class="order-feedback" role="note">
-    <strong>{{ i18n.t("paymentTestMockLabel") }}</strong>
-    <span>{{ i18n.t("paymentTestNoCharge") }}</span>
+    <strong>
+      {{ i18n.t(cardPaymentTestSandbox() ? "paymentTestSandboxLabel" :
+      "paymentTestMockLabel") }}
+    </strong>
+    <span>
+      {{ i18n.t(cardPaymentTestSandbox() ? "paymentTestSandboxNote" :
+      "paymentTestNoCharge") }}
+    </span>
   </p>
   } @if (cardPaymentTestResult()) {
   <p class="order-feedback" role="status" aria-live="polite">
@@ -198,7 +204,10 @@
           }
         </fieldset>
         } @if (cardPaymentTestMode) {
-        <p class="payment-note">{{ i18n.t("paymentTestNoCharge") }}</p>
+        <p class="payment-note">
+          {{ i18n.t(cardPaymentTestSandbox() ? "paymentTestSandboxNote" :
+          "paymentTestNoCharge") }}
+        </p>
         } @else if (paymentMethod() === 'CASH_ON_DELIVERY') {
         <p class="payment-note">{{ i18n.t("orderPaymentOnDelivery") }}</p>
         } @if (paymentPending()) {

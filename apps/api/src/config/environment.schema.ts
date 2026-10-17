@@ -22,6 +22,15 @@ const ameriaHttpsUrl = Joi.string()
     otherwise: Joi.optional().allow(""),
   });
 
+const ameriaSandboxRequired = Joi.string()
+  .trim()
+  .min(1)
+  .when("CARD_PAYMENT_TEST_MODE", {
+    is: "AMERIA_SANDBOX",
+    then: Joi.required(),
+    otherwise: Joi.optional().allow(""),
+  });
+
 export const environmentSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid("development", "test", "production")
@@ -54,4 +63,25 @@ export const environmentSchema = Joi.object({
   AMERIA_USERNAME: ameriaRequiredWhenEnabled,
   AMERIA_PASSWORD: ameriaRequiredWhenEnabled,
   CARD_PAYMENT_TEST_FLOW_ENABLED: Joi.boolean().default(false),
+  CARD_PAYMENT_TEST_MODE: Joi.string()
+    .valid("MOCK", "AMERIA_SANDBOX")
+    .empty("")
+    .default("MOCK"),
+  AMERIA_TEST_API_BASE_URL: Joi.string()
+    .uri({ scheme: ["https"] })
+    .empty("")
+    .default("https://servicestest.ameriabank.am/VPOS"),
+  AMERIA_TEST_CLIENT_ID: ameriaSandboxRequired,
+  AMERIA_TEST_USERNAME: ameriaSandboxRequired,
+  AMERIA_TEST_PASSWORD: ameriaSandboxRequired,
+  AMERIA_TEST_BACK_URL_BASE: Joi.string()
+    .uri({ scheme: ["https", "http"] })
+    .when("CARD_PAYMENT_TEST_MODE", {
+      is: "AMERIA_SANDBOX",
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(""),
+    }),
+  AMERIA_TEST_ORDER_ID_MIN: Joi.number().integer().min(1).default(30543001),
+  AMERIA_TEST_ORDER_ID_MAX: Joi.number().integer().min(1).default(30544000),
+  AMERIA_TEST_AMOUNT: Joi.number().positive().default(10),
 });

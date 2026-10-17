@@ -1,10 +1,10 @@
 import { CurrencyPipe } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { Component, computed, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Title } from "@angular/platform-browser";
-import { catchError, of } from "rxjs";
+import { catchError, of, switchMap } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
@@ -30,6 +30,9 @@ export class BasketPage {
   readonly cardPaymentsEnabled = signal(false);
   readonly cardPaymentTestMode: boolean;
   readonly cardPaymentTestResult = signal("");
+  readonly cardPaymentTestSandbox = computed(
+    () => this.cardPaymentTestApi.mode() === "AMERIA_SANDBOX",
+  );
   readonly paymentMethod = signal<"CARD" | "CASH_ON_DELIVERY">(
     loadPaymentMethod(),
   );
@@ -241,9 +244,18 @@ export class BasketPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (session) => {
-          if (session.mode !== "MOCK" || session.status !== "PENDING") {
+          if (session.status !== "PENDING") {
             this.orderError.set(this.i18n.t("paymentTestError"));
             this.submitting.set(false);
+            return;
+          }
+          if (session.mode === "AMERIA_SANDBOX") {
+            if (!isTrustedSandboxCheckoutUrl(session.checkoutUrl)) {
+              this.orderError.set(this.i18n.t("paymentTestError"));
+              this.submitting.set(false);
+              return;
+            }
+            this.redirectToCheckout(session.checkoutUrl);
             return;
           }
           void this.router.navigate([
@@ -261,21 +273,34 @@ export class BasketPage {
   }
 
   private verifyCardPaymentTestReturn(): void {
-    const reference = this.route.snapshot.queryParamMap.get("session");
+    const query = this.route.snapshot.queryParamMap;
+    // The mock flow returns with `session`; the bank echoes our `opaque`.
+    const reference = query.get("session") ?? query.get("opaque");
     if (!reference) return;
+    const bankReturn = query.has("opaque");
     this.cardPaymentTestApi
       .getSession(reference)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        switchMap((session) =>
+          session.mode === "AMERIA_SANDBOX" && bankReturn
+            ? this.cardPaymentTestApi.verifySession(reference)
+            : of(session),
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (session) => {
-          if (session.mode !== "MOCK") {
-            this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
-            return;
-          }
           this.cardPaymentTestResult.set(this.returnMessage(session));
           void this.router.navigate([], {
             relativeTo: this.route,
-            queryParams: { session: null },
+            queryParams: {
+              session: null,
+              opaque: null,
+              orderID: null,
+              resposneCode: null,
+              responseCode: null,
+              paymentID: null,
+            },
             queryParamsHandling: "merge",
             replaceUrl: true,
           });
@@ -286,6 +311,16 @@ export class BasketPage {
   }
 
   private returnMessage(session: MockPaymentSession): string {
+    if (session.mode === "AMERIA_SANDBOX") {
+      switch (session.status) {
+        case "SUCCEEDED":
+          return this.i18n.t("paymentTestSandboxSuccess");
+        case "PENDING":
+          return this.i18n.t("paymentTestPending");
+        default:
+          return this.i18n.t("paymentTestSandboxFailed");
+      }
+    }
     switch (session.status) {
       case "SUCCEEDED":
         return this.i18n.t("paymentTestReturnSuccess");
@@ -298,6 +333,22 @@ export class BasketPage {
       case "PENDING":
         return this.i18n.t("paymentTestPending");
     }
+  }
+}
+
+/** Only the bank's sandbox card page may receive the browser. */
+function isTrustedSandboxCheckoutUrl(value: string | null): value is string {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "servicestest.ameriabank.am" &&
+      !url.username &&
+      !url.password
+    );
+  } catch {
+    return false;
   }
 }
 

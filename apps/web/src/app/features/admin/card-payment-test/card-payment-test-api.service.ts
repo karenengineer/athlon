@@ -1,6 +1,6 @@
 import { HttpClient } from "@angular/common/http";
-import { inject, Injectable } from "@angular/core";
-import { Observable } from "rxjs";
+import { inject, Injectable, signal } from "@angular/core";
+import { Observable, tap } from "rxjs";
 import { API_BASE_URL } from "../../../core/api/api-base-url";
 import { Locale } from "../../../core/i18n/i18n.service";
 
@@ -18,7 +18,9 @@ export type MockPaymentStatus =
 
 export interface MockPaymentSession {
   reference: string;
-  mode: "MOCK";
+  mode: "MOCK" | "AMERIA_SANDBOX";
+  /** Ameriabank sandbox card page; null in mock mode. */
+  checkoutUrl: string | null;
   status: MockPaymentStatus;
   locale: Uppercase<Locale>;
   currency: "AMD";
@@ -36,7 +38,7 @@ export interface MockPaymentSession {
 
 export interface CardPaymentTestConfig {
   enabled: boolean;
-  mode: "MOCK" | "AMERIA";
+  mode: "MOCK" | "AMERIA_SANDBOX";
 }
 
 export interface CreateMockPaymentSessionInput {
@@ -54,8 +56,13 @@ export class CardPaymentTestApiService {
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly endpoint = `${this.baseUrl}/admin/card-payment-test`;
 
+  /** Mode reported by the last capability lookup (the route guard makes it). */
+  readonly mode = signal<CardPaymentTestConfig["mode"]>("MOCK");
+
   config(): Observable<CardPaymentTestConfig> {
-    return this.http.get<CardPaymentTestConfig>(`${this.endpoint}/config`);
+    return this.http
+      .get<CardPaymentTestConfig>(`${this.endpoint}/config`)
+      .pipe(tap((config) => this.mode.set(config.mode)));
   }
 
   createSession(
@@ -70,6 +77,13 @@ export class CardPaymentTestApiService {
   getSession(reference: string): Observable<MockPaymentSession> {
     return this.http.get<MockPaymentSession>(
       `${this.endpoint}/sessions/${encodeURIComponent(reference)}`,
+    );
+  }
+
+  verifySession(reference: string): Observable<MockPaymentSession> {
+    return this.http.post<MockPaymentSession>(
+      `${this.endpoint}/sessions/${encodeURIComponent(reference)}/verify`,
+      {},
     );
   }
 

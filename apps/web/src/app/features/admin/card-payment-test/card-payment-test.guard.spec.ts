@@ -42,9 +42,17 @@ describe("cardPaymentTestGuard", () => {
     },
   );
 
+  it("allows enabled Ameriabank sandbox mode", async () => {
+    config.mockReturnValue(of({ enabled: true, mode: "AMERIA_SANDBOX" }));
+    const result = TestBed.runInInjectionContext(() =>
+      cardPaymentTestGuard(routeFor("hy"), {} as never),
+    );
+    expect(await resolvedResult(result)).toBe(true);
+  });
+
   it.each([
     { enabled: false, mode: "MOCK" },
-    { enabled: true, mode: "AMERIA" },
+    { enabled: true, mode: "AMERIA" as never },
   ])("redirects when config is not enabled mock mode: %s", async (response) => {
     config.mockReturnValue(of(response));
     const result = TestBed.runInInjectionContext(() =>
