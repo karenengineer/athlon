@@ -509,3 +509,11 @@ model CardPaymentSandboxSession {
 
   @@unique([ownerHash, idempotencyKey])
 }
+
+/// Historical allocations from the retired admin-only sandbox test flow.
+/// Retain applied migration history and rows; active allocations use CardPaymentSandboxSession.
+model CardPaymentTestOrderId {
+  orderId   Int      @id
+  reference String   @unique @db.Uuid
+  createdAt DateTime @default(now())
+}
