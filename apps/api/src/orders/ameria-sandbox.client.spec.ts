@@ -1,102 +1,92 @@
 import { ConfigService } from "@nestjs/config";
 import { AmeriaSandboxClient } from "./ameria-sandbox.client";
 
-const settings: Record<string, string> = {
-  AMERIA_TEST_API_BASE_URL: "https://servicestest.ameriabank.am/VPOS/",
-  AMERIA_TEST_CLIENT_ID: "client",
-  AMERIA_TEST_USERNAME: "user",
-  AMERIA_TEST_PASSWORD: "secret",
-};
-
 describe("AmeriaSandboxClient", () => {
-  const fetchMock = jest.fn();
-  let client: AmeriaSandboxClient;
-
-  beforeEach(() => {
-    fetchMock.mockReset();
-    jest.spyOn(global, "fetch").mockImplementation(fetchMock);
-    client = new AmeriaSandboxClient({
-      get: (key: string, fallback?: string) => settings[key] ?? fallback,
-    } as unknown as ConfigService);
+  const config = new ConfigService({
+    AMERIA_SANDBOX_CLIENT_ID: "fixture-client",
+    AMERIA_SANDBOX_USERNAME: "fixture-user",
+    AMERIA_SANDBOX_PASSWORD: "fixture-password",
+    AMERIA_SANDBOX_RETURN_ORIGIN: "https://athlon.am",
   });
-
   afterEach(() => jest.restoreAllMocks());
 
-  const respond = (body: unknown, ok = true, status = 200) =>
-    fetchMock.mockResolvedValue({
-      ok,
-      status,
-      json: () => Promise.resolve(body),
-    });
-
-  it("posts InitPayment to the sandbox in AMD and returns the PaymentID", async () => {
-    respond({ PaymentID: "pay-1", ResponseCode: 1, ResponseMessage: "OK" });
-
-    const result = await client.initPayment({
+  it("initializes exactly AMD 10 using only the fixed sandbox and canonical return URL", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ ResponseCode: 1, PaymentID: "fixture-payment" }),
+        ),
+      );
+    const result = await new AmeriaSandboxClient(config).initialize({
+      reference: "reference",
       orderId: 30543001,
-      amount: "10",
-      description: "test",
-      backUrl: "https://athlon.am/card-payment-test/hy",
-      opaque: "ref",
+      locale: "HY",
     });
-
-    expect(result.paymentId).toBe("pay-1");
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(
+    expect(result.checkoutUrl).toBe(
+      "https://servicestest.ameriabank.am/VPOS/Payments/Pay?id=fixture-payment&lang=am",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
       "https://servicestest.ameriabank.am/VPOS/api/VPOS/InitPayment",
+      expect.objectContaining({ redirect: "error", body: expect.any(String) }),
     );
-    expect(JSON.parse(init.body)).toEqual({
-      ClientID: "client",
-      Username: "user",
-      Password: "secret",
-      Currency: "051",
-      Description: "test",
-      OrderID: 30543001,
+    expect(
+      JSON.parse(fetchMock.mock.calls[0]![1]!.body as string),
+    ).toMatchObject({
       Amount: 10,
-      BackURL: "https://athlon.am/card-payment-test/hy",
-      Opaque: "ref",
+      Currency: "051",
+      OrderID: 30543001,
+      Opaque: "reference",
+      BackURL: "https://athlon.am/card-payment-test/hy?session=reference",
+      Timeout: 900,
     });
   });
 
-  it("fails without leaking credentials when the bank rejects the request", async () => {
-    respond({ ResponseCode: 20, ResponseMessage: "Incorrect Username" });
-
-    const failure = client
-      .initPayment({
-        orderId: 1,
-        amount: "10",
-        description: "t",
-        backUrl: "https://athlon.am/x",
-        opaque: "r",
-      })
-      .catch((error: Error) => error);
-
-    const error = await failure;
-    expect(error).toMatchObject({ status: 502 });
-    expect((error as Error).message).toContain("code 20");
-    expect((error as Error).message).not.toContain("secret");
+  it("sanitizes transport failures", async () => {
+    jest
+      .spyOn(global, "fetch")
+      .mockRejectedValue(new Error("secret bank details"));
+    await expect(
+      new AmeriaSandboxClient(config).details("stored-id"),
+    ).rejects.toThrow("Sandbox bank request failed");
   });
 
-  it("builds the card page link with the bank's language codes", () => {
-    expect(client.checkoutUrl("pay 1", "hy")).toBe(
-      "https://servicestest.ameriabank.am/VPOS/Payments/Pay?id=pay%201&lang=am",
-    );
-    expect(client.checkoutUrl("p", "ru")).toContain("lang=ru");
-  });
+  it.each([
+    () => new Response("not-json"),
+    () => new Response("[]"),
+    () => new Response("null"),
+    () => new Response("x".repeat(32_769)),
+    () => new Response('{"Password":"do-not-expose-fixture"}', { status: 500 }),
+    () =>
+      new Response(null, {
+        status: 302,
+        headers: { Location: "https://untrusted.test" },
+      }),
+  ])(
+    "rejects invalid bank responses without exposing content",
+    async (response) => {
+      jest.spyOn(global, "fetch").mockResolvedValue(response());
+      await expect(
+        new AmeriaSandboxClient(config).details("stored-id"),
+      ).rejects.toThrow("Sandbox bank request failed");
+    },
+  );
 
-  it("reads payment details", async () => {
-    respond({ OrderStatus: "2", OrderID: "30543001", Amount: 10, Opaque: "r" });
-    await expect(client.getPaymentDetails("pay-1")).resolves.toMatchObject({
-      orderStatus: "2",
-      orderId: "30543001",
-      amount: "10",
-    });
-  });
-
-  it("reports an unreachable bank as 502", async () => {
-    fetchMock.mockRejectedValue(new Error("network"));
-    await expect(client.getPaymentDetails("p")).rejects.toMatchObject({
-      status: 502,
-    });
+  it.each([
+    { ResponseCode: "1", PaymentID: "fixture-id" },
+    { ResponseCode: 2, PaymentID: "fixture-id" },
+    { ResponseCode: 1 },
+    { ResponseCode: 1, PaymentID: "https://untrusted.test" },
+  ])("refuses an unconfirmed initialization %j", async (response) => {
+    jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify(response)));
+    await expect(
+      new AmeriaSandboxClient(config).initialize({
+        reference: "reference",
+        orderId: 30543001,
+        locale: "HY",
+      }),
+    ).rejects.toThrow("Sandbox initialization was not confirmed");
   });
 });

@@ -94,6 +94,12 @@ used manually or by another integration with the bank and ensure they cannot be
 allocated again. Stop on exhaustion and obtain a new bank-approved range; do not
 reset the allocator or delete test records to regain IDs.
 
+The legacy `CardPaymentTestOrderId` table is retained for migration history and is
+unused by this flow. Before enabling sandbox mode, reconcile IDs in that table and
+all other historical bank attempts with the single durable sandbox allocator. This
+reconciliation is an operator prerequisite; no automatic reset or bank request is
+performed.
+
 The bank credentials and test card data are not included in the repository. ATHLON
 uses the exact sandbox API at
 `https://servicestest.ameriabank.am/VPOS/api/VPOS/` and redirects only to

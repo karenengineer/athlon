@@ -45,13 +45,11 @@ const basketRouteStub = {
   },
 };
 
-function useCardPaymentTestRoute(
-  session?: string | Record<string, string>,
-): void {
+function useCardPaymentTestRoute(session?: string): void {
   basketRouteStub.snapshot.data = { cardPaymentTestMode: true };
   basketRouteStub.snapshot.paramMap = convertToParamMap({ locale: "en" });
   basketRouteStub.snapshot.queryParamMap = convertToParamMap(
-    typeof session === "object" ? session : session ? { session } : {},
+    session ? { session } : {},
   );
   basketRouteStub.parent.snapshot.paramMap = convertToParamMap({
     locale: "en",
@@ -61,7 +59,7 @@ function useCardPaymentTestRoute(
 
 function createBasketFixture(
   cardPaymentsEnabled = false,
-  testSession?: string | Record<string, string>,
+  testSession?: string,
 ) {
   const testMode = arguments.length > 1;
   if (testMode) useCardPaymentTestRoute(testSession);
@@ -298,81 +296,6 @@ describe("BasketPage", () => {
     );
   });
 
-  describe("Ameriabank sandbox mode", () => {
-    const sandboxSession = {
-      reference: "sb-ref",
-      mode: "AMERIA_SANDBOX",
-      status: "PENDING",
-      locale: "EN",
-      currency: "AMD",
-      total: "10",
-      items: [],
-      expiresAt: "2026-10-17T12:15:00.000Z",
-    };
-
-    function submitOrder(
-      fixture: ReturnType<typeof createBasketFixture>["fixture"],
-    ) {
-      const form = fixture.nativeElement.querySelector(
-        "form",
-      ) as HTMLFormElement;
-      fillOrderForm(form, {
-        customerName: "Ani",
-        customerEmail: "ani@example.com",
-        customerPhone: "+374 91 123456",
-        deliveryAddress: "Address",
-      });
-      form.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
-      return http.expectOne("/api/v1/admin/card-payment-test/sessions");
-    }
-
-    it("sends the browser to the bank's sandbox card page", () => {
-      const { fixture } = createBasketFixture(false, undefined);
-      const redirect = vi
-        .spyOn(fixture.componentInstance, "redirectToCheckout")
-        .mockImplementation(() => undefined);
-      const checkoutUrl =
-        "https://servicestest.ameriabank.am/VPOS/Payments/Pay?id=pay-1&lang=en";
-
-      submitOrder(fixture).flush({ ...sandboxSession, checkoutUrl });
-
-      expect(redirect).toHaveBeenCalledWith(checkoutUrl);
-    });
-
-    it("refuses to redirect to any other host", () => {
-      const { fixture } = createBasketFixture(false, undefined);
-      const redirect = vi
-        .spyOn(fixture.componentInstance, "redirectToCheckout")
-        .mockImplementation(() => undefined);
-
-      submitOrder(fixture).flush({
-        ...sandboxSession,
-        checkoutUrl: "https://evil.example/Payments/Pay?id=pay-1",
-      });
-
-      expect(redirect).not.toHaveBeenCalled();
-    });
-
-    it("asks the server to verify the payment with the bank on return", () => {
-      createBasketFixture(false, { opaque: "sb-ref", paymentID: "pay-1" });
-
-      http
-        .expectOne("/api/v1/admin/card-payment-test/sessions/sb-ref")
-        .flush({ ...sandboxSession, checkoutUrl: null });
-      const verify = http.expectOne(
-        "/api/v1/admin/card-payment-test/sessions/sb-ref/verify",
-      );
-      expect(verify.request.method).toBe("POST");
-      verify.flush({
-        ...sandboxSession,
-        status: "SUCCEEDED",
-        checkoutUrl: null,
-      });
-    });
-  });
-
   it.each([
     [
       "SUCCEEDED",
@@ -432,14 +355,7 @@ describe("BasketPage", () => {
       ).not.toBeNull();
       expect(navigate).toHaveBeenCalledWith([], {
         relativeTo: TestBed.inject(ActivatedRoute),
-        queryParams: {
-          session: null,
-          opaque: null,
-          orderID: null,
-          resposneCode: null,
-          responseCode: null,
-          paymentID: null,
-        },
+        queryParams: { session: null },
         queryParamsHandling: "merge",
         replaceUrl: true,
       });

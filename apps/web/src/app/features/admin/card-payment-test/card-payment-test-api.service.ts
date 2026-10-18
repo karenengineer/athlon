@@ -1,6 +1,6 @@
 import { HttpClient } from "@angular/common/http";
 import { inject, Injectable, signal } from "@angular/core";
-import { Observable, tap } from "rxjs";
+import { defer, Observable, of, switchMap, tap, throwError } from "rxjs";
 import { API_BASE_URL } from "../../../core/api/api-base-url";
 import { Locale } from "../../../core/i18n/i18n.service";
 
@@ -19,12 +19,12 @@ export type MockPaymentStatus =
 export interface MockPaymentSession {
   reference: string;
   mode: "MOCK" | "AMERIA_SANDBOX";
-  /** Ameriabank sandbox card page; null in mock mode. */
-  checkoutUrl: string | null;
   status: MockPaymentStatus;
   locale: Uppercase<Locale>;
   currency: "AMD";
   total: string;
+  basketTotal?: string;
+  checkoutUrl?: string;
   items: Array<{
     productId: string;
     sku: string;
@@ -39,9 +39,12 @@ export interface MockPaymentSession {
 export interface CardPaymentTestConfig {
   enabled: boolean;
   mode: "MOCK" | "AMERIA_SANDBOX";
+  csrfToken: string | null;
+  accessRequired?: boolean;
 }
 
 export interface CreateMockPaymentSessionInput {
+  idempotencyKey?: string;
   locale: Locale;
   items: Array<{
     productId: string;
@@ -52,38 +55,66 @@ export interface CreateMockPaymentSessionInput {
 
 @Injectable({ providedIn: "root" })
 export class CardPaymentTestApiService {
+  readonly configuration = signal<CardPaymentTestConfig | null>(null);
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
-  private readonly endpoint = `${this.baseUrl}/admin/card-payment-test`;
-
-  /** Mode reported by the last capability lookup (the route guard makes it). */
-  readonly mode = signal<CardPaymentTestConfig["mode"]>("MOCK");
+  private readonly endpoint = `${this.baseUrl}/public/card-payment-test`;
+  private csrfToken: string | null = null;
 
   config(): Observable<CardPaymentTestConfig> {
-    return this.http
-      .get<CardPaymentTestConfig>(`${this.endpoint}/config`)
-      .pipe(tap((config) => this.mode.set(config.mode)));
+    return defer(() => {
+      this.csrfToken = null;
+      this.configuration.set(null);
+      return this.http
+        .get<CardPaymentTestConfig>(`${this.endpoint}/config`, {
+          withCredentials: true,
+        })
+        .pipe(
+          tap((config) => {
+            this.configuration.set(config);
+            if (
+              config.enabled === true &&
+              (config.mode === "MOCK" || config.mode === "AMERIA_SANDBOX") &&
+              typeof config.csrfToken === "string" &&
+              config.csrfToken.trim()
+            ) {
+              this.csrfToken = config.csrfToken;
+            }
+          }),
+        );
+    });
+  }
+
+  unlockAccess(accessToken: string): Observable<{ unlocked: true }> {
+    return this.withGuestSession((token) =>
+      this.http.post<{ unlocked: true }>(
+        `${this.endpoint}/access`,
+        { accessToken },
+        {
+          withCredentials: true,
+          headers: { "x-card-payment-test-csrf": token },
+        },
+      ),
+    );
   }
 
   createSession(
     input: CreateMockPaymentSessionInput,
   ): Observable<MockPaymentSession> {
-    return this.http.post<MockPaymentSession>(
-      `${this.endpoint}/sessions`,
-      input,
+    return this.withGuestSession((token) =>
+      this.http.post<MockPaymentSession>(`${this.endpoint}/sessions`, input, {
+        withCredentials: true,
+        headers: { "x-card-payment-test-csrf": token },
+      }),
     );
   }
 
   getSession(reference: string): Observable<MockPaymentSession> {
-    return this.http.get<MockPaymentSession>(
-      `${this.endpoint}/sessions/${encodeURIComponent(reference)}`,
-    );
-  }
-
-  verifySession(reference: string): Observable<MockPaymentSession> {
-    return this.http.post<MockPaymentSession>(
-      `${this.endpoint}/sessions/${encodeURIComponent(reference)}/verify`,
-      {},
+    return this.withGuestSession(() =>
+      this.http.get<MockPaymentSession>(
+        `${this.endpoint}/sessions/${encodeURIComponent(reference)}`,
+        { withCredentials: true },
+      ),
     );
   }
 
@@ -91,9 +122,27 @@ export class CardPaymentTestApiService {
     reference: string,
     outcome: MockPaymentOutcome,
   ): Observable<MockPaymentSession> {
-    return this.http.post<MockPaymentSession>(
-      `${this.endpoint}/sessions/${encodeURIComponent(reference)}/outcome`,
-      { outcome },
+    return this.withGuestSession((token) =>
+      this.http.post<MockPaymentSession>(
+        `${this.endpoint}/sessions/${encodeURIComponent(reference)}/outcome`,
+        { outcome },
+        {
+          withCredentials: true,
+          headers: { "x-card-payment-test-csrf": token },
+        },
+      ),
+    );
+  }
+
+  private withGuestSession<T>(
+    request: (token: string) => Observable<T>,
+  ): Observable<T> {
+    return defer(() => (this.csrfToken ? of(null) : this.config())).pipe(
+      switchMap(() =>
+        this.csrfToken
+          ? request(this.csrfToken)
+          : throwError(() => new Error("Guest mock checkout is unavailable")),
+      ),
     );
   }
 }

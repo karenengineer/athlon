@@ -2,7 +2,6 @@ import { ConfigService } from "@nestjs/config";
 import { Prisma } from "../generated/prisma/client";
 import { AvailabilityStatus, Locale } from "../generated/prisma/enums";
 import { PrismaService } from "../database/prisma.service";
-import { AmeriaSandboxClient } from "./ameria-sandbox.client";
 import { CardPaymentTestService } from "./card-payment-test.service";
 
 const translations = [
@@ -52,7 +51,6 @@ describe("CardPaymentTestService", () => {
     service = new CardPaymentTestService(
       { product: { findMany: productFindMany } } as unknown as PrismaService,
       { get: jest.fn().mockReturnValue(true) } as unknown as ConfigService,
-      {} as AmeriaSandboxClient,
     );
   });
 
@@ -247,7 +245,6 @@ describe("CardPaymentTestService", () => {
     service = new CardPaymentTestService(
       { product: { findMany: productFindMany } } as unknown as PrismaService,
       { get: jest.fn().mockReturnValue(false) } as unknown as ConfigService,
-      {} as AmeriaSandboxClient,
     );
 
     await expect(

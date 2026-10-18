@@ -489,8 +489,29 @@ model OrderNotification {
   @@index([status, createdAt])
 }
 
-/// Ameriabank sandbox OrderIDs used by the admin-only card-payment test flow.
-/// The bank rejects reused OrderIDs, so allocations must survive API restarts.
+// Deliberately independent of Order, PaymentAttempt, inventory and finance.
+model CardPaymentSandboxSession {
+  reference          String   @id @db.Uuid
+  ownerHash          String   @db.Char(64)
+  idempotencyKey     String   @db.Uuid
+  requestFingerprint String  @db.Char(64)
+  ameriaOrderId      Int      @unique @default(dbgenerated("nextval('card_payment_sandbox_order_id_seq'::regclass)"))
+  locale             Locale
+  basketTotal        Decimal  @db.Decimal(14, 2)
+  items              Json
+  status             String   @default("PENDING") @db.VarChar(20)
+  initialization     String   @default("INITIALIZING") @db.VarChar(20)
+  providerPaymentId  String?  @unique @db.VarChar(100)
+  expiresAt          DateTime
+  nextCheckAt        DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([ownerHash, idempotencyKey])
+}
+
+/// Historical allocations from the retired admin-only sandbox test flow.
+/// Retain applied migration history and rows; active allocations use CardPaymentSandboxSession.
 model CardPaymentTestOrderId {
   orderId   Int      @id
   reference String   @unique @db.Uuid

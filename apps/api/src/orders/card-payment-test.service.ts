@@ -1,8 +1,10 @@
 import {
   ConflictException,
+  ForbiddenException,
   GoneException,
   Injectable,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -10,7 +12,8 @@ import { Prisma } from "../generated/prisma/client";
 import { Locale } from "../generated/prisma/enums";
 import { parseLocale, selectTranslation } from "../common/localization/locale";
 import { PrismaService } from "../database/prisma.service";
-import { AmeriaSandboxClient } from "./ameria-sandbox.client";
+import { CardPaymentTestOwner } from "./card-payment-test-guest-context.service";
+import { CardPaymentSandboxService } from "./card-payment-sandbox.service";
 
 export type MockOutcome = "SUCCESS" | "DECLINED" | "CANCELLED" | "TIMEOUT";
 export type MockStatus =
@@ -20,17 +23,15 @@ export type MockStatus =
   | "CANCELLED"
   | "EXPIRED";
 
-export type CardPaymentTestMode = "MOCK" | "AMERIA_SANDBOX";
-
 export interface CardPaymentTestSession {
   reference: string;
-  mode: CardPaymentTestMode;
-  /** Ameriabank sandbox card page; null in mock mode. */
-  checkoutUrl: string | null;
+  mode: "MOCK" | "AMERIA_SANDBOX";
   status: MockStatus;
   locale: Locale;
   currency: "AMD";
   total: string;
+  basketTotal?: string;
+  checkoutUrl?: string;
   items: Array<{
     productId: string;
     sku: string;
@@ -43,6 +44,7 @@ export interface CardPaymentTestSession {
 }
 
 export interface CreateCardPaymentTestSessionInput {
+  idempotencyKey?: string;
   locale: string;
   items: Array<{
     productId: string;
@@ -51,33 +53,21 @@ export interface CreateCardPaymentTestSessionInput {
   }>;
 }
 
-type StoredSession = CardPaymentTestSession & {
-  expiresAtMs: number;
-  paymentId?: string | undefined;
-  orderId?: number | undefined;
-  amount?: string | undefined;
-};
-
 const SESSION_TTL_MS = 15 * 60 * 1000;
-const ORDER_ID_ALLOCATION_ATTEMPTS = 5;
 const MAX_SESSIONS = 500;
 
 @Injectable()
 export class CardPaymentTestService {
-  private readonly sessions = new Map<string, StoredSession>();
+  private readonly sessions = new Map<
+    string,
+    CardPaymentTestSession & { expiresAtMs: number; ownerId: string }
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly sandbox: AmeriaSandboxClient,
+    @Optional() private readonly sandbox?: CardPaymentSandboxService,
   ) {}
-
-  mode(): CardPaymentTestMode {
-    return this.config.get<string>("CARD_PAYMENT_TEST_MODE", "MOCK") ===
-      "AMERIA_SANDBOX"
-      ? "AMERIA_SANDBOX"
-      : "MOCK";
-  }
 
   isEnabled(): boolean {
     return (
@@ -85,10 +75,20 @@ export class CardPaymentTestService {
     );
   }
 
+  getMode(): "MOCK" | "AMERIA_SANDBOX" {
+    return this.config.get<string>("CARD_PAYMENT_TEST_MODE") ===
+      "AMERIA_SANDBOX"
+      ? "AMERIA_SANDBOX"
+      : "MOCK";
+  }
+
   async createSession(
     input: CreateCardPaymentTestSessionInput,
+    owner: CardPaymentTestOwner,
   ): Promise<CardPaymentTestSession> {
     this.assertEnabled();
+    if (this.getMode() === "AMERIA_SANDBOX" && !owner.sandboxAccess)
+      throw new ForbiddenException("Sandbox access required");
     if (
       !Array.isArray(input.items) ||
       input.items.length < 1 ||
@@ -157,75 +157,73 @@ export class CardPaymentTestService {
       };
     });
 
+    this.assertEnabled();
+    if (this.getMode() === "AMERIA_SANDBOX") {
+      if (!this.sandbox)
+        throw new ServiceUnavailableException("Sandbox is unavailable");
+      return this.sandbox.create(
+        {
+          locale,
+          items,
+          total: total.toString(),
+          idempotencyKey: input.idempotencyKey,
+        },
+        owner,
+      );
+    }
     this.pruneExpired();
     if (this.sessions.size >= MAX_SESSIONS) {
       throw new ServiceUnavailableException("Too many active mock sessions");
     }
 
     const now = Date.now();
-    const mode = this.mode();
-    const reference = crypto.randomUUID();
-    const sandboxPayment =
-      mode === "AMERIA_SANDBOX"
-        ? await this.startSandboxPayment(reference, locale)
-        : null;
-    const session: StoredSession = {
-      reference,
-      mode,
-      checkoutUrl: sandboxPayment?.checkoutUrl ?? null,
-      paymentId: sandboxPayment?.paymentId,
-      orderId: sandboxPayment?.orderId,
-      amount: sandboxPayment?.amount,
+    if (owner.expiresAtMs <= now) {
+      throw new ForbiddenException("Mock browser expired");
+    }
+    const expiresAtMs = Math.min(now + SESSION_TTL_MS, owner.expiresAtMs);
+    const session: CardPaymentTestSession & {
+      expiresAtMs: number;
+      ownerId: string;
+    } = {
+      reference: crypto.randomUUID(),
+      mode: "MOCK",
       status: "PENDING",
       locale,
       currency: "AMD",
       total: total.toString(),
       items,
-      expiresAt: new Date(now + SESSION_TTL_MS).toISOString(),
-      expiresAtMs: now + SESSION_TTL_MS,
+      expiresAt: new Date(expiresAtMs).toISOString(),
+      expiresAtMs,
+      ownerId: owner.id,
     };
     this.sessions.set(session.reference, session);
     return this.toPublicSession(session);
   }
 
-  getSession(reference: string): CardPaymentTestSession {
+  getSession(
+    reference: string,
+    ownerId: string,
+  ): CardPaymentTestSession | Promise<CardPaymentTestSession> {
     this.assertEnabled();
-    return this.toPublicSession(this.findSession(reference));
-  }
-
-  /**
-   * Sandbox mode only: asks the bank for the payment state. A browser redirect
-   * is never treated as proof of payment.
-   */
-  async verifySession(reference: string): Promise<CardPaymentTestSession> {
-    this.assertEnabled();
-    const session = this.findSession(reference);
-    if (session.mode !== "AMERIA_SANDBOX" || !session.paymentId) {
-      throw new ConflictException("Session is not an Ameriabank sandbox one");
+    if (this.getMode() === "AMERIA_SANDBOX") {
+      if (!this.sandbox)
+        throw new ServiceUnavailableException("Sandbox is unavailable");
+      return this.sandbox.get(reference, ownerId);
     }
-    if (session.status !== "PENDING") return this.toPublicSession(session);
-
-    const details = await this.sandbox.getPaymentDetails(session.paymentId);
-    if (
-      details.orderId !== String(session.orderId) ||
-      (details.amount !== "" &&
-        !new Prisma.Decimal(details.amount).eq(session.amount ?? "0"))
-    ) {
-      throw new ConflictException("Bank payment does not match this session");
-    }
-    session.status = this.statusForBank(details.orderStatus);
-    return this.toPublicSession(session);
+    return this.toPublicSession(this.findSession(reference, ownerId));
   }
 
   completeSession(
     reference: string,
     outcome: MockOutcome,
+    ownerId: string,
   ): CardPaymentTestSession {
     this.assertEnabled();
-    const session = this.findSession(reference);
-    if (session.mode !== "MOCK") {
-      throw new ConflictException("Outcomes are chosen on the bank's page");
-    }
+    if (this.getMode() === "AMERIA_SANDBOX")
+      throw new ForbiddenException(
+        "Sandbox outcomes are verified by the bank only",
+      );
+    const session = this.findSession(reference, ownerId);
     const finalStatus = this.statusFor(outcome);
     if (session.status !== "PENDING") {
       if (session.status === finalStatus) return this.toPublicSession(session);
@@ -237,9 +235,10 @@ export class CardPaymentTestService {
     return this.toPublicSession(session);
   }
 
-  private findSession(reference: string) {
+  private findSession(reference: string, ownerId: string) {
     const session = this.sessions.get(reference);
-    if (!session) throw new NotFoundException("Mock session not found");
+    if (!session || session.ownerId !== ownerId)
+      throw new NotFoundException("Mock session not found");
     if (session.expiresAtMs <= Date.now()) {
       this.sessions.delete(reference);
       throw new GoneException("Mock session expired");
@@ -251,81 +250,6 @@ export class CardPaymentTestService {
     const now = Date.now();
     for (const [reference, session] of this.sessions) {
       if (session.expiresAtMs <= now) this.sessions.delete(reference);
-    }
-  }
-
-  private async startSandboxPayment(
-    reference: string,
-    locale: Locale,
-  ): Promise<{
-    paymentId: string;
-    orderId: number;
-    amount: string;
-    checkoutUrl: string;
-  }> {
-    const backUrlBase = this.config.get<string>("AMERIA_TEST_BACK_URL_BASE");
-    if (!backUrlBase) {
-      throw new ServiceUnavailableException(
-        "Ameriabank sandbox return URL is not configured",
-      );
-    }
-    const lang = locale.toLowerCase() as "hy" | "ru" | "en";
-    const amount = String(this.config.get<number>("AMERIA_TEST_AMOUNT", 10));
-    const orderId = await this.allocateOrderId(reference);
-    const { paymentId } = await this.sandbox.initPayment({
-      orderId,
-      amount,
-      description: `ATHLON card payment test ${orderId}`,
-      backUrl: `${backUrlBase.replace(/\/+$/, "")}/card-payment-test/${lang}`,
-      opaque: reference,
-    });
-    return {
-      paymentId,
-      orderId,
-      amount,
-      checkoutUrl: this.sandbox.checkoutUrl(paymentId, lang),
-    };
-  }
-
-  /** The bank refuses reused OrderIDs, so allocation is persisted. */
-  private async allocateOrderId(reference: string): Promise<number> {
-    const min = this.config.get<number>("AMERIA_TEST_ORDER_ID_MIN", 30543001);
-    const max = this.config.get<number>("AMERIA_TEST_ORDER_ID_MAX", 30544000);
-    for (let attempt = 0; attempt < ORDER_ID_ALLOCATION_ATTEMPTS; attempt++) {
-      const last = await this.prisma.cardPaymentTestOrderId.aggregate({
-        _max: { orderId: true },
-        where: { orderId: { gte: min, lte: max } },
-      });
-      const next = (last._max.orderId ?? min - 1) + 1;
-      if (next > max) {
-        throw new ServiceUnavailableException(
-          "The Ameriabank test OrderID range is exhausted",
-        );
-      }
-      try {
-        await this.prisma.cardPaymentTestOrderId.create({
-          data: { orderId: next, reference },
-        });
-        return next;
-      } catch (error) {
-        const code = (error as { code?: string }).code;
-        if (code !== "P2002") throw error;
-      }
-    }
-    throw new ConflictException("Could not allocate a test OrderID, retry");
-  }
-
-  private statusForBank(orderStatus: string): MockStatus {
-    switch (orderStatus) {
-      case "0":
-        return "PENDING";
-      case "1":
-      case "2":
-        return "SUCCEEDED";
-      case "3":
-        return "CANCELLED";
-      default:
-        return "FAILED";
     }
   }
 
@@ -354,7 +278,6 @@ export class CardPaymentTestService {
     return {
       reference: session.reference,
       mode: session.mode,
-      checkoutUrl: session.checkoutUrl,
       status: session.status,
       locale: session.locale,
       currency: session.currency,

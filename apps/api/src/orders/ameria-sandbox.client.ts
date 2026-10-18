@@ -1,133 +1,107 @@
-import {
-  BadGatewayException,
-  Injectable,
-  ServiceUnavailableException,
-} from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
-export interface AmeriaSandboxPaymentDetails {
-  responseCode: string;
-  paymentState: string;
-  orderStatus: string;
-  orderId: string;
-  amount: string;
-  opaque: string;
-}
-
-const REQUEST_TIMEOUT_MS = 15_000;
-
-/**
- * Admin test-flow client for the Ameriabank vPOS 3.1 sandbox. It only talks to
- * the configured sandbox host and is never used by the public checkout.
- */
 @Injectable()
 export class AmeriaSandboxClient {
   constructor(private readonly config: ConfigService) {}
-
-  get baseUrl(): string {
-    return (
-      this.config.get<string>(
-        "AMERIA_TEST_API_BASE_URL",
-        "https://servicestest.ameriabank.am/VPOS",
-      ) ?? ""
-    ).replace(/\/+$/, "");
-  }
-
-  async initPayment(input: {
+  async initialize(input: {
+    reference: string;
     orderId: number;
-    amount: string;
-    description: string;
-    backUrl: string;
-    opaque: string;
-  }): Promise<{ paymentId: string; checkoutBase: string }> {
-    const body = await this.post<{
-      PaymentID?: string;
-      ResponseCode?: number | string;
-      ResponseMessage?: string;
-    }>("api/VPOS/InitPayment", {
-      ClientID: this.credential("AMERIA_TEST_CLIENT_ID"),
-      Username: this.credential("AMERIA_TEST_USERNAME"),
-      Password: this.credential("AMERIA_TEST_PASSWORD"),
-      Currency: "051",
-      Description: input.description,
-      OrderID: input.orderId,
-      Amount: Number(input.amount),
-      BackURL: input.backUrl,
-      Opaque: input.opaque,
-    });
-    if (Number(body.ResponseCode) !== 1 || !body.PaymentID) {
-      throw new BadGatewayException(
-        `Ameriabank sandbox rejected InitPayment (code ${String(body.ResponseCode)}: ${body.ResponseMessage ?? "no message"})`,
-      );
-    }
-    return { paymentId: body.PaymentID, checkoutBase: this.baseUrl };
-  }
-
-  checkoutUrl(paymentId: string, locale: "hy" | "ru" | "en"): string {
-    const lang = locale === "hy" ? "am" : locale;
-    return `${this.baseUrl}/Payments/Pay?id=${encodeURIComponent(paymentId)}&lang=${lang}`;
-  }
-
-  async getPaymentDetails(
-    paymentId: string,
-  ): Promise<AmeriaSandboxPaymentDetails> {
-    const body = await this.post<Record<string, unknown>>(
-      "api/VPOS/GetPaymentDetails",
-      {
-        PaymentID: paymentId,
-        Username: this.credential("AMERIA_TEST_USERNAME"),
-        Password: this.credential("AMERIA_TEST_PASSWORD"),
-      },
-    );
-    const text = (key: string) => {
-      const value = body[key];
-      return typeof value === "string" || typeof value === "number"
-        ? String(value)
-        : "";
-    };
-    return {
-      responseCode: text("ResponseCode"),
-      paymentState: text("PaymentState"),
-      orderStatus: text("OrderStatus"),
-      orderId: text("OrderID"),
-      amount: text("Amount"),
-      opaque: text("Opaque"),
-    };
-  }
-
-  private credential(key: string): string {
-    const value = this.config.get<string>(key);
-    if (!value) {
+    locale: string;
+    timeoutSeconds?: number;
+  }): Promise<{ paymentId: string; checkoutUrl: string }> {
+    if (
+      this.config.get<string>("AMERIA_SANDBOX_RETURN_ORIGIN") !==
+      "https://athlon.am"
+    )
       throw new ServiceUnavailableException(
-        "Ameriabank sandbox credentials are not configured",
+        "Sandbox return origin is not configured",
       );
-    }
-    return value;
+    const response = await this.post("InitPayment", {
+      ...this.credentials(),
+      ClientID: this.config.getOrThrow<string>("AMERIA_SANDBOX_CLIENT_ID"),
+      Description: "ATHLON sandbox payment test",
+      Currency: "051",
+      OrderID: input.orderId,
+      Amount: 10,
+      BackURL: `https://athlon.am/card-payment-test/${input.locale.toLowerCase()}?session=${encodeURIComponent(input.reference)}`,
+      Opaque: input.reference,
+      Timeout: Math.min(900, input.timeoutSeconds ?? 900),
+    });
+    if (
+      response.ResponseCode !== 1 ||
+      typeof response.PaymentID !== "string" ||
+      !/^[a-zA-Z0-9-]{1,100}$/.test(response.PaymentID)
+    )
+      throw new ServiceUnavailableException(
+        "Sandbox initialization was not confirmed",
+      );
+    const lang = input.locale === "HY" ? "am" : input.locale.toLowerCase();
+    return {
+      paymentId: response.PaymentID,
+      checkoutUrl: `https://servicestest.ameriabank.am/VPOS/Payments/Pay?id=${encodeURIComponent(response.PaymentID)}&lang=${lang}`,
+    };
   }
-
-  private async post<T>(path: string, payload: unknown): Promise<T> {
-    let response: Response;
+  details(paymentId: string): Promise<Record<string, unknown>> {
+    return this.post("GetPaymentDetails", {
+      ...this.credentials(),
+      PaymentID: paymentId,
+    });
+  }
+  private credentials() {
+    return {
+      Username: this.config.getOrThrow<string>("AMERIA_SANDBOX_USERNAME"),
+      Password: this.config.getOrThrow<string>("AMERIA_SANDBOX_PASSWORD"),
+    };
+  }
+  private async post(
+    method: "InitPayment" | "GetPaymentDetails",
+    body: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
     try {
-      response = await fetch(`${this.baseUrl}/${path}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-    } catch {
-      throw new BadGatewayException("Ameriabank sandbox is unreachable");
-    }
-    if (!response.ok) {
-      throw new BadGatewayException(
-        `Ameriabank sandbox returned HTTP ${response.status}`,
+      const response = await fetch(
+        `https://servicestest.ameriabank.am/VPOS/api/VPOS/${method}`,
+        {
+          method: "POST",
+          redirect: "error",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(body),
+        },
       );
-    }
-    try {
-      return (await response.json()) as T;
-    } catch {
-      throw new BadGatewayException(
-        "Ameriabank sandbox returned an unreadable response",
+      if (!response.ok || !response.body) throw new Error();
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        for (;;) {
+          const part = await reader.read();
+          if (part.done) break;
+          size += part.value.byteLength;
+          if (size > 32_768) {
+            await reader.cancel();
+            throw new Error();
+          }
+          chunks.push(part.value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      const parsed: unknown = JSON.parse(
+        Buffer.concat(chunks).toString("utf8"),
       );
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+        throw new Error();
+      return parsed as Record<string, unknown>;
+    } catch {
+      throw new ServiceUnavailableException("Sandbox bank request failed");
+    } finally {
+      clearTimeout(timer);
     }
   }
 }
