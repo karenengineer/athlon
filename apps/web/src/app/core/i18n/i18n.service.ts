@@ -13,6 +13,12 @@ type Copy = {
   heroEyebrow: string;
   heroTitle: string;
   heroText: string;
+  communityTitle: string;
+  communityText: string;
+  communityFollow: string;
+  communityCreatineAlt: string;
+  communityTrainingAlt: string;
+  communityWheyAlt: string;
   explore: string;
   showcaseEyebrow: string;
   showcaseTitle: string;
@@ -94,6 +100,15 @@ type Copy = {
   paymentTestSandboxSuccess: string;
   paymentTestSandboxFailed: string;
   paymentTestMockLabel: string;
+  paymentSandboxLabel: string;
+  paymentSandboxDescription: string;
+  paymentSandboxAccessLabel: string;
+  paymentSandboxAccessAction: string;
+  paymentSandboxAccessError: string;
+  paymentSandboxPending: string;
+  paymentSandboxRecheck: string;
+  paymentSandboxSuccess: string;
+  paymentSandboxStorageError: string;
   paymentTestNoCharge: string;
   paymentTestTitle: string;
   paymentTestDescription: string;
@@ -124,6 +139,12 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Создай тело под стать своему духу",
     heroText: "Спортивное питание для ежедневного прогресса.",
+    communityTitle: "Присоединяйся к ATHLON",
+    communityText: "Тренировки, новинки и спортивные будни.",
+    communityFollow: "Подписаться в Instagram",
+    communityCreatineAlt: "Креатин TREC Creatine и шейкер в спортзале",
+    communityTrainingAlt: "Спортсмен тренируется с гантелью",
+    communityWheyAlt: "Шоколадный протеин TREC Whey 100 и шейкер",
     explore: "Смотреть товары",
     showcaseEyebrow: "Спортивное питание",
     showcaseTitle: "Популярное сейчас",
@@ -212,6 +233,20 @@ const copy: Record<Locale, Copy> = {
     paymentTestSandboxFailed:
       "Тестовый платёж не завершён (отказ или отмена). Заказ не создан, корзина сохранена.",
     paymentTestMockLabel: "ТЕСТ / МАКЕТ",
+    paymentSandboxLabel: "ТЕСТ AMERIABANK",
+    paymentSandboxStorageError:
+      "Браузер не может безопасно сохранить попытку оплаты. Остановите тест и проверьте предыдущую попытку перед повтором.",
+    paymentSandboxDescription:
+      "Одноэтапная оплата в тестовой среде банка: только 10 AMD, независимо от суммы корзины. Введите тестовую карту на странице банка. Реальный заказ не создаётся, корзина сохраняется.",
+    paymentSandboxAccessLabel: "Код доступа к тесту (не пароль банка)",
+    paymentSandboxAccessAction: "Открыть тест оплаты",
+    paymentSandboxAccessError:
+      "Не удалось открыть доступ. Проверьте код и повторите.",
+    paymentSandboxPending:
+      "Банк ещё не подтвердил оплату. Проверьте статус повторно; корзина сохранена.",
+    paymentSandboxRecheck: "Проверить статус в банке",
+    paymentSandboxSuccess:
+      "Оплата подтверждена Ameriabank в тестовой среде. Реальный заказ не создан, корзина сохранена.",
     paymentTestNoCharge:
       "Тестовая симуляция: карта не списывается, заказ не создаётся.",
     paymentTestTitle: "Тест оплаты картой",
@@ -247,6 +282,12 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
     heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
     heroText: "Սպորտային սնունդ ամենօրյա առաջընթացի համար։",
+    communityTitle: "Միացիր ATHLON-ին",
+    communityText: "Մարզումներ, նորություններ և սպորտային առօրյա։",
+    communityFollow: "Հետևել Instagram-ում",
+    communityCreatineAlt: "TREC Creatine կրեատին և շեյքեր մարզասրահում",
+    communityTrainingAlt: "Մարզիկը մարզվում է համրով",
+    communityWheyAlt: "Շոկոլադե TREC Whey 100 պրոտեին և շեյքեր",
     explore: "Դիտել ապրանքները",
     showcaseEyebrow: "Սպորտային սնունդ",
     showcaseTitle: "Հայտնի ապրանքներ",
@@ -335,6 +376,19 @@ const copy: Record<Locale, Copy> = {
     paymentTestSandboxFailed:
       "Թեստային վճարումը չի ավարտվել (մերժված կամ չեղարկված)։ Պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
     paymentTestMockLabel: "ԹԵՍՏ / ՄԱԿԵՏ",
+    paymentSandboxLabel: "ԱՄԵՐԻԱԲԱՆԿԻ ԹԵՍՏ",
+    paymentSandboxStorageError:
+      "Դիտարկիչը չի կարող անվտանգ պահպանել վճարման փորձը։ Դադարեցրեք թեստը և ստուգեք նախորդ փորձը՝ կրկին փորձելուց առաջ։",
+    paymentSandboxDescription:
+      "Բանկի թեստային միջավայրում միափուլ վճարում՝ միայն 10 դրամ՝ անկախ զամբյուղի գումարից։ Թեստային քարտը մուտքագրեք բանկի էջում։ Իրական պատվեր չի ստեղծվում, զամբյուղը պահպանվում է։",
+    paymentSandboxAccessLabel: "Թեստի մուտքի կոդ (ոչ բանկի գաղտնաբառը)",
+    paymentSandboxAccessAction: "Բացել վճարման թեստը",
+    paymentSandboxAccessError: "Մուտքը չհաջողվեց։ Ստուգեք կոդը և կրկին փորձեք։",
+    paymentSandboxPending:
+      "Բանկը դեռ չի հաստատել վճարումը։ Կրկին ստուգեք կարգավիճակը․ զամբյուղը պահպանված է։",
+    paymentSandboxRecheck: "Ստուգել կարգավիճակը բանկում",
+    paymentSandboxSuccess:
+      "Ամերիաբանկը հաստատել է վճարումը թեստային միջավայրում։ Իրական պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
     paymentTestNoCharge:
       "Թեստային սիմուլյացիա․ քարտից գումար չի գանձվում, պատվեր չի ստեղծվում։",
     paymentTestTitle: "Քարտով վճարման թեստ",
@@ -370,6 +424,12 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Build a body to match your spirit",
     heroText: "Sports nutrition for everyday progress.",
+    communityTitle: "Join ATHLON",
+    communityText: "Training, new arrivals and everyday sport.",
+    communityFollow: "Follow on Instagram",
+    communityCreatineAlt: "TREC Creatine and shaker in the gym",
+    communityTrainingAlt: "Athlete training with a dumbbell",
+    communityWheyAlt: "Chocolate TREC Whey 100 protein and shaker",
     explore: "Explore products",
     showcaseEyebrow: "Sports nutrition",
     showcaseTitle: "Popular right now",
@@ -457,6 +517,20 @@ const copy: Record<Locale, Copy> = {
     paymentTestSandboxFailed:
       "The test payment did not complete (declined or cancelled). No order was created and the basket is kept.",
     paymentTestMockLabel: "TEST / MOCK",
+    paymentSandboxLabel: "AMERIABANK SANDBOX",
+    paymentSandboxStorageError:
+      "The browser cannot safely retain the payment attempt. Stop testing and check the previous attempt before retrying.",
+    paymentSandboxDescription:
+      "One-step bank sandbox payment: only AMD 10, separate from the basket value. Enter the test card on the bank’s page. No real order is created; the basket is preserved.",
+    paymentSandboxAccessLabel: "Test access code (not your bank password)",
+    paymentSandboxAccessAction: "Unlock payment test",
+    paymentSandboxAccessError:
+      "Could not unlock access. Check the code and retry.",
+    paymentSandboxPending:
+      "Payment is not confirmed yet by the bank. Check again; the basket is preserved.",
+    paymentSandboxRecheck: "Recheck bank status",
+    paymentSandboxSuccess:
+      "Payment confirmed by Ameriabank in the sandbox. No real order was placed; the basket is preserved.",
     paymentTestNoCharge:
       "Test simulation: no card is charged and no order is created.",
     paymentTestTitle: "Card payment test",

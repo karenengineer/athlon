@@ -9,14 +9,20 @@ import { OrdersController } from "./orders.controller";
 import { OrdersService } from "./orders.service";
 import { CardPaymentTestController } from "./card-payment-test.controller";
 import { CardPaymentTestService } from "./card-payment-test.service";
-import { AuthModule } from "../auth/auth.module";
+import { CardPaymentTestGuestContextService } from "./card-payment-test-guest-context.service";
+import { CardPaymentTestGuestGuard } from "./card-payment-test-guest.guard";
+import { AmeriaSandboxClient } from "./ameria-sandbox.client";
+import { CardPaymentSandboxService } from "./card-payment-sandbox.service";
 
 @Module({
-  imports: [AuthModule],
   controllers: [OrdersController, CardPaymentTestController],
   providers: [
     OrdersService,
     CardPaymentTestService,
+    CardPaymentTestGuestContextService,
+    CardPaymentTestGuestGuard,
+    AmeriaSandboxClient,
+    CardPaymentSandboxService,
     OrderEmailService,
     OrderPersistenceService,
     AmeriaVposClient,

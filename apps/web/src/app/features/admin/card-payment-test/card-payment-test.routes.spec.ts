@@ -4,13 +4,30 @@ import { AdminShell } from "../admin-shell";
 import { adminAuthGuard } from "../auth/admin-auth.guard";
 import { routes } from "../../../app.routes";
 import { cardPaymentTestGuard } from "./card-payment-test.guard";
+import { serverRoutes } from "../../../app.routes.server";
+import { RenderMode } from "@angular/ssr";
+import { localeGuard } from "../../../core/i18n/locale.guard";
 
 describe("isolated mock card-payment routes", () => {
-  it("registers dedicated test pages at the app root behind both guards with no nav entry", async () => {
+  it("keeps regular localized basket checkout on its ordinary locale guard without mock mode", async () => {
+    const storefront = routes.find((route) => route.path === ":locale");
+    expect(storefront?.canActivate).toEqual([localeGuard]);
+    const basket = storefront?.children?.find(
+      (route) => route.path === "basket",
+    );
+    expect(basket?.data?.["cardPaymentTestMode"]).not.toBe(true);
+    expect(basket?.canActivate).not.toContain(cardPaymentTestGuard);
+    const mock = routes.find(
+      (route) => route.path === "card-payment-test/:locale",
+    )?.children?.[0];
+    expect(await basket?.loadComponent?.()).toBe(await mock?.loadComponent?.());
+  });
+
+  it("registers dedicated test pages behind the config-authoritative guard with no nav entry", async () => {
     const parent = routes.find(
       (route) => route.path === "card-payment-test/:locale",
     );
-    expect(parent?.canActivate).toContain(adminAuthGuard);
+    expect(parent?.canActivate).not.toContain(adminAuthGuard);
     expect(parent?.canActivate).toContain(cardPaymentTestGuard);
     expect(parent?.children?.map((route) => route.path)).toEqual([
       "",
@@ -32,4 +49,16 @@ describe("isolated mock card-payment routes", () => {
       fixture.nativeElement.querySelector('a[href*="card-payment-test"]'),
     ).toBeNull();
   });
+
+  it.each(["card-payment-test/**"])(
+    "renders %s in the browser and excludes it from indexing",
+    (path) => {
+      const route = serverRoutes.find((candidate) => candidate.path === path);
+      expect(route?.renderMode).toBe(RenderMode.Client);
+      expect(route?.headers?.["X-Robots-Tag"]).toBe("noindex, nofollow");
+      expect(serverRoutes.indexOf(route!)).toBeLessThan(
+        serverRoutes.findIndex((candidate) => candidate.path === "**"),
+      );
+    },
+  );
 });

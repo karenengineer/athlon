@@ -66,7 +66,7 @@ h1 {
 .filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: center;
+  align-items: end;
   gap: 10px;
   margin-bottom: 24px;
   padding: 13px;
@@ -92,16 +92,29 @@ h1 {
   font-weight: 800;
 }
 
-select,
+.filters select,
 .filters input,
 .filters button {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid #d5d5d9;
   border-radius: 4px;
   color: #28282c;
   background: #f7f7f8;
+}
+
+.filter-actions {
+  grid-column: 3 / -1;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.filter-actions button {
+  flex: 1 1 0;
 }
 
 .filters .reset-button {
@@ -144,11 +157,24 @@ select,
   .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .filter-actions {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 520px) {
   .filters {
     grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+  }
+
+  .filters select,
+  .filters input {
+    font-size: 16px;
   }
 
   .catalog-heading {

@@ -26,6 +26,7 @@ describe("environmentSchema", () => {
     const defaults = environmentSchema.validate(requiredEnvironment);
     expect(defaults.error).toBeUndefined();
     expect(defaults.value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(false);
+    expect(defaults.value.CARD_PAYMENT_TEST_MODE).toBe("MOCK");
 
     const enabled = environmentSchema.validate({
       ...requiredEnvironment,
@@ -33,6 +34,54 @@ describe("environmentSchema", () => {
     });
     expect(enabled.error).toBeUndefined();
     expect(enabled.value.CARD_PAYMENT_TEST_FLOW_ENABLED).toBe(true);
+  });
+
+  it("requires complete separate credentials, access protection and exact canonical origin for sandbox mode", () => {
+    const sandbox = {
+      ...requiredEnvironment,
+      CARD_PAYMENT_TEST_MODE: "AMERIA_SANDBOX",
+      AMERIA_SANDBOX_CLIENT_ID: "fixture-client",
+      AMERIA_SANDBOX_USERNAME: "fixture-user",
+      AMERIA_SANDBOX_PASSWORD: "fixture-password",
+      CARD_PAYMENT_TEST_ACCESS_TOKEN:
+        "fixture-access-token-longer-than-32-characters",
+      AMERIA_SANDBOX_RETURN_ORIGIN: "https://athlon.am",
+    };
+    expect(environmentSchema.validate(sandbox).error).toBeUndefined();
+    expect(
+      environmentSchema.validate(sandbox).value.AMERIA_PAYMENTS_ENABLED,
+    ).toBe(false);
+    for (const key of [
+      "AMERIA_SANDBOX_CLIENT_ID",
+      "AMERIA_SANDBOX_USERNAME",
+      "AMERIA_SANDBOX_PASSWORD",
+      "CARD_PAYMENT_TEST_ACCESS_TOKEN",
+      "AMERIA_SANDBOX_RETURN_ORIGIN",
+    ]) {
+      expect(
+        environmentSchema.validate({ ...sandbox, [key]: "" }).error,
+      ).toBeDefined();
+    }
+    expect(
+      environmentSchema.validate({
+        ...sandbox,
+        CARD_PAYMENT_TEST_ACCESS_TOKEN: "short",
+      }).error,
+    ).toBeDefined();
+    for (const origin of [
+      "http://athlon.am",
+      "https://athlon.am/",
+      "https://athlonsport.am",
+      "https://athlon.am.attacker.test",
+      "https://user@athlon.am",
+    ]) {
+      expect(
+        environmentSchema.validate({
+          ...sandbox,
+          AMERIA_SANDBOX_RETURN_ORIGIN: origin,
+        }).error,
+      ).toBeDefined();
+    }
   });
 
   it("still validates explicitly configured values", () => {
