@@ -120,6 +120,143 @@ describe("BasketPage Ameriabank sandbox", () => {
       .dispatchEvent(new Event("submit", { cancelable: true }));
     return http.expectOne(`${endpoint}/sessions`);
   }
+  const legacyKey = "11111111-1111-4111-8111-111111111111";
+  function seedAttempt(reference?: string, key = legacyKey) {
+    const record = JSON.stringify({
+      key,
+      fingerprint: JSON.stringify({
+        locale: "en",
+        items: [
+          { productId: "product-id", quantity: 1, expectedUnitPrice: "24000" },
+        ],
+      }),
+      ...(reference ? { reference } : {}),
+    });
+    sessionStorage.setItem("athlon_sandbox_request_v1", record);
+    return record;
+  }
+  it.each(["FAILED", "CANCELLED", "EXPIRED"])(
+    "permits safe same-key recovery after an unbound legacy %s GET return",
+    (status) => {
+      const retained = seedAttempt();
+      const fixture = create(false, true);
+      http
+        .expectOne(`${endpoint}/sessions/owner-ref`)
+        .flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(
+        retained,
+      );
+      expect(
+        fixture.nativeElement.querySelector(".order-button").disabled,
+      ).toBe(false);
+      const replay = submit(fixture);
+      expect(replay.request.body.idempotencyKey).toBe(legacyKey);
+      replay.flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+      expect(fixture.componentInstance.customer.name).toBe("Tester");
+      expect(fixture.componentInstance.customer.email).toBe(
+        "test@example.test",
+      );
+      const next = submit(fixture);
+      expect(next.request.body.idempotencyKey).not.toBe(legacyKey);
+      next.flush({}, { status: 503, statusText: "Unavailable" });
+    },
+  );
+  it.each(["FAILED", "CANCELLED", "EXPIRED"])(
+    "recovers a legacy %s replay from the base route and permits a new explicit attempt",
+    (status) => {
+      seedAttempt();
+      const fixture = create();
+      const redirect = vi
+        .spyOn(fixture.componentInstance, "redirectToCheckout")
+        .mockImplementation(() => {});
+      const replay = submit(fixture);
+      expect(replay.request.body.idempotencyKey).toBe(legacyKey);
+      replay.flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(".order-button").disabled,
+      ).toBe(false);
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+      expect(redirect).not.toHaveBeenCalled();
+      const next = submit(fixture);
+      expect(next.request.body.idempotencyKey).not.toBe(legacyKey);
+      next.flush({}, { status: 503, statusText: "Unavailable" });
+    },
+  );
+  it.each(["FAILED", "CANCELLED", "EXPIRED"])(
+    "preserves a newer bound attempt on an old %s return",
+    (status) => {
+      const retained = seedAttempt(
+        "new-pending-ref",
+        "22222222-2222-4222-8222-222222222222",
+      );
+      const fixture = create(false, true);
+      http
+        .expectOne(`${endpoint}/sessions/owner-ref`)
+        .flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(
+        retained,
+      );
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+    },
+  );
+  it.each([
+    { currency: "USD" },
+    { basketTotal: "1" },
+    { items: [] },
+    { reference: "" },
+    { status: "UNKNOWN" },
+  ])("retains an unverified terminal replay key: %j", (change) => {
+    const retained = seedAttempt();
+    const fixture = create();
+    submit(fixture).flush({ ...session, status: "FAILED", ...change });
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(retained);
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+  });
+  it("does not bind an older in-flight terminal response to a newer request", () => {
+    seedAttempt();
+    const fixture = create();
+    const replay = submit(fixture);
+    const newer = seedAttempt(
+      "new-pending-ref",
+      "22222222-2222-4222-8222-222222222222",
+    );
+    replay.flush({ ...session, status: "FAILED" });
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(newer);
+  });
+  it("retains a terminal replay key on cleanup storage failure and recovers through the same key after recreation", () => {
+    seedAttempt();
+    let fixture = create();
+    const replay = submit(fixture);
+    const remove = vi
+      .spyOn(Storage.prototype, "removeItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    try {
+      replay.flush({ ...session, status: "FAILED" });
+    } finally {
+      remove.mockRestore();
+    }
+    fixture.detectChanges();
+    expect(fixture.componentInstance.sandboxStorageBlocked()).toBe(true);
+    expect(
+      JSON.parse(sessionStorage.getItem("athlon_sandbox_request_v1")!).key,
+    ).toBe(legacyKey);
+    fixture.destroy();
+    fixture = create();
+    const retry = submit(fixture);
+    expect(retry.request.body.idempotencyKey).toBe(legacyKey);
+    retry.flush({ ...session, status: "FAILED" });
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+  });
   it("keeps test submission disabled until valid configuration is available", () => {
     const fixture = TestBed.createComponent(BasketPage);
     fixture.detectChanges();
@@ -209,14 +346,12 @@ describe("BasketPage Ameriabank sandbox", () => {
     );
     const success = TestBed.createComponent(PaymentSuccessPage);
     success.detectChanges();
-    http
-      .expectOne(`${endpoint}/config`)
-      .flush({
-        enabled: true,
-        mode: "AMERIA_SANDBOX",
-        csrfToken: "sandbox-csrf",
-        accessRequired: false,
-      });
+    http.expectOne(`${endpoint}/config`).flush({
+      enabled: true,
+      mode: "AMERIA_SANDBOX",
+      csrfToken: "sandbox-csrf",
+      accessRequired: false,
+    });
     http
       .expectOne(`${endpoint}/sessions/owner-ref`)
       .flush({ ...session, status: "SUCCEEDED" });

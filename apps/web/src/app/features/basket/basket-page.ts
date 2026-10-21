@@ -13,7 +13,10 @@ import {
   CardPaymentTestConfig,
   MockPaymentSession,
 } from "../admin/card-payment-test/card-payment-test-api.service";
-import { isVerifiedPaymentSuccess } from "../admin/card-payment-test/verified-payment-session";
+import {
+  isValidPaymentSession,
+  isVerifiedPaymentSuccess,
+} from "../admin/card-payment-test/verified-payment-session";
 import {
   bindSandboxRequest,
   retainSandboxRequestKey,
@@ -330,9 +333,10 @@ export class BasketPage {
     }
     this.submitting.set(true);
     this.cardPaymentTestResult.set("");
+    const requestKey = this.idempotencyKey;
     this.cardPaymentTestApi
       .createSession({
-        ...(this.sandboxMode() ? { idempotencyKey: this.idempotencyKey } : {}),
+        ...(this.sandboxMode() ? { idempotencyKey: requestKey } : {}),
         locale: this.i18n.locale(),
         items: this.basket.items().map((item) => ({
           productId: item.id,
@@ -343,6 +347,35 @@ export class BasketPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (session) => {
+          if (
+            this.sandboxMode() &&
+            ["FAILED", "CANCELLED", "EXPIRED"].includes(session.status) &&
+            isValidPaymentSession(
+              session,
+              session.reference,
+              this.cardPaymentTestApi.configuration(),
+            )
+          ) {
+            try {
+              // This response belongs to the captured create key; a return GET
+              // alone cannot attribute an unbound legacy request to its URL.
+              bindSandboxRequest(requestKey, session.reference);
+              if (retireSandboxRequest(session.reference) !== true)
+                throw new Error("Sandbox cleanup unavailable");
+            } catch {
+              this.sandboxStorageBlocked.set(true);
+              this.orderError.set(this.i18n.t("paymentSandboxStorageError"));
+              this.submitting.set(false);
+              return;
+            }
+            this.clearIdempotencyKey();
+            this.sandboxStorageBlocked.set(false);
+            this.sandboxStatusPending.set(false);
+            this.sandboxAttemptComplete.set(false);
+            this.cardPaymentTestResult.set(this.returnMessage(session));
+            this.submitting.set(false);
+            return;
+          }
           if (
             this.sandboxMode() &&
             session.mode === "AMERIA_SANDBOX" &&
@@ -356,7 +389,7 @@ export class BasketPage {
               ))
           ) {
             try {
-              bindSandboxRequest(this.idempotencyKey, session.reference);
+              bindSandboxRequest(requestKey, session.reference);
             } catch {
               this.sandboxStorageBlocked.set(true);
               if (session.status !== "SUCCEEDED") {
@@ -443,9 +476,9 @@ export class BasketPage {
             this.sandboxStatusPending.set(session.status === "PENDING");
             this.sandboxAttemptComplete.set(false);
             if (["FAILED", "CANCELLED", "EXPIRED"].includes(session.status)) {
-              if (!retireSandboxRequest(reference)) {
-                this.sandboxStorageBlocked.set(true);
-              }
+              this.sandboxStorageBlocked.set(
+                retireSandboxRequest(reference) === false,
+              );
               this.clearIdempotencyKey();
             }
             return;

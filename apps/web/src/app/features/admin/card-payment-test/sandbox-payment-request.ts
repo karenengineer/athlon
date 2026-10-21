@@ -55,13 +55,15 @@ export function bindSandboxRequest(key: string, reference: string): void {
     throw new Error("Sandbox session was not retained");
 }
 
-export function retireSandboxRequest(reference: string): boolean {
+// null means identity is unknown: retain it, but allow a same-key create replay
+// to establish the reference. false means storage is unavailable or failed.
+export function retireSandboxRequest(reference: string): boolean | null {
   try {
     const storage = window.sessionStorage;
     const current = read(storage);
     if (!current) return true;
     // An unbound legacy/uncertain attempt cannot safely be attributed to a receipt.
-    if (!current.reference) return false;
+    if (!current.reference) return null;
     if (current.reference !== reference) return true;
     storage.removeItem(storageKey);
     return storage.getItem(storageKey) === null;

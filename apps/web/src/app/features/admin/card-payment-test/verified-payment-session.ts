@@ -10,6 +10,17 @@ export function isVerifiedPaymentSuccess(
   reference: string,
   config: CardPaymentTestConfig | null,
 ): boolean {
+  return (
+    session?.status === "SUCCEEDED" &&
+    isValidPaymentSession(session, reference, config)
+  );
+}
+
+export function isValidPaymentSession(
+  session: MockPaymentSession,
+  reference: string,
+  config: CardPaymentTestConfig | null,
+): boolean {
   if (
     !config ||
     config.enabled !== true ||
@@ -20,7 +31,6 @@ export function isVerifiedPaymentSuccess(
     !reference.trim() ||
     session.reference !== reference ||
     session.mode !== config.mode ||
-    session.status !== "SUCCEEDED" ||
     session.currency !== "AMD" ||
     !Array.isArray(session.items) ||
     session.items.length === 0
