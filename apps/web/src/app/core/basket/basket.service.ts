@@ -160,14 +160,15 @@ export class BasketService {
   }
 
   private setItems(items: BasketItem[]): void {
-    this.settledReferences = [
-      ...new Set([
-        ...this.settledReferences,
-        ...(this.read()?.settledReferences ?? []),
-      ]),
-    ];
+    const target = storage();
+    const current = this.read(target);
     this.items.set(items);
-    storage()?.setItem(
+    // An unreadable record may contain settlement history unknown to this instance.
+    if (!target || !current) return;
+    this.settledReferences = [
+      ...new Set([...this.settledReferences, ...current.settledReferences]),
+    ];
+    target.setItem(
       storageKey,
       JSON.stringify({
         version: 2,

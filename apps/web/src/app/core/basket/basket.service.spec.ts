@@ -167,6 +167,64 @@ describe("BasketService", () => {
     expect(restored.totalQuantity()).toBe(3);
   });
 
+  it("preserves unknown settlement history when an ordinary mutation cannot read storage", () => {
+    const stale = new BasketService();
+    const current = new BasketService();
+    current.add(product, 3);
+    expect(
+      current.settlePayment("payment-1", [
+        { productId: product.id, quantity: 2 },
+      ]),
+    ).toBe(true);
+    const saved = localStorage.getItem("athlon:basket:v1");
+    const read = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new Error("denied");
+      });
+
+    stale.clear();
+    read.mockRestore();
+    expect(localStorage.getItem("athlon:basket:v1")).toBe(saved);
+    stale.add(product, 3);
+
+    const restored = new BasketService();
+    expect(
+      restored.settlePayment("payment-1", [
+        { productId: product.id, quantity: 2 },
+      ]),
+    ).toBe(true);
+    expect(restored.totalQuantity()).toBe(3);
+  });
+
+  it("does not overwrite settlement history when the stored item section is corrupt", () => {
+    const stale = new BasketService();
+    const current = new BasketService();
+    current.add(product, 3);
+    expect(
+      current.settlePayment("payment-1", [
+        { productId: product.id, quantity: 2 },
+      ]),
+    ).toBe(true);
+    const saved = localStorage.getItem("athlon:basket:v1")!;
+    const corrupt = JSON.stringify({ ...JSON.parse(saved), items: [null] });
+    localStorage.setItem("athlon:basket:v1", corrupt);
+
+    stale.clear();
+    expect(localStorage.getItem("athlon:basket:v1")).toBe(corrupt);
+    // Simulate repair of the item data without losing the payment history.
+    localStorage.setItem("athlon:basket:v1", saved);
+    stale.add(product, 3);
+
+    const restored = new BasketService();
+    expect(
+      restored.settlePayment("payment-1", [
+        { productId: product.id, quantity: 2 },
+      ]),
+    ).toBe(true);
+    expect(restored.totalQuantity()).toBe(3);
+  });
+
   it("migrates legacy array storage while retaining basket quantities", () => {
     const original = new BasketService();
     original.add(product, 3);
