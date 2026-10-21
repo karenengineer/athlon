@@ -13,6 +13,7 @@ import {
   CardPaymentTestConfig,
   MockPaymentSession,
 } from "../admin/card-payment-test/card-payment-test-api.service";
+import { isVerifiedPaymentSuccess } from "../admin/card-payment-test/verified-payment-session";
 
 @Component({
   selector: "app-basket-page",
@@ -337,6 +338,7 @@ export class BasketPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (session) => {
+          if (this.openVerifiedSuccess(session, session.reference)) return;
           if (this.sandboxMode()) {
             if (
               session.mode === "AMERIA_SANDBOX" &&
@@ -345,7 +347,7 @@ export class BasketPage {
               session.status === "SUCCEEDED"
             ) {
               this.sandboxAttemptComplete.set(true);
-              this.cardPaymentTestResult.set(this.returnMessage(session));
+              this.orderError.set(this.i18n.t("paymentTestError"));
               this.submitting.set(false);
               return;
             }
@@ -393,6 +395,12 @@ export class BasketPage {
       .subscribe({
         next: (session) => {
           this.verifyingSandbox.set(false);
+          if (this.openVerifiedSuccess(session, reference)) return;
+          if (session.status === "SUCCEEDED") {
+            this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
+            if (this.sandboxMode()) this.sandboxStatusPending.set(true);
+            return;
+          }
           if (
             session.reference !== reference ||
             session.mode !== (this.sandboxMode() ? "AMERIA_SANDBOX" : "MOCK") ||
@@ -405,7 +413,7 @@ export class BasketPage {
           this.cardPaymentTestResult.set(this.returnMessage(session));
           if (this.sandboxMode()) {
             this.sandboxStatusPending.set(session.status === "PENDING");
-            this.sandboxAttemptComplete.set(session.status === "SUCCEEDED");
+            this.sandboxAttemptComplete.set(false);
             if (["FAILED", "CANCELLED", "EXPIRED"].includes(session.status)) {
               try {
                 window.sessionStorage.removeItem(SANDBOX_REQUEST_KEY);
@@ -458,6 +466,27 @@ export class BasketPage {
       case "PENDING":
         return this.i18n.t("paymentTestPending");
     }
+  }
+
+  private openVerifiedSuccess(
+    session: MockPaymentSession,
+    reference: string,
+  ): boolean {
+    if (
+      !isVerifiedPaymentSuccess(
+        session,
+        reference,
+        this.cardPaymentTestApi.configuration(),
+      )
+    )
+      return false;
+    this.submitting.set(false);
+    this.sandboxAttemptComplete.set(true);
+    void this.router.navigate(
+      ["/card-payment-test", this.i18n.locale(), "success", reference],
+      { replaceUrl: true },
+    );
+    return true;
   }
 }
 

@@ -31,6 +31,7 @@ describe("isolated mock card-payment routes", () => {
     expect(parent?.canActivate).toContain(cardPaymentTestGuard);
     expect(parent?.children?.map((route) => route.path)).toEqual([
       "",
+      "success/:reference",
       "payment/:reference",
     ]);
     expect(parent?.children?.[0].data).toEqual({ cardPaymentTestMode: true });

@@ -204,48 +204,79 @@ describe("BasketPage", () => {
     http.expectNone((request) => request.url.endsWith("/public/settings"));
   });
 
-  it("creates a mock session from basket data only and opens the simulator", () => {
-    const { fixture, basket } = createBasketFixture(false, undefined);
-    const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
-    fillOrderForm(form, {
-      customerName: "Ani Private",
-      customerEmail: "ani@example.com",
-      customerPhone: "+374 91 123456",
-      deliveryAddress: "Private address",
-    });
-    const navigate = vi.spyOn(TestBed.inject(Router), "navigate");
+  it.each(["PENDING", "SUCCEEDED"])(
+    "opens the correct mock destination for a created %s session without customer data",
+    (status) => {
+      const { fixture, basket } = createBasketFixture(false, undefined);
+      const form = fixture.nativeElement.querySelector(
+        "form",
+      ) as HTMLFormElement;
+      fillOrderForm(form, {
+        customerName: "Ani Private",
+        customerEmail: "ani@example.com",
+        customerPhone: "+374 91 123456",
+        deliveryAddress: "Private address",
+      });
+      const navigate = vi.spyOn(TestBed.inject(Router), "navigate");
 
-    form.dispatchEvent(
-      new Event("submit", { bubbles: true, cancelable: true }),
-    );
-    const request = http.expectOne("/api/v1/public/card-payment-test/sessions");
-    expect(request.request.body).toEqual({
-      locale: "en",
-      items: [
-        {
-          productId: "4ebeb944-3503-47a2-9843-d37f1eb34768",
-          quantity: 1,
-          expectedUnitPrice: "24000",
-        },
-      ],
-    });
-    expect(JSON.stringify(request.request.body)).not.toContain(
-      "ani@example.com",
-    );
-    expect(JSON.stringify(request.request.body)).not.toContain(
-      "Private address",
-    );
-    request.flush({ reference: "mock-ref", mode: "MOCK", status: "PENDING" });
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      const request = http.expectOne(
+        "/api/v1/public/card-payment-test/sessions",
+      );
+      expect(request.request.body).toEqual({
+        locale: "en",
+        items: [
+          {
+            productId: "4ebeb944-3503-47a2-9843-d37f1eb34768",
+            quantity: 1,
+            expectedUnitPrice: "24000",
+          },
+        ],
+      });
+      expect(JSON.stringify(request.request.body)).not.toContain(
+        "ani@example.com",
+      );
+      expect(JSON.stringify(request.request.body)).not.toContain(
+        "Private address",
+      );
+      request.flush({
+        reference: "mock-ref",
+        mode: "MOCK",
+        status,
+        locale: "EN",
+        currency: "AMD",
+        total: "24000",
+        items: [
+          {
+            productId: "4ebeb944-3503-47a2-9843-d37f1eb34768",
+            sku: "SKU1",
+            name: "Test Product",
+            quantity: 1,
+            unitPrice: "24000",
+            lineTotal: "24000",
+          },
+        ],
+        expiresAt: "2020-01-01T00:00:00Z",
+      });
 
-    expect(navigate).toHaveBeenCalledWith([
-      "/card-payment-test",
-      "en",
-      "payment",
-      "mock-ref",
-    ]);
-    expect(basket.items()).toHaveLength(1);
-    expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toBeNull();
-  });
+      if (status === "SUCCEEDED")
+        expect(navigate).toHaveBeenCalledWith(
+          ["/card-payment-test", "en", "success", "mock-ref"],
+          { replaceUrl: true },
+        );
+      else
+        expect(navigate).toHaveBeenCalledWith([
+          "/card-payment-test",
+          "en",
+          "payment",
+          "mock-ref",
+        ]);
+      expect(basket.items()).toHaveLength(1);
+      expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toBeNull();
+    },
+  );
 
   it("keeps mock customer input in memory without reading or changing ordinary checkout drafts", () => {
     const draft = JSON.stringify({
@@ -340,25 +371,42 @@ describe("BasketPage", () => {
         locale: "EN",
         currency: "AMD",
         total: "24000",
-        items: [],
+        items: [
+          {
+            productId: "4ebeb944-3503-47a2-9843-d37f1eb34768",
+            sku: "SKU1",
+            name: "Test Product",
+            quantity: 1,
+            unitPrice: "24000",
+            lineTotal: "24000",
+          },
+        ],
         expiresAt: "2026-10-11T12:15:00.000Z",
       });
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain(message);
+      if (status !== "SUCCEEDED")
+        expect(fixture.nativeElement.textContent).toContain(message);
       expect(basket.items()).toHaveLength(1);
       expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toContain(
         "ani@example.com",
       );
-      expect(
-        fixture.nativeElement.querySelector('[role="status"]'),
-      ).not.toBeNull();
-      expect(navigate).toHaveBeenCalledWith([], {
-        relativeTo: TestBed.inject(ActivatedRoute),
-        queryParams: { session: null },
-        queryParamsHandling: "merge",
-        replaceUrl: true,
-      });
+      if (status !== "SUCCEEDED")
+        expect(
+          fixture.nativeElement.querySelector('[role="status"]'),
+        ).not.toBeNull();
+      if (status === "SUCCEEDED")
+        expect(navigate).toHaveBeenCalledWith(
+          ["/card-payment-test", "en", "success", "mock-ref"],
+          { replaceUrl: true },
+        );
+      else
+        expect(navigate).toHaveBeenCalledWith([], {
+          relativeTo: TestBed.inject(ActivatedRoute),
+          queryParams: { session: null },
+          queryParamsHandling: "merge",
+          replaceUrl: true,
+        });
     },
   );
 

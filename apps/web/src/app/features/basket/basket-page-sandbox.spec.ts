@@ -25,7 +25,16 @@ const session = {
   currency: "AMD",
   total: "10",
   basketTotal: "24000",
-  items: [],
+  items: [
+    {
+      productId: "product-id",
+      sku: "SKU",
+      name: "Product",
+      quantity: 1,
+      unitPrice: "24000",
+      lineTotal: "24000",
+    },
+  ],
   expiresAt: "2026-10-16T12:00:00Z",
   checkoutUrl,
 };
@@ -303,7 +312,7 @@ describe("BasketPage Ameriabank sandbox", () => {
     expect(fixture.nativeElement.textContent).toContain(action);
     expect(fixture.nativeElement.textContent).toContain("AMD 10");
   });
-  it.each(["PENDING", "FAILED", "SUCCEEDED", "CANCELLED", "EXPIRED"])(
+  it.each(["PENDING", "FAILED", "CANCELLED", "EXPIRED"])(
     "ignores forged callback data and shows only server status %s without clearing the basket",
     (status) => {
       const fixture = create(false, true);
@@ -329,7 +338,7 @@ describe("BasketPage Ameriabank sandbox", () => {
       );
       expect(TestBed.inject(BasketService).items()).toHaveLength(1);
       expect(text).not.toContain("Your order has been registered");
-      if (status === "PENDING" || status === "SUCCEEDED") {
+      if (status === "PENDING") {
         expect(
           fixture.nativeElement.querySelector(".order-button").disabled,
         ).toBe(true);
@@ -341,4 +350,42 @@ describe("BasketPage Ameriabank sandbox", () => {
       expect(navigate).not.toHaveBeenCalled();
     },
   );
+  it.each(["return", "replay"])(
+    "opens verified sandbox success after %s without settling on the basket page",
+    (source) => {
+      const fixture = create(false, source === "return");
+      const navigate = vi
+        .spyOn(TestBed.inject(Router), "navigate")
+        .mockResolvedValue(true);
+      const request =
+        source === "return"
+          ? http.expectOne(`${endpoint}/sessions/owner-ref`)
+          : submit(fixture);
+      request.flush({ ...session, status: "SUCCEEDED" });
+      expect(navigate).toHaveBeenCalledWith(
+        ["/card-payment-test", "en", "success", "owner-ref"],
+        { replaceUrl: true },
+      );
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+    },
+  );
+  it.each([
+    { reference: "different-ref" },
+    { mode: "MOCK" },
+    { currency: "USD" },
+    { total: "24000" },
+    { basketTotal: "1" },
+    { items: [] },
+    { items: [{ ...session.items[0], quantity: -1 }] },
+  ])("does not redirect malformed successful return %j", (change) => {
+    create(false, true);
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), "navigate")
+      .mockResolvedValue(true);
+    http
+      .expectOne(`${endpoint}/sessions/owner-ref`)
+      .flush({ ...session, status: "SUCCEEDED", ...change });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+  });
 });
