@@ -157,7 +157,7 @@ const copy: Record<Locale, Copy> = {
     paymentSuccessBankConfirmed: "Подтверждено банком · ТЕСТ",
     paymentSuccessHome: "На главную",
     paymentSuccessCleanupWarning:
-      "Тестовая оплата подтверждена, но обновить корзину не удалось. Проверьте статус ещё раз для обновления корзины. Повторно платить не нужно.",
+      "Тестовая оплата подтверждена, но не удалось завершить очистку корзины или данных попытки оплаты. Проверьте статус ещё раз для завершения очистки. Повторно платить не нужно.",
     paymentSuccessUnverified:
       "Не удалось проверить статус оплаты. Проверьте статус ещё раз перед новой попыткой оплаты.",
     paymentSuccessPending:
@@ -314,7 +314,7 @@ const copy: Record<Locale, Copy> = {
     paymentSuccessBankConfirmed: "Բանկի կողմից հաստատված · ԹԵՍՏ",
     paymentSuccessHome: "Վերադառնալ գլխավոր",
     paymentSuccessCleanupWarning:
-      "Թեստային վճարումը հաստատված է, սակայն զամբյուղը չհաջողվեց թարմացնել։ Կրկին ստուգեք կարգավիճակը՝ զամբյուղը թարմացնելու համար։ Կրկին մի վճարեք։",
+      "Թեստային վճարումը հաստատված է, սակայն զամբյուղի կամ վճարման փորձի տվյալների մաքրումը չհաջողվեց ավարտել։ Կրկին ստուգեք կարգավիճակը՝ մաքրումն ավարտելու համար։ Կրկին մի վճարեք։",
     paymentSuccessUnverified:
       "Չհաջողվեց ստուգել վճարման կարգավիճակը։ Կրկին ստուգեք այն՝ նախքան նոր վճարման փորձը։",
     paymentSuccessPending:
@@ -470,7 +470,7 @@ const copy: Record<Locale, Copy> = {
     paymentSuccessBankConfirmed: "Confirmed by the bank · TEST",
     paymentSuccessHome: "Back to home",
     paymentSuccessCleanupWarning:
-      "Test payment is confirmed, but the basket could not be updated. Recheck status to retry basket cleanup. Do not pay again.",
+      "Test payment is confirmed, but basket or checkout-attempt cleanup could not be completed. Recheck status to retry local cleanup. Do not pay again.",
     paymentSuccessUnverified:
       "We could not verify payment status. Recheck status before attempting another payment.",
     paymentSuccessPending:

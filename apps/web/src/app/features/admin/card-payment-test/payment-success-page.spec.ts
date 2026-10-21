@@ -52,6 +52,7 @@ describe("PaymentSuccessPage", () => {
   };
   beforeEach(async () => {
     localStorage.clear();
+    sessionStorage.clear();
     route = {
       snapshot: {
         paramMap: convertToParamMap({ reference: "paid-ref" }),
@@ -116,6 +117,57 @@ describe("PaymentSuccessPage", () => {
     });
     return fixture;
   }
+  function retainAttempt(reference = "paid-ref") {
+    const record = JSON.stringify({
+      key: "11111111-1111-4111-8111-111111111111",
+      fingerprint: "basket-fingerprint",
+      ...(reference ? { reference } : {}),
+    });
+    sessionStorage.setItem("athlon_sandbox_request_v1", record);
+    return record;
+  }
+  it("retires only its own correlated attempt after successful settlement", () => {
+    retainAttempt();
+    const fixture = create();
+    http.expectOne(`${endpoint}/sessions/paid-ref`).flush(paid);
+    fixture.detectChanges();
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+  });
+  it.each(["new-pending-ref", ""])(
+    "keeps a different or unbound pending attempt when reloading an old receipt: %s",
+    (reference) => {
+      const record = retainAttempt(reference);
+      const fixture = create();
+      http.expectOne(`${endpoint}/sessions/paid-ref`).flush(paid);
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(record);
+    },
+  );
+  it("retains its key on retirement storage failure and completes cleanup safely on receipt reload", () => {
+    const record = retainAttempt();
+    let fixture = create();
+    const remove = vi
+      .spyOn(Storage.prototype, "removeItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    http.expectOne(`${endpoint}/sessions/paid-ref`).flush(paid);
+    fixture.detectChanges();
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(record);
+    expect(
+      fixture.nativeElement.querySelector('[role="alert"]'),
+    ).not.toBeNull();
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(2);
+    remove.mockRestore();
+    fixture.destroy();
+    fixture = create();
+    http.expectOne(`${endpoint}/sessions/paid-ref`).flush(paid);
+    fixture.detectChanges();
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(2);
+  });
   it("requires independent reads before displaying bank success and settles once across page recreation", () => {
     let fixture = create();
     expect(fixture.nativeElement.querySelector(".ath-receipt")).toBeNull();
@@ -177,6 +229,7 @@ describe("PaymentSuccessPage", () => {
     { items: [{ ...paid.items[0], quantity: 0 }] },
     { items: [paid.items[0], paid.items[0]] },
   ])("does not claim success or settle unverified session %j", (change) => {
+    const record = retainAttempt();
     const fixture = create();
     http
       .expectOne(`${endpoint}/sessions/paid-ref`)
@@ -188,6 +241,7 @@ describe("PaymentSuccessPage", () => {
     );
     expect(fixture.nativeElement.querySelector("button")).not.toBeNull();
     expect(TestBed.inject(BasketService).totalQuantity()).toBe(3);
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(record);
   });
   it("shows simulated mock success and its basket total without a bank-confirmed label", () => {
     const fixture = create("MOCK");
@@ -271,6 +325,7 @@ describe("PaymentSuccessPage", () => {
     expect(TestBed.inject(BasketService).totalQuantity()).toBe(2);
   });
   it("keeps confirmed payment visible when basket storage fails and retries only verification/cleanup", () => {
+    const record = retainAttempt();
     const fixture = create();
     const write = vi
       .spyOn(Storage.prototype, "setItem")
@@ -287,6 +342,7 @@ describe("PaymentSuccessPage", () => {
     ).toContain("basket");
     expect(fixture.nativeElement.textContent).not.toContain("Payment failed");
     expect(TestBed.inject(BasketService).totalQuantity()).toBe(3);
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(record);
     write.mockRestore();
     fixture.nativeElement.querySelector("button").click();
     http
@@ -295,6 +351,7 @@ describe("PaymentSuccessPage", () => {
     http.expectOne(`${endpoint}/sessions/paid-ref`).flush(paid);
     fixture.detectChanges();
     expect(TestBed.inject(BasketService).totalQuantity()).toBe(2);
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
     http.expectNone((request) => request.method !== "GET");
   });
@@ -311,13 +368,11 @@ describe("PaymentSuccessPage", () => {
       fixture.detectChanges();
       write.mockRestore();
       fixture.nativeElement.querySelector("button").click();
-      http
-        .expectOne(`${endpoint}/config`)
-        .flush({
-          enabled: true,
-          mode: "AMERIA_SANDBOX",
-          csrfToken: "test-token",
-        });
+      http.expectOne(`${endpoint}/config`).flush({
+        enabled: true,
+        mode: "AMERIA_SANDBOX",
+        csrfToken: "test-token",
+      });
       const latest = http.expectOne(`${endpoint}/sessions/paid-ref`);
       if (result === "unavailable")
         latest.flush({}, { status: 503, statusText: "Unavailable" });

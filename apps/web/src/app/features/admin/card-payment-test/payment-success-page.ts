@@ -19,6 +19,7 @@ import {
   MockPaymentSession,
 } from "./card-payment-test-api.service";
 import { isVerifiedPaymentSuccess } from "./verified-payment-session";
+import { retireSandboxRequest } from "./sandbox-payment-request";
 
 @Component({
   selector: "app-payment-success-page",
@@ -94,7 +95,9 @@ export class PaymentSuccessPage {
         this.session.set(session);
         this.title.setTitle(`${this.i18n.t("paymentSuccessTitle")} | ATHLON`);
         this.cleanupWarning.set(
-          !this.basket.settlePayment(reference, session.items),
+          !this.basket.settlePayment(reference, session.items) ||
+            (session.mode === "AMERIA_SANDBOX" &&
+              !retireSandboxRequest(reference)),
         );
       });
   }

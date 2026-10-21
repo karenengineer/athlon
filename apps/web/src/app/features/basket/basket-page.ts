@@ -14,6 +14,11 @@ import {
   MockPaymentSession,
 } from "../admin/card-payment-test/card-payment-test-api.service";
 import { isVerifiedPaymentSuccess } from "../admin/card-payment-test/verified-payment-session";
+import {
+  bindSandboxRequest,
+  retainSandboxRequestKey,
+  retireSandboxRequest,
+} from "../admin/card-payment-test/sandbox-payment-request";
 
 @Component({
   selector: "app-basket-page",
@@ -338,6 +343,29 @@ export class BasketPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (session) => {
+          if (
+            this.sandboxMode() &&
+            session.mode === "AMERIA_SANDBOX" &&
+            session.currency === "AMD" &&
+            session.total === "10" &&
+            (session.status === "PENDING" ||
+              isVerifiedPaymentSuccess(
+                session,
+                session.reference,
+                this.cardPaymentTestApi.configuration(),
+              ))
+          ) {
+            try {
+              bindSandboxRequest(this.idempotencyKey, session.reference);
+            } catch {
+              this.sandboxStorageBlocked.set(true);
+              if (session.status !== "SUCCEEDED") {
+                this.orderError.set(this.i18n.t("paymentSandboxStorageError"));
+                this.submitting.set(false);
+                return;
+              }
+            }
+          }
           if (this.openVerifiedSuccess(session, session.reference)) return;
           if (this.sandboxMode()) {
             if (
@@ -415,9 +443,7 @@ export class BasketPage {
             this.sandboxStatusPending.set(session.status === "PENDING");
             this.sandboxAttemptComplete.set(false);
             if (["FAILED", "CANCELLED", "EXPIRED"].includes(session.status)) {
-              try {
-                window.sessionStorage.removeItem(SANDBOX_REQUEST_KEY);
-              } catch {
+              if (!retireSandboxRequest(reference)) {
                 this.sandboxStorageBlocked.set(true);
               }
               this.clearIdempotencyKey();
@@ -519,37 +545,6 @@ function isSandboxCheckoutUrl(value: string, locale: string): boolean {
 const CUSTOMER_DRAFT_KEY = "athlon_checkout_customer_v1";
 const IDEMPOTENCY_KEY = "athlon_checkout_idempotency_v1";
 const PAYMENT_METHOD_KEY = "athlon_checkout_payment_method_v1";
-const SANDBOX_REQUEST_KEY = "athlon_sandbox_request_v1";
-
-function retainSandboxRequestKey(input: unknown): string {
-  // Only a random request ID and basket fingerprint are stored, never an access
-  // code, bank credential, or customer data. Storage failures block new charges.
-  const fingerprint = JSON.stringify(input);
-  const storage = window.sessionStorage;
-  const raw = storage.getItem(SANDBOX_REQUEST_KEY);
-  if (raw !== null) {
-    const record: unknown = JSON.parse(raw);
-    if (
-      !record ||
-      typeof record !== "object" ||
-      !("key" in record) ||
-      !("fingerprint" in record) ||
-      typeof record.key !== "string" ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        record.key,
-      ) ||
-      typeof record.fingerprint !== "string"
-    )
-      throw new Error("Invalid sandbox request record");
-    if (record.fingerprint === fingerprint) return record.key;
-  }
-  const key = globalThis.crypto.randomUUID();
-  const next = JSON.stringify({ key, fingerprint });
-  storage.setItem(SANDBOX_REQUEST_KEY, next);
-  if (storage.getItem(SANDBOX_REQUEST_KEY) !== next)
-    throw new Error("Sandbox request was not retained");
-  return key;
-}
 
 function loadCustomerDraft() {
   const empty = { name: "", email: "", phone: "", address: "" };
