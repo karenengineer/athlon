@@ -14,6 +14,27 @@ export interface BasketItem {
 
 const storageKey = "athlon:basket:v1";
 
+interface StoredBasket {
+  version: 2;
+  items: BasketItem[];
+  settledReferences: string[];
+}
+
+function isNonemptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isBasketItem(value: unknown): value is BasketItem {
+  if (typeof value !== "object" || value === null) return false;
+  const item = value as Partial<BasketItem>;
+  return (
+    isNonemptyString(item.id) &&
+    typeof item.name === "string" &&
+    Number.isSafeInteger(item.quantity) &&
+    (item.quantity ?? 0) > 0
+  );
+}
+
 function storage(): Storage | null {
   try {
     return typeof localStorage === "undefined" ? null : localStorage;
@@ -40,7 +61,9 @@ function itemFromProduct(product: Product, quantity: number): BasketItem {
 
 @Injectable({ providedIn: "root" })
 export class BasketService {
-  readonly items = signal<BasketItem[]>(this.read());
+  private readonly initialState = this.read();
+  private settledReferences = this.initialState?.settledReferences ?? [];
+  readonly items = signal<BasketItem[]>(this.initialState?.items ?? []);
   readonly totalQuantity = computed(() =>
     this.items().reduce((sum, item) => sum + item.quantity, 0),
   );
@@ -83,27 +106,104 @@ export class BasketService {
     this.setItems([]);
   }
 
-  private setItems(items: BasketItem[]): void {
-    this.items.set(items);
-    storage()?.setItem(storageKey, JSON.stringify(items));
+  settlePayment(
+    reference: string,
+    items: Array<{ productId: string; quantity: number }>,
+  ): boolean {
+    if (
+      !isNonemptyString(reference) ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      items.some(
+        (item) =>
+          !item ||
+          !isNonemptyString(item.productId) ||
+          !Number.isSafeInteger(item.quantity) ||
+          item.quantity <= 0,
+      ) ||
+      new Set(items.map((item) => item.productId)).size !== items.length
+    ) {
+      return false;
+    }
+
+    const target = storage();
+    const current = this.read(target);
+    if (!target || !current) return false;
+    if (current.settledReferences.includes(reference)) {
+      this.settledReferences = current.settledReferences;
+      this.items.set(current.items);
+      return true;
+    }
+
+    const purchased = new Map(
+      items.map((item) => [item.productId, item.quantity]),
+    );
+    const next: StoredBasket = {
+      version: 2,
+      items: current.items
+        .map((item) => ({
+          ...item,
+          quantity: Math.max(0, item.quantity - (purchased.get(item.id) ?? 0)),
+        }))
+        .filter((item) => item.quantity > 0),
+      settledReferences: [...current.settledReferences, reference],
+    };
+    try {
+      // One record retains both changes; localStorage offers no cross-tab CAS.
+      target.setItem(storageKey, JSON.stringify(next));
+    } catch {
+      return false;
+    }
+    this.settledReferences = next.settledReferences;
+    this.items.set(next.items);
+    return true;
   }
 
-  private read(): BasketItem[] {
-    const raw = storage()?.getItem(storageKey);
-    if (!raw) return [];
+  private setItems(items: BasketItem[]): void {
+    const target = storage();
+    const current = this.read(target);
+    this.items.set(items);
+    // An unreadable record may contain settlement history unknown to this instance.
+    if (!target || !current) return;
+    this.settledReferences = [
+      ...new Set([...this.settledReferences, ...current.settledReferences]),
+    ];
+    target.setItem(
+      storageKey,
+      JSON.stringify({
+        version: 2,
+        items,
+        settledReferences: this.settledReferences,
+      }),
+    );
+  }
+
+  private read(target = storage()): StoredBasket | null {
+    if (!target) return null;
     try {
-      const parsed = JSON.parse(raw) as BasketItem[];
-      return Array.isArray(parsed)
-        ? parsed.filter(
-            (item) =>
-              typeof item.id === "string" &&
-              typeof item.name === "string" &&
-              Number.isInteger(item.quantity) &&
-              item.quantity > 0,
-          )
-        : [];
+      const raw = target.getItem(storageKey);
+      if (raw === null) return { version: 2, items: [], settledReferences: [] };
+      const parsed: unknown = JSON.parse(raw);
+      const record = (
+        Array.isArray(parsed)
+          ? { version: 2, items: parsed, settledReferences: [] }
+          : parsed
+      ) as Partial<StoredBasket> | null;
+      if (
+        !record ||
+        record.version !== 2 ||
+        !Array.isArray(record.items) ||
+        !record.items.every(isBasketItem) ||
+        new Set(record.items.map((item) => item.id)).size !==
+          record.items.length ||
+        !Array.isArray(record.settledReferences) ||
+        !record.settledReferences.every(isNonemptyString)
+      ) {
+        return null;
+      }
+      return record as StoredBasket;
     } catch {
-      return [];
+      return null;
     }
   }
 }

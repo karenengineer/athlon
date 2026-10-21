@@ -1,0 +1,110 @@
+<header class="ath-top">
+  <a class="ath-brand" [routerLink]="['/', i18n.locale()]" aria-label="ATHLON"
+    >ATHL<em>ON</em></a
+  >
+  <div class="ath-top-right">
+    <span>{{ i18n.locale().toUpperCase() }}</span
+    ><a
+      class="ath-basket"
+      [routerLink]="['/', i18n.locale(), 'basket']"
+      [attr.aria-label]="i18n.t('basket')"
+      ><svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.7"
+        aria-hidden="true"
+      >
+        <path
+          d="M3 3h2l3 12h11l2-9H6M9 20h.01M18 20h.01"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        /></svg
+      ><b>{{ basket.totalQuantity() }}</b></a
+    >
+  </div>
+</header>
+<main class="ath-stage" [attr.lang]="i18n.locale()" [attr.aria-busy]="busy()">
+  <section
+    class="ath-success"
+    aria-labelledby="ath-payment-success-title"
+    role="status"
+    aria-live="polite"
+  >
+    @if (session(); as confirmed) {
+    <div class="ath-success-icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path
+          d="m5 12 4 4L19 6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </div>
+    <p class="ath-overline">
+      {{ i18n.t(confirmed.mode === 'MOCK' ? 'paymentTestMockLabel' :
+      'paymentSandboxLabel') }}
+    </p>
+    <h1 id="ath-payment-success-title">{{ i18n.t('paymentSuccessTitle') }}</h1>
+    <p class="ath-message">
+      {{ i18n.t(confirmed.mode === 'MOCK' ? 'paymentSuccessMockMessage' :
+      'paymentSuccessSandboxMessage') }}
+    </p>
+    <dl class="ath-receipt">
+      <div class="ath-receipt-row">
+        <dt>{{ i18n.t('paymentSuccessAmount') }}</dt>
+        <dd class="ath-amount">
+          {{ confirmed.total | currency:'AMD':'symbol-narrow':'1.0-2' }}
+        </dd>
+      </div>
+      <div class="ath-receipt-row">
+        <dt>{{ i18n.t('orderPaymentMethod') }}</dt>
+        <dd>{{ i18n.t('paymentSuccessMethod') }}</dd>
+      </div>
+      <div class="ath-receipt-row">
+        <dt>{{ i18n.t('paymentSuccessStatus') }}</dt>
+        <dd class="ath-paid">
+          {{ i18n.t(confirmed.mode === 'MOCK' ? 'paymentSuccessSimulated' :
+          'paymentSuccessBankConfirmed') }}
+        </dd>
+      </div>
+    </dl>
+    @if (cleanupWarning()) {
+    <p role="alert" class="ath-warning">
+      {{ i18n.t('paymentSuccessCleanupWarning') }}
+    </p>
+    } } @else {
+    <h1 id="ath-payment-success-title">
+      {{ i18n.t('paymentSuccessChecking') }}
+    </h1>
+    @if (pending()) {
+    <p class="ath-message">{{ i18n.t('paymentSuccessPending') }}</p>
+    } } @if (error()) {
+    <p role="alert" class="ath-warning">
+      {{ i18n.t(session() ? 'paymentSuccessRecheckUnverified' :
+      'paymentSuccessUnverified') }}
+    </p>
+    } @if (cleanupWarning() || pending() || error()) {
+    <button
+      class="ath-retry"
+      type="button"
+      [disabled]="busy()"
+      (click)="verify()"
+    >
+      {{ i18n.t('paymentSuccessRecheck') }}
+    </button>
+    }
+    <a class="ath-home" [routerLink]="['/', i18n.locale()]"
+      ><span>{{ i18n.t('paymentSuccessHome') }}</span
+      ><span aria-hidden="true">→</span></a
+    >
+  </section>
+</main>
+<footer class="ath-foot">
+  <span>© ATHLON</span><span>{{ i18n.t('footerText') }}</span>
+</footer>

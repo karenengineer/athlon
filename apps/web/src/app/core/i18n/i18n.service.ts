@@ -4,6 +4,21 @@ export const supportedLocales = ["hy", "ru", "en"] as const;
 export type Locale = (typeof supportedLocales)[number];
 
 type Copy = {
+  paymentSuccessTitle: string;
+  paymentSuccessChecking: string;
+  paymentSuccessMockMessage: string;
+  paymentSuccessSandboxMessage: string;
+  paymentSuccessAmount: string;
+  paymentSuccessStatus: string;
+  paymentSuccessSimulated: string;
+  paymentSuccessBankConfirmed: string;
+  paymentSuccessHome: string;
+  paymentSuccessCleanupWarning: string;
+  paymentSuccessUnverified: string;
+  paymentSuccessPending: string;
+  paymentSuccessRecheckUnverified: string;
+  paymentSuccessMethod: string;
+  paymentSuccessRecheck: string;
   announcement: string;
   home: string;
   catalog: string;
@@ -126,6 +141,27 @@ type Copy = {
 
 const copy: Record<Locale, Copy> = {
   ru: {
+    paymentSuccessRecheckUnverified:
+      "Ранее тестовая оплата была подтверждена. Последнюю проверку завершить не удалось. Повторно платить не нужно.",
+    paymentSuccessMethod: "Банковская карта",
+    paymentSuccessRecheck: "Проверить статус",
+    paymentSuccessTitle: "Тестовая оплата прошла успешно",
+    paymentSuccessChecking: "Проверка оплаты",
+    paymentSuccessMockMessage:
+      "Успешная оплата смоделирована. Деньги не списаны. Реальный заказ не создан.",
+    paymentSuccessSandboxMessage:
+      "Это подтверждённый банком тестовый платёж. Реальный заказ не создан.",
+    paymentSuccessAmount: "Тестовая сумма",
+    paymentSuccessStatus: "Статус",
+    paymentSuccessSimulated: "Успех смоделирован",
+    paymentSuccessBankConfirmed: "Подтверждено банком · ТЕСТ",
+    paymentSuccessHome: "На главную",
+    paymentSuccessCleanupWarning:
+      "Тестовая оплата подтверждена, но не удалось завершить очистку корзины или данных попытки оплаты. Проверьте статус ещё раз для завершения очистки. Повторно платить не нужно.",
+    paymentSuccessUnverified:
+      "Не удалось проверить статус оплаты. Проверьте статус ещё раз перед новой попыткой оплаты.",
+    paymentSuccessPending:
+      "Оплата ещё не подтверждена. Проверьте статус ещё раз перед новой попыткой оплаты.",
     announcement: "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55",
     home: "Главная",
     catalog: "Каталог",
@@ -262,6 +298,27 @@ const copy: Record<Locale, Copy> = {
       "Симуляция тайм-аута. Заказ не создан, корзина сохранена.",
   },
   hy: {
+    paymentSuccessRecheckUnverified:
+      "Թեստային վճարումը նախկինում հաստատվել է։ Վերջին ստուգումը չհաջողվեց ավարտել։ Կրկին մի վճարեք։",
+    paymentSuccessMethod: "Բանկային քարտ",
+    paymentSuccessRecheck: "Ստուգել կարգավիճակը",
+    paymentSuccessTitle: "Թեստային վճարումը հաջողվեց",
+    paymentSuccessChecking: "Վճարման ստուգում",
+    paymentSuccessMockMessage:
+      "Հաջող վճարումը մոդելավորվել է։ Քարտից գումար չի գանձվել։ Իրական պատվեր չի ստեղծվել։",
+    paymentSuccessSandboxMessage:
+      "Սա բանկի հաստատած թեստային վճարում է։ Իրական պատվեր չի ստեղծվել։",
+    paymentSuccessAmount: "Թեստային գումար",
+    paymentSuccessStatus: "Կարգավիճակ",
+    paymentSuccessSimulated: "Մոդելավորված հաջողություն",
+    paymentSuccessBankConfirmed: "Բանկի կողմից հաստատված · ԹԵՍՏ",
+    paymentSuccessHome: "Վերադառնալ գլխավոր",
+    paymentSuccessCleanupWarning:
+      "Թեստային վճարումը հաստատված է, սակայն զամբյուղի կամ վճարման փորձի տվյալների մաքրումը չհաջողվեց ավարտել։ Կրկին ստուգեք կարգավիճակը՝ մաքրումն ավարտելու համար։ Կրկին մի վճարեք։",
+    paymentSuccessUnverified:
+      "Չհաջողվեց ստուգել վճարման կարգավիճակը։ Կրկին ստուգեք այն՝ նախքան նոր վճարման փորձը։",
+    paymentSuccessPending:
+      "Վճարումը դեռ հաստատված չէ։ Կրկին ստուգեք կարգավիճակը՝ նախքան նոր վճարման փորձը։",
     announcement: "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55",
     home: "Գլխավոր",
     catalog: "Կատալոգ",
@@ -397,6 +454,27 @@ const copy: Record<Locale, Copy> = {
       "Ժամանակի ավարտի սիմուլյացիա։ Պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
   },
   en: {
+    paymentSuccessRecheckUnverified:
+      "Test payment was previously confirmed. The latest check could not be verified. Do not pay again.",
+    paymentSuccessMethod: "Bank card",
+    paymentSuccessRecheck: "Recheck status",
+    paymentSuccessTitle: "Test payment successful",
+    paymentSuccessChecking: "Checking payment",
+    paymentSuccessMockMessage:
+      "Payment success was simulated. No card was charged. No real order was created.",
+    paymentSuccessSandboxMessage:
+      "This is a bank-confirmed sandbox payment. No real order was created.",
+    paymentSuccessAmount: "Test amount",
+    paymentSuccessStatus: "Status",
+    paymentSuccessSimulated: "Simulated success",
+    paymentSuccessBankConfirmed: "Confirmed by the bank · TEST",
+    paymentSuccessHome: "Back to home",
+    paymentSuccessCleanupWarning:
+      "Test payment is confirmed, but basket or checkout-attempt cleanup could not be completed. Recheck status to retry local cleanup. Do not pay again.",
+    paymentSuccessUnverified:
+      "We could not verify payment status. Recheck status before attempting another payment.",
+    paymentSuccessPending:
+      "Payment is not confirmed yet. Recheck status before attempting another payment.",
     announcement: "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55",
     home: "Home",
     catalog: "Catalog",

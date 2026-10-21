@@ -25,6 +25,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "success/:reference",
+        loadComponent: () =>
+          import(
+            "./features/admin/card-payment-test/payment-success-page"
+          ).then((module) => module.PaymentSuccessPage),
+      },
+      {
         path: "payment/:reference",
         canActivate: [cardPaymentTestGuard],
         loadComponent: () =>
