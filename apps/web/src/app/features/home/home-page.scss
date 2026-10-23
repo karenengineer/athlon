@@ -203,9 +203,10 @@ h1 {
 .ig-profile {
   min-height: 58px;
   padding: 12px 24px;
-  border: 2px solid currentColor;
+  border: 2px solid;
   color: #080809;
   font-size: 1.1rem;
+  overflow-wrap: anywhere;
 }
 
 svg {

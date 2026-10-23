@@ -24,7 +24,9 @@ describe("Footer social links", () => {
     expect(
       links.map((link) => link.querySelector("img")?.getAttribute("src")),
     ).toEqual(["/social/instagram.svg", "/social/facebook.svg"]);
-    expect(links[0].href).toBe("https://www.instagram.com/__athlon__/");
+    expect(links[0].href).toBe(
+      "https://www.instagram.com/athlon.sports.nutrition/",
+    );
     expect(links[0].getAttribute("aria-disabled")).toBeNull();
     expect(links[1].href).toBe(
       "https://www.facebook.com/profile.php?id=61594888554559",

@@ -67,25 +67,24 @@
       <span data-testid="product-card-quantity-value"
         >{{ quantityInBasket() }}</span
       >
+      @if (product().availability === "IN_STOCK") {
       <button
         type="button"
         class="quantity-button"
         data-testid="product-card-increment"
         aria-label="Increase quantity"
-        [disabled]="product().availability === 'OUT_OF_STOCK'"
         (click)="incrementBasket()"
       >
         +
       </button>
+      }
     </div>
-    } @else {
+    } @else if (product().availability === "IN_STOCK") {
     <button
       type="button"
       class="basket-button basket-button--icon"
       data-testid="product-card-add-basket"
       [attr.aria-label]="i18n.t('addToBasket')"
-      [disabled]="product().availability === 'OUT_OF_STOCK'"
-      [attr.aria-disabled]="product().availability === 'OUT_OF_STOCK' ? 'true' : null"
       (click)="addToBasket()"
     >
       <svg

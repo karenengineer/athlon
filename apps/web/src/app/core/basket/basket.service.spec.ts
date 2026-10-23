@@ -29,6 +29,33 @@ describe("BasketService", () => {
     vi.unstubAllGlobals();
   });
 
+  it.each([
+    "OUT_OF_STOCK",
+    "PREORDER",
+    "ON_REQUEST",
+    undefined,
+    null,
+    "UNKNOWN",
+  ])(
+    "rejects adding or incrementing availability %s without writing storage",
+    (availability) => {
+      const basket = TestBed.inject(BasketService);
+      const unavailable = { ...product, availability } as Product;
+      const write = vi.spyOn(Storage.prototype, "setItem");
+
+      basket.add(unavailable);
+      expect(basket.items()).toEqual([]);
+      expect(write).not.toHaveBeenCalled();
+
+      basket.add(product, 2);
+      write.mockClear();
+      basket.add(unavailable);
+      expect(basket.totalQuantity()).toBe(2);
+      expect(write).not.toHaveBeenCalled();
+      expect(new BasketService().totalQuantity()).toBe(2);
+    },
+  );
+
   it("stores product quantities and restores them from localStorage", () => {
     const basket = TestBed.inject(BasketService);
 

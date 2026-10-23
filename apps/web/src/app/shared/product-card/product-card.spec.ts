@@ -119,10 +119,85 @@ describe("ProductCard basket controls", () => {
 
     const addButton = fixture.nativeElement.querySelector(
       "[data-testid='product-card-add-basket']",
-    ) as HTMLButtonElement;
-    addButton.click();
-
-    expect(addButton.disabled).toBe(true);
+    );
+    expect(addButton).toBeNull();
+    fixture.componentInstance.addToBasket();
     expect(TestBed.inject(BasketService).items()).toHaveLength(0);
+  });
+
+  it.each(["OUT_OF_STOCK", "PREORDER", "ON_REQUEST"] as const)(
+    "hides add and increment for %s while allowing removal",
+    async (availability) => {
+      await TestBed.configureTestingModule({
+        imports: [ProductCard],
+        providers: [provideRouter([])],
+      }).compileComponents();
+      const fixture = TestBed.createComponent(ProductCard);
+      const basket = TestBed.inject(BasketService);
+      fixture.componentRef.setInput("product", { ...product, availability });
+      fixture.detectChanges();
+
+      const add = fixture.nativeElement.querySelector(
+        "[data-testid='product-card-add-basket']",
+      );
+      expect(add).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(".detail-link"),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(".card-bottom strong").textContent,
+      ).toContain("15,000");
+      fixture.componentInstance.addToBasket();
+      expect(basket.items()).toEqual([]);
+
+      basket.add(product);
+      fixture.detectChanges();
+      const increment = fixture.nativeElement.querySelector(
+        "[data-testid='product-card-increment']",
+      );
+      expect(increment).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(
+          "[data-testid='product-card-quantity-value']",
+        ).textContent,
+      ).toContain("1");
+      fixture.componentInstance.incrementBasket();
+      expect(basket.totalQuantity()).toBe(1);
+      const decrement = fixture.nativeElement.querySelector(
+        "[data-testid='product-card-decrement']",
+      ) as HTMLButtonElement;
+      expect(decrement.disabled).toBe(false);
+      decrement.click();
+      expect(basket.items()).toEqual([]);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          "[data-testid='product-card-add-basket']",
+        ),
+      ).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(
+          "[data-testid='product-card-increment']",
+        ),
+      ).toBeNull();
+    },
+  );
+
+  it("increments an in-stock product using the enabled plus control", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductCard],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ProductCard);
+    const basket = TestBed.inject(BasketService);
+    basket.add(product);
+    fixture.componentRef.setInput("product", product);
+    fixture.detectChanges();
+    const increment = fixture.nativeElement.querySelector(
+      "[data-testid='product-card-increment']",
+    ) as HTMLButtonElement;
+    expect(increment.disabled).toBe(false);
+    increment.click();
+    expect(basket.totalQuantity()).toBe(2);
   });
 });

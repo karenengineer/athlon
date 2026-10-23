@@ -77,6 +77,7 @@ export class BasketService {
   });
 
   add(product: Product, quantity = 1): void {
+    if (product.availability !== "IN_STOCK") return;
     const next = [...this.items()];
     const existing = next.find((item) => item.id === product.id);
     if (existing) {
