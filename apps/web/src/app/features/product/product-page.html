@@ -60,17 +60,11 @@
         } @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
         <span>{{ availabilityLabel() }}</span>
       </div>
-      <button
-        type="button"
-        class="basket-cta"
-        [disabled]="item.availability === 'OUT_OF_STOCK'"
-        (click)="addToBasket()"
-      >
-        @if (item.availability === "OUT_OF_STOCK") { {{ i18n.t("unavailable") }}
-        } @else { {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
-        }
+      @if (item.availability === "IN_STOCK") {
+      <button type="button" class="basket-cta" (click)="addToBasket()">
+        {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
       </button>
-      @if (contactHref(); as href) {
+      } @if (contactHref(); as href) {
       <a
         class="availability-cta"
         data-testid="availability-cta"

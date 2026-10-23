@@ -61,10 +61,12 @@ describe("HomePage Instagram community", () => {
     const links = Array.from(section.querySelectorAll("a"));
 
     expect(links).toHaveLength(2);
-    expect(links[0].textContent).toContain("@__athlon__");
+    expect(links[0].textContent).toContain("@athlon.sports.nutrition");
     expect(links[1].textContent).toContain("Follow on Instagram");
     for (const link of links) {
-      expect(link.href).toBe("https://www.instagram.com/__athlon__/");
+      expect(link.href).toBe(
+        "https://www.instagram.com/athlon.sports.nutrition/",
+      );
       expect(link.target).toBe("_blank");
       expect(link.relList.contains("noopener")).toBe(true);
       expect(link.relList.contains("noreferrer")).toBe(true);

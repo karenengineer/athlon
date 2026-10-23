@@ -673,10 +673,7 @@ describe("ATHLON public application", () => {
     expect(fixture.nativeElement.textContent).toContain("Порций");
     expect(fixture.nativeElement.textContent).toContain("Без вкуса");
     expect(fixture.nativeElement.textContent).toContain("Нет в наличии");
-    const buyButton = fixture.nativeElement.querySelector(
-      ".basket-cta",
-    ) as HTMLButtonElement;
-    expect(buyButton.disabled).toBe(true);
+    expect(fixture.nativeElement.querySelector(".basket-cta")).toBeNull();
     expect(
       fixture.nativeElement.querySelector("[aria-pressed='true']"),
     ).not.toBeNull();

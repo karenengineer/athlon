@@ -97,7 +97,7 @@ export class OrdersService {
     let hasUnpricedItems = false;
     const persistenceItems = input.items.map((requested) => {
       const product = productsById.get(requested.productId)!;
-      if (product.availability === "OUT_OF_STOCK") {
+      if (product.availability !== "IN_STOCK") {
         throw new ConflictException("One or more products are out of stock");
       }
       if (product.currency !== "AMD") {

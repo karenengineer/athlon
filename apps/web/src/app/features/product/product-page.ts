@@ -204,7 +204,7 @@ export class ProductPage {
 
   addToBasket(): void {
     const product = this.product();
-    if (product && product.availability !== "OUT_OF_STOCK") {
+    if (product && product.availability === "IN_STOCK") {
       this.basket.add(product);
     }
   }

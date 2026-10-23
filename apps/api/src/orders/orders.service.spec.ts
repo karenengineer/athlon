@@ -123,6 +123,8 @@ describe("OrdersService", () => {
       checkoutUrl: "https://payments.example.test/checkout/1",
     });
     paymentInitializer.isEnabled = true;
+    paymentInitializer.isTrustedCheckoutUrl = (url: string) =>
+      url.startsWith("https://payments.example.test/");
   });
 
   it("prices COD from published DB products, persists snapshots, and emails ATHLON", async () => {
@@ -521,14 +523,37 @@ describe("OrdersService", () => {
     expect(createPendingOrder).not.toHaveBeenCalled();
   });
 
-  it("rejects out-of-stock products", async () => {
-    findProducts.mockResolvedValueOnce([
-      { ...publishedProduct, availability: "OUT_OF_STOCK" },
-    ]);
+  describe.each(["CASH_ON_DELIVERY", "CARD"] as const)(
+    "%s availability",
+    (paymentMethod) => {
+      it.each([
+        "OUT_OF_STOCK",
+        "PREORDER",
+        "ON_REQUEST",
+        undefined,
+        null,
+        "UNKNOWN",
+      ])(
+        "rejects %s products before creating orders, payments, or notifications",
+        async (availability) => {
+          findProducts.mockResolvedValueOnce([
+            { ...publishedProduct, availability },
+          ]);
 
-    await expect(
-      service.submit(orderInput, "web-req-stock-123456"),
-    ).rejects.toThrow(ConflictException);
-    expect(createPendingOrder).not.toHaveBeenCalled();
-  });
+          await expect(
+            service.submit(
+              { ...orderInput, paymentMethod },
+              "web-req-stock-123456",
+            ),
+          ).rejects.toThrow(ConflictException);
+          expect(createPendingOrder).not.toHaveBeenCalled();
+          expect(initializePayment).not.toHaveBeenCalled();
+          expect(recordProviderPaymentId).not.toHaveBeenCalled();
+          expect(sendEmail).not.toHaveBeenCalled();
+          expect(sendCustomerEmail).not.toHaveBeenCalled();
+          expect(recordNotificationAttempt).not.toHaveBeenCalled();
+        },
+      );
+    },
+  );
 });

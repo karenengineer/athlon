@@ -126,7 +126,7 @@ export class CardPaymentTestService {
     let total = new Prisma.Decimal(0);
     const items = input.items.map((requested) => {
       const product = productsById.get(requested.productId)!;
-      if (!product.published || product.availability === "OUT_OF_STOCK") {
+      if (!product.published || product.availability !== "IN_STOCK") {
         throw new ConflictException("One or more products are out of stock");
       }
       if (product.currency !== "AMD") {
