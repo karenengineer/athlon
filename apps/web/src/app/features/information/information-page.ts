@@ -9,6 +9,8 @@ import {
 } from "../../core/i18n/information-navigation";
 import { createPageMetadata } from "../../core/seo/page-metadata";
 import { informationContent } from "./information-content";
+import { storeSchema } from "../../core/seo/seo-content";
+import { createPageResponseStatus } from "../../core/seo/page-metadata";
 
 @Component({
   selector: "app-information-page",
@@ -23,6 +25,7 @@ export class InformationPage {
   readonly navigation = informationNavigation;
   private readonly route = inject(ActivatedRoute);
   private readonly metadata = createPageMetadata();
+  private readonly responseStatus = createPageResponseStatus();
 
   constructor() {
     combineLatest([this.route.data, this.route.parent!.paramMap])
@@ -31,11 +34,15 @@ export class InformationPage {
         const locale = parseLocale(params.get("locale"));
         const pageId = data["informationPage"] as InformationPageId;
         const content = informationContent[locale][pageId];
+        this.responseStatus(200);
         this.pageId.set(pageId);
         this.content.set(content);
         this.metadata.set({
           title: `${content.heading} | ATHLON`,
           description: content.description,
+          locale,
+          path: [pageId],
+          jsonLd: pageId === "about" ? [storeSchema(locale)] : [],
         });
       });
   }

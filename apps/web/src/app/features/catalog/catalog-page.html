@@ -134,21 +134,35 @@
   @default { <app-product-grid [products]="products()" /> } } @if (state() ===
   "ready" && meta().totalPages > 1) {
   <nav class="pagination" aria-label="Pagination">
-    <button
-      type="button"
-      [disabled]="meta().page <= 1"
-      (click)="goToPage(meta().page - 1)"
+    @if (meta().page > 1) {
+    <a
+      [routerLink]="[]"
+      [queryParams]="paginationQuery(meta().page - 1)"
+      queryParamsHandling="merge"
+      rel="prev"
     >
       ← {{ i18n.t("previous") }}
-    </button>
-    <span>{{ meta().page }} / {{ meta().totalPages }}</span>
-    <button
-      type="button"
-      [disabled]="meta().page >= meta().totalPages"
-      (click)="goToPage(meta().page + 1)"
+    </a>
+    } @else {
+    <span class="pagination-boundary" aria-disabled="true"
+      >← {{ i18n.t("previous") }}</span
+    >
+    }
+    <span aria-current="page">{{ meta().page }} / {{ meta().totalPages }}</span>
+    @if (meta().page < meta().totalPages) {
+    <a
+      [routerLink]="[]"
+      [queryParams]="paginationQuery(meta().page + 1)"
+      queryParamsHandling="merge"
+      rel="next"
     >
       {{ i18n.t("next") }} →
-    </button>
+    </a>
+    } @else {
+    <span class="pagination-boundary" aria-disabled="true"
+      >{{ i18n.t("next") }} →</span
+    >
+    }
   </nav>
   }
 </section>

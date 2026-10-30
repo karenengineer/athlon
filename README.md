@@ -201,6 +201,9 @@ clients around that proxy.
 
 ## Verification
 
+Technical SEO behavior and the external Search Console verification/submission
+steps are documented in [technical SEO operations](docs/technical-seo.md).
+
 ```bash
 pnpm verify
 ```
