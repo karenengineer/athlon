@@ -1,5 +1,6 @@
 import { Routes } from "@angular/router";
 import { localeGuard } from "./core/i18n/locale.guard";
+import { informationPageIds } from "./core/i18n/information-navigation";
 import { cardPaymentTestGuard } from "./features/admin/card-payment-test/card-payment-test.guard";
 import { PublicShell } from "./layout/public-shell/public-shell";
 
@@ -86,6 +87,14 @@ export const routes: Routes = [
             (module) => module.BasketPage,
           ),
       },
+      ...informationPageIds.map((page) => ({
+        path: page,
+        data: { informationPage: page },
+        loadComponent: () =>
+          import("./features/information/information-page").then(
+            (module) => module.InformationPage,
+          ),
+      })),
       {
         path: "**",
         loadComponent: () =>

@@ -63,6 +63,53 @@ h1 {
   font-size: 0.78rem;
 }
 
+.category-navigation,
+.related-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 24px;
+}
+
+.category-navigation a,
+.related-categories a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: #28282c;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+  text-underline-offset: 4px;
+}
+
+.category-navigation a[aria-current="page"] {
+  color: #a41622;
+  font-weight: 800;
+}
+
+.category-content {
+  margin-bottom: 24px;
+  max-width: 76ch;
+  color: #4e4e54;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.category-content h2,
+.category-content h3 {
+  margin: 18px 0 8px;
+  color: #1b1b1e;
+  font-size: 1rem;
+}
+
+.category-content p {
+  margin: 0 0 12px;
+}
+
+.related-categories h3 {
+  flex-basis: 100%;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
