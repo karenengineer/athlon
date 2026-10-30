@@ -1,0 +1,61 @@
+:host {
+  display: block;
+}
+
+.information-page {
+  padding-block: clamp(36px, 6vw, 72px);
+  color: #171719;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  max-width: 800px;
+  margin: 0 0 24px;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.15;
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+p {
+  max-width: 720px;
+  margin: 0;
+  color: #4d4d55;
+  line-height: 1.7;
+}
+
+.information-introduction {
+  font-size: 1.125rem;
+}
+
+.information-section {
+  max-width: 720px;
+  margin-top: 32px;
+}
+
+.information-contacts {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding-block: 10px;
+  color: #171719;
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
+.information-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin-top: 32px;
+}

@@ -2,7 +2,6 @@ import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, ParamMap, Router, RouterLink } from "@angular/router";
-import { Title } from "@angular/platform-browser";
 import {
   catchError,
   combineLatest,
@@ -24,8 +23,10 @@ import {
   ProductQuery,
 } from "../../core/api/catalog.models";
 import { I18nService } from "../../core/i18n/i18n.service";
+import { createPageMetadata } from "../../core/seo/page-metadata";
 import { ProductGrid } from "../../shared/product-grid/product-grid";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
+import { catalogContentCopy, categoryIntroduction } from "./category-content";
 
 type CatalogState = "loading" | "ready" | "empty" | "error";
 type CategoryOption = Pick<Category, "id" | "slug" | "name" | "displayOrder">;
@@ -43,6 +44,8 @@ export class CatalogPage {
   readonly products = signal<Product[]>([]);
   readonly categories = signal<Category[]>([]);
   readonly brands = signal<Brand[]>([]);
+  readonly selectedCategory = signal<Omit<Category, "children"> | null>(null);
+  readonly introduction = signal("");
   readonly meta = signal<ProductPageResponse["meta"]>({
     page: 1,
     pageSize: 24,
@@ -59,7 +62,7 @@ export class CatalogPage {
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly title = inject(Title);
+  private readonly pageMetadata = createPageMetadata();
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
   private readonly brandsByLocale = new Map<string, Observable<Brand[]>>();
@@ -166,8 +169,26 @@ export class CatalogPage {
     });
   }
 
+  contentCopy() {
+    return catalogContentCopy[this.i18n.locale()];
+  }
+
+  publishedCategories(): Omit<Category, "children">[] {
+    return this.categories().flatMap((category) => [
+      category,
+      ...category.children,
+    ]);
+  }
+
+  relatedCategories(): Omit<Category, "children">[] {
+    return this.publishedCategories().filter(
+      (category) => category.slug !== this.selectedCategory()?.slug,
+    );
+  }
+
   private load(locale: string, routeParams: ParamMap, params: ParamMap): void {
     this.loadSubscription?.unsubscribe();
+    this.i18n.setLocale(locale);
     const category = routeParams.get("categorySlug") || DEFAULT_CATEGORY_SLUG;
     const q = params.get("q") || undefined;
     const parsedPage = Number(params.get("page") ?? "1");
@@ -182,6 +203,10 @@ export class CatalogPage {
     this.minPrice = this.parsePrice(params.get("minPrice"));
     this.maxPrice = this.parsePrice(params.get("maxPrice"));
     this.state.set("loading");
+    this.categories.set([]);
+    this.selectedCategory.set(null);
+    this.introduction.set("");
+    this.updateMetadata(q);
 
     this.loadSubscription = forkJoin({
       categories: this.api.categories(locale),
@@ -207,10 +232,36 @@ export class CatalogPage {
           this.products.set(response.products.items);
           this.meta.set(response.products.meta);
           this.state.set(response.products.items.length ? "ready" : "empty");
-          this.title.setTitle(`${this.heading()} | ATHLON`);
+          const selected = this.publishedCategories().find(
+            (item) => item.slug === category,
+          );
+          if (
+            !q &&
+            this.route.snapshot.routeConfig?.path !== "search" &&
+            selected
+          ) {
+            this.selectedCategory.set(selected);
+            this.introduction.set(
+              categoryIntroduction(selected, this.i18n.locale()),
+            );
+          }
+          this.updateMetadata(q);
         },
-        error: () => this.state.set("error"),
+        error: () => {
+          this.state.set("error");
+          this.updateMetadata(q);
+        },
       });
+  }
+
+  private updateMetadata(query: string | undefined): void {
+    this.pageMetadata.set({
+      title: `${query ? `${this.i18n.t("searchResults")}: “${query}”` : (this.selectedCategory()?.name ?? this.i18n.t("catalog"))} | ATHLON`,
+      description:
+        query || this.route.snapshot.routeConfig?.path === "search"
+          ? this.contentCopy().searchDescription
+          : this.introduction() || this.contentCopy().description,
+    });
   }
 
   private parsePrice(value: string | null): number | null {

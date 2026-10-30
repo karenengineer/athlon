@@ -20,6 +20,37 @@
     <span class="result-count">{{ i18n.productCountLabel(meta().total) }}</span>
   </header>
 
+  @if (publishedCategories().length) {
+  <nav class="category-navigation" [attr.aria-label]="contentCopy().categories">
+    @for (category of publishedCategories(); track category.id) {
+    <a
+      [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+      [attr.aria-current]="selectedCategory()?.slug === category.slug ? 'page' : null"
+      >{{ category.name }}</a
+    >
+    }
+  </nav>
+  } @if (selectedCategory()) {
+  <section
+    class="category-content"
+    [attr.aria-label]="selectedCategory()?.name"
+  >
+    <p class="category-introduction">{{ introduction() }}</p>
+    <h2>{{ contentCopy().guidanceHeading }}</h2>
+    <p class="category-guidance">{{ contentCopy().guidance }}</p>
+    @if (relatedCategories().length) {
+    <nav class="related-categories" [attr.aria-label]="contentCopy().related">
+      <h3>{{ contentCopy().related }}</h3>
+      @for (category of relatedCategories(); track category.id) {
+      <a [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+        >{{ category.name }}</a
+      >
+      }
+    </nav>
+    }
+  </section>
+  }
+
   <form class="filters" (ngSubmit)="applyFilters()">
     <strong>{{ i18n.t("filters") }}</strong>
     <label>

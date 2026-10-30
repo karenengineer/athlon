@@ -1,5 +1,6 @@
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
+import { I18nService } from "../../core/i18n/i18n.service";
 import { Footer } from "./footer";
 
 describe("Footer social links", () => {
@@ -32,5 +33,42 @@ describe("Footer social links", () => {
       "https://www.facebook.com/profile.php?id=61594888554559",
     );
     expect(links[1].getAttribute("aria-disabled")).toBeNull();
+  });
+});
+
+describe("Footer information navigation", () => {
+  it.each([
+    [
+      "hy",
+      ["ATHLON-ի մասին", "Կապ", "Առաքում և վճարում", "Վերադարձ և փոխանակում"],
+    ],
+    ["ru", ["Об ATHLON", "Контакты", "Доставка и оплата", "Возврат и обмен"]],
+    [
+      "en",
+      [
+        "About ATHLON",
+        "Contact",
+        "Delivery and payment",
+        "Returns and exchanges",
+      ],
+    ],
+  ])("exposes localized public links in %s", async (locale, labels) => {
+    await TestBed.configureTestingModule({
+      imports: [Footer],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    TestBed.inject(I18nService).setLocale(locale as string);
+    const fixture = TestBed.createComponent(Footer);
+    fixture.detectChanges();
+    const links = Array.from(
+      fixture.nativeElement.querySelectorAll(".footer-information a"),
+    ) as HTMLAnchorElement[];
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      `/${locale}/about`,
+      `/${locale}/contact`,
+      `/${locale}/delivery`,
+      `/${locale}/returns`,
+    ]);
+    expect(links.map((link) => link.textContent?.trim())).toEqual(labels);
   });
 });
