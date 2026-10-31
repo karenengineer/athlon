@@ -51,6 +51,54 @@ const introductions: Record<string, Record<Locale, string>> = {
   },
 };
 
+const guidance: Record<string, Record<Locale, string>> = {
+  "sports-nutrition": {
+    hy: "Սկսեք ձեր մարզման նպատակից և սովորական սննդակարգից, ապա ընտրեք համապատասխան բաժինը՝ սպիտակուց, կրեատին, վիտամիններ կամ նախավարժանքային ապրանքներ։ Յուրաքանչյուր ապրանքի էջում համեմատեք չափաբաժինը, չափաբաժինների թիվն ու գինը և հետևեք փաթեթի ցուցումներին։",
+    ru: "Начните со своей цели и обычного рациона, затем выберите подходящий раздел: протеин, креатин, витамины или предтренировочные продукты. На странице каждого товара сравните размер порции, количество порций и цену и следуйте инструкции на упаковке.",
+    en: "Start with your training goal and usual diet, then choose the section that fits: protein, creatine, vitamins or pre-workout products. On each product page, compare the serving size, number of servings and price, and follow the directions on the package.",
+  },
+  protein: {
+    hy: "Համեմատեք մեկ չափաբաժնի սպիտակուցի քանակը, փաթեթի չափաբաժինների թիվը և առկա համերը։ Հաշվի առեք, թե որքան սպիտակուց եք արդեն ստանում սովորական սննդից, և կազմում ստուգեք ձեզ համար անցանկալի բաղադրիչները, օրինակ՝ լակտոզը։",
+    ru: "Сравните количество белка в порции, число порций в упаковке и доступные вкусы. Учитывайте, сколько белка вы уже получаете с обычной едой, и проверьте в составе нежелательные для вас компоненты, например лактозу.",
+    en: "Compare the protein per serving, the number of servings in the package and the available flavors. Consider how much protein you already get from regular meals, and check the ingredients for anything you avoid, such as lactose.",
+  },
+  performance: {
+    hy: "Ստուգեք յուրաքանչյուր ապրանքի կազմը և մարզման որ փուլի համար է այն նախատեսված, ապա համեմատեք չափաբաժինն ու փաթեթի պարունակությունը։ Նման բաղադրիչներով ապրանքներ մի համակցեք՝ առանց դրանց փաթեթները կարդալու։",
+    ru: "Проверьте состав каждого товара и для какого этапа тренировки он предназначен, затем сравните размер порции и содержимое упаковки. Не сочетайте продукты с похожими компонентами, не прочитав их упаковки.",
+    en: "Check what each product contains and which part of your training it is meant for, then compare the serving size and package contents. Don't combine products with similar ingredients without reading their labels.",
+  },
+  creatine: {
+    hy: "Համեմատեք փաթեթին նշված կրեատինի ձևը, մեկ չափաբաժնի քանակը և չափաբաժինների թիվը։ Հաճախ ավելի օգտակար է համեմատել մեկ չափաբաժնի, այլ ոչ թե ամբողջ փաթեթի գինը։ Հետևեք փաթեթի ցուցումներին։",
+    ru: "Сравните указанную на упаковке форму креатина, количество в порции и число порций. Часто полезнее сравнивать цену порции, а не всей упаковки. Следуйте инструкции на упаковке.",
+    en: "Compare the form of creatine on the label, the amount per serving and the number of servings. Price per serving is often more useful to compare than the price of the whole package. Follow the directions on the package.",
+  },
+  vitamins: {
+    hy: "Ստուգեք, թե որ վիտամիններն ու հանքանյութերն է պարունակում ապրանքը և որքան՝ մեկ չափաբաժնում։ Դիտարկեք դրանք որպես հավասարակշռված սննդակարգի լրացում, ոչ թե փոխարինող։ Առողջական խնդիրների կամ դեղորայք ընդունելու դեպքում նախապես խորհրդակցեք բժշկի հետ։",
+    ru: "Проверьте, какие витамины и минералы содержит продукт и сколько их в одной порции. Рассматривайте их как дополнение к сбалансированному питанию, а не как замену. При проблемах со здоровьем или приёме лекарств сначала проконсультируйтесь с врачом.",
+    en: "Check which vitamins and minerals a product contains and how much is in one serving. Treat them as an addition to a balanced diet, not a replacement. If you have a health condition or take medication, talk to a doctor first.",
+  },
+  "pre-workout": {
+    hy: "Փաթեթին ստուգեք մեկ չափաբաժնի կոֆեինի և մյուս ակտիվ բաղադրիչների քանակը և հաշվի առեք օրվա ընթացքում ստացվող մնացած կոֆեինը։ Հետևեք փաթեթի ցուցումներին և մի գերազանցեք նշված չափաբաժինը։",
+    ru: "Проверьте на упаковке количество кофеина и других активных компонентов в порции и учитывайте остальной кофеин, который получаете за день. Следуйте инструкции на упаковке и не превышайте указанную порцию.",
+    en: "Check the label for the caffeine and other active ingredients per serving, and count any other caffeine you have during the day. Follow the directions on the package and don't exceed the stated serving.",
+  },
+  "other-nutrition": {
+    hy: "Կարդացեք ապրանքի նկարագրությունն ու կազմը՝ հասկանալու համար, թե ինչի համար է այն նախատեսված։ Համեմատեք չափաբաժինը, փաթեթի պարունակությունն ու գինը։",
+    ru: "Прочитайте описание и состав товара, чтобы понять, для чего он предназначен. Сравните размер порции, содержимое упаковки и цену.",
+    en: "Read the description and ingredients to see what a product is for, then compare the serving size, package contents and price.",
+  },
+  accessories: {
+    hy: "Ընտրեք՝ հաշվի առնելով, թե ինչպես և որտեղ եք մարզվում։ Համեմատեք ապրանքի էջում նշված չափը, նյութը և տարողությունը, եթե դրանք նշված են։",
+    ru: "Выбирайте с учётом того, как и где вы тренируетесь. Сравните размер, материал и вместимость, если они указаны на странице товара.",
+    en: "Choose based on how and where you train. Compare the size, material and capacity where they are listed on the product page.",
+  },
+  "training-accessories": {
+    hy: "Մտածեք, թե որ վարժությունների համար է ձեզ անհրաժեշտ պարագան։ Համեմատեք ապրանքի էջում նշված չափն ու նյութը և ընտրեք ձեր մարզումներին համապատասխան տարբերակը։",
+    ru: "Подумайте, для каких упражнений вам нужен аксессуар. Сравните размер и материал, указанные на странице товара, и выберите вариант под свои тренировки.",
+    en: "Think about which exercises you need the item for. Compare the size and material on the product page, and choose the option that suits your training.",
+  },
+};
+
 export const catalogContentCopy: Record<
   Locale,
   {
@@ -112,5 +160,15 @@ export function categoryIntroduction(
     category.description?.trim() ||
     introductions[category.slug]?.[locale] ||
     catalogContentCopy[locale].genericIntroduction(category.name)
+  );
+}
+
+export function categoryGuidance(
+  category: PublishedCategory | null,
+  locale: Locale,
+): string {
+  return (
+    (category && guidance[category.slug]?.[locale]) ||
+    catalogContentCopy[locale].guidance
   );
 }

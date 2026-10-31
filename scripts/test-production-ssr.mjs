@@ -265,8 +265,16 @@ async function main() {
     let body;
     if (url.pathname === "/api/v1/public/seo/sitemap")
       body = {
-        productSlugs: ["ssr-fixture", "ssr-fixture", 'encoded<&"'],
-        categorySlugs: ["sports-nutrition", "protein", "accessories"],
+        products: ["ssr-fixture", "ssr-fixture", 'encoded<&"'].map((slug) => ({
+          slug,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        })),
+        categories: ["sports-nutrition", "protein", "accessories"].map(
+          (slug) => ({
+            slug,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          }),
+        ),
       };
     else if (url.pathname === "/api/v1/products/ssr-fixture")
       body = product(locale);
@@ -358,6 +366,11 @@ async function main() {
         "The link may be outdated or the page may have moved.",
       ],
     };
+    const categoryGuidanceProtein = {
+      hy: "Համեմատեք մեկ չափաբաժնի սպիտակուցի քանակը, փաթեթի չափաբաժինների թիվը և առկա համերը։ Հաշվի առեք, թե որքան սպիտակուց եք արդեն ստանում սովորական սննդից, և կազմում ստուգեք ձեզ համար անցանկալի բաղադրիչները, օրինակ՝ լակտոզը։",
+      ru: "Сравните количество белка в порции, число порций в упаковке и доступные вкусы. Учитывайте, сколько белка вы уже получаете с обычной едой, и проверьте в составе нежелательные для вас компоненты, например лактозу.",
+      en: "Compare the protein per serving, the number of servings in the package and the available flavors. Consider how much protein you already get from regular meals, and check the ingredients for anything you avoid, such as lactose.",
+    };
     const forwarded = (host) => ({
       host,
       "x-forwarded-host": host,
@@ -424,11 +437,17 @@ async function main() {
       assert.deepEqual(
         alternates,
         indexable
-          ? locales.map((locale) => [
-              locale,
-              `https://athlon.am${path.replace(/^\/(hy|ru|en)/, `/${locale}`)}`,
+          ? [...locales, "x-default"].map((hreflang) => [
+              hreflang,
+              `https://athlon.am${path.replace(/^\/(hy|ru|en)/, `/${hreflang === "x-default" ? "hy" : hreflang}`)}`,
             ])
           : [],
+      );
+      assert.equal(
+        document
+          .querySelector('meta[name="twitter:card"]')
+          ?.getAttribute("content"),
+        "summary_large_image",
       );
       assert.equal(
         document
@@ -476,7 +495,10 @@ async function main() {
           response.html,
           /Sitemap: https:\/\/athlon.am\/sitemap.xml/,
         );
-        assert.doesNotMatch(response.html, /Disallow:.*[?*]/);
+        assert.match(response.html, /Disallow: \/\*\/basket\n/);
+        assert.match(response.html, /Disallow: \/api\/v1\/admin\/\n/);
+        assert.doesNotMatch(response.html, /Disallow: \/api\/\n/);
+        assert.doesNotMatch(response.html, /Disallow:.*(search|catalog|\?)/);
       } else {
         assert.match(response.headers["content-type"], /application\/xml/);
         const xml = new JSDOM(response.html, {
@@ -499,10 +521,7 @@ async function main() {
             "/product/encoded%3C%26%22",
           ])
             assert.ok(urls.includes(`https://athlon.am/${locale}${suffix}`));
-        assert.doesNotMatch(
-          response.html,
-          /lastmod|basket|search|admin|card-payment/,
-        );
+        assert.doesNotMatch(response.html, /basket|search|admin|card-payment/);
         xml.window.close();
       }
       for (const headers of [
@@ -602,10 +621,10 @@ async function main() {
               0,
               "API markup stays plain text",
             );
-            assert.equal(
-              text(document.querySelector(".category-guidance")),
-              copy.guidance,
-            );
+            const guidance = text(document.querySelector(".category-guidance"));
+            assert.ok(guidance, `category guidance: ${slug}`);
+            if (slug === "protein")
+              assert.equal(guidance, categoryGuidanceProtein[locale]);
             assert.deepEqual(
               [...document.querySelectorAll(".related-categories a")].map(
                 (link) => link.getAttribute("href"),
@@ -670,11 +689,8 @@ async function main() {
         for (const [path, title, description, status] of [
           [
             `/${locale}/catalog/unpublished-fixture`,
-            copy.catalogTitle.replace(
-              " | ATHLON",
-              ` — ${seoCopy[locale].armenia} | ATHLON`,
-            ),
-            `${copy.catalogDescription} ${seoCopy[locale].delivery}`,
+            `${notFoundCopy[locale][0]} | ATHLON`,
+            notFoundCopy[locale][1],
             404,
           ],
           [
@@ -893,6 +909,19 @@ async function main() {
 
         const home = await get(`/${locale}`, forwarded(host));
         initialDocument(home, "app-home-page", (document) => {
+          assert.equal(
+            text(document.querySelector(".store-guide h2")),
+            {
+              hy: "Սպորտային սնունդ Հայաստանում",
+              ru: "Спортивное питание в Армении",
+              en: "Sports nutrition in Armenia",
+            }[locale],
+          );
+          assert.ok(
+            document.querySelector(
+              `.store-guide a[href="/${locale}/catalog/protein"]`,
+            ),
+          );
           assert.equal(document.querySelectorAll("app-home-page h1").length, 1);
           const heading = document.querySelector(".hero-copy h1");
           assert.equal(heading?.nextElementSibling?.tagName, "H2");
@@ -929,9 +958,12 @@ async function main() {
         new URL(rootRedirect.headers.location, `https://${host}`).pathname,
         "/hy",
       );
-      const unsupported = await get("/de/catalog", forwarded(host));
-      assert.equal(unsupported.status, 404, "unsupported first segment");
-      assert.equal(unsupported.headers.location, undefined);
+      for (const path of ["/de/catalog", "/not-a-real-page"]) {
+        const missing = await get(path, forwarded(host));
+        assert.equal(missing.status, 404, `real 404: ${path}`);
+        assert.equal(missing.headers.location, undefined);
+        assert.match(missing.html, /noindex, follow/);
+      }
       for (const path of [
         "/admin/login",
         "/admin/categories/example/edit",

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { Component, computed, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { distinctUntilChanged, Subscription } from "rxjs";
 import { ActivatedRoute, RouterLink } from "@angular/router";
@@ -12,7 +12,12 @@ import {
   createPageMetadata,
   createPageResponseStatus,
 } from "../../core/seo/page-metadata";
-import { seoCopy, storeSchema } from "../../core/seo/seo-content";
+import { homeContent } from "./home-content";
+import {
+  seoCopy,
+  storeSchema,
+  websiteSchema,
+} from "../../core/seo/seo-content";
 
 type HomeState = "loading" | "ready" | "empty" | "error";
 
@@ -24,6 +29,7 @@ type HomeState = "loading" | "ready" | "empty" | "error";
 })
 export class HomePage {
   readonly i18n = inject(I18nService);
+  readonly content = computed(() => homeContent[this.i18n.locale()]);
   readonly instagramUrl = INSTAGRAM_PROFILE_URL;
   readonly communityPhotos = [
     {
@@ -72,7 +78,7 @@ export class HomePage {
       description: seoCopy[currentLocale].homeDescription,
       locale: currentLocale,
       path: [],
-      jsonLd: [storeSchema(currentLocale)],
+      jsonLd: [storeSchema(currentLocale), websiteSchema(currentLocale)],
     });
     this.state.set("loading");
     this.loadSubscription = this.api
