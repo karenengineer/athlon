@@ -51,12 +51,12 @@ export class ProductCard {
   }
 
   addToBasket(): void {
-    if (this.product().availability === "OUT_OF_STOCK") return;
+    if (this.product().availability !== "IN_STOCK") return;
     this.basket.add(this.product());
   }
 
   incrementBasket(): void {
-    if (this.product().availability === "OUT_OF_STOCK") return;
+    if (this.product().availability !== "IN_STOCK") return;
     this.basket.add(this.product());
   }
 

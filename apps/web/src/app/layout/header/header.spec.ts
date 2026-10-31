@@ -4,7 +4,7 @@ import { I18nService } from "../../core/i18n/i18n.service";
 import { Header } from "./header";
 
 describe("Header logo presentation", () => {
-  it("shows the localized free-delivery announcement and contact number", async () => {
+  it("keeps the delivery announcement out of the shared header in every locale", async () => {
     await TestBed.configureTestingModule({
       imports: [Header],
       providers: [provideRouter([])],
@@ -12,18 +12,11 @@ describe("Header logo presentation", () => {
     const fixture = TestBed.createComponent(Header);
     const i18n = TestBed.inject(I18nService);
 
-    for (const [locale, expected] of [
-      ["hy", "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55"],
-      ["ru", "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55"],
-      ["en", "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55"],
-    ] as const) {
+    for (const locale of ["hy", "ru", "en"] as const) {
       i18n.setLocale(locale);
       fixture.detectChanges();
-      expect(
-        fixture.nativeElement
-          .querySelector(".announcement")
-          ?.textContent?.trim(),
-      ).toBe(expected);
+      expect(fixture.nativeElement.querySelector(".announcement")).toBeNull();
+      expect(fixture.nativeElement.textContent).not.toContain("041 44 88 55");
     }
   });
 

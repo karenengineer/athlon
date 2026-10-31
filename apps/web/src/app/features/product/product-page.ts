@@ -1,8 +1,8 @@
 import { CurrencyPipe, KeyValuePipe } from "@angular/common";
+import { HttpErrorResponse } from "@angular/common/http";
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { Title } from "@angular/platform-browser";
 import {
   catchError,
   combineLatest,
@@ -18,6 +18,17 @@ import { Product, PublicSettings } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
+import {
+  createPageMetadata,
+  createPageResponseStatus,
+  publicPageUrl,
+} from "../../core/seo/page-metadata";
+import {
+  breadcrumbSchema,
+  localProductDescription,
+  productSchema,
+  seoCopy,
+} from "../../core/seo/seo-content";
 
 @Component({
   selector: "app-product-page",
@@ -27,7 +38,9 @@ import { StatusPanel } from "../../shared/status-panel/status-panel";
 })
 export class ProductPage {
   readonly i18n = inject(I18nService);
-  readonly state = signal<"loading" | "ready" | "error">("loading");
+  readonly state = signal<"loading" | "ready" | "error" | "not-found">(
+    "loading",
+  );
   readonly product = signal<Product | null>(null);
   readonly relatedProducts = signal<Product[]>([]);
   readonly settings = signal<PublicSettings>({});
@@ -35,7 +48,8 @@ export class ProductPage {
   readonly basket = inject(BasketService);
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
-  private readonly title = inject(Title);
+  private readonly metadata = createPageMetadata();
+  private readonly responseStatus = createPageResponseStatus();
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
 
@@ -61,6 +75,16 @@ export class ProductPage {
     slug = this.route.snapshot.paramMap.get("slug") ?? "",
   ): void {
     this.loadSubscription?.unsubscribe();
+    this.i18n.setLocale(locale);
+    const currentLocale = this.i18n.locale();
+    this.responseStatus(200);
+    this.product.set(null);
+    this.settings.set({});
+    this.metadata.set({
+      title: `${this.i18n.t("details")} | ATHLON`,
+      description: seoCopy[currentLocale].productDescription,
+      noindex: true,
+    });
     this.state.set("loading");
     this.selectedImage.set(0);
     this.relatedProducts.set([]);
@@ -69,7 +93,33 @@ export class ProductPage {
       .pipe(
         switchMap((product) => {
           this.product.set(product);
-          this.title.setTitle(`${product.name} | ATHLON`);
+          this.metadata.set({
+            title: `${product.name} — ${seoCopy[currentLocale].armenia} | ATHLON`,
+            description: localProductDescription(product, currentLocale),
+            locale: currentLocale,
+            path: ["product", product.slug],
+            type: "product",
+            image:
+              product.images.find((image) => image.primary)?.detailUrl ??
+              product.images[0]?.detailUrl,
+            jsonLd: [
+              productSchema(product, currentLocale),
+              breadcrumbSchema([
+                {
+                  name: this.i18n.t("home"),
+                  url: publicPageUrl(currentLocale),
+                },
+                {
+                  name: this.i18n.t("catalog"),
+                  url: publicPageUrl(currentLocale, ["catalog"]),
+                },
+                {
+                  name: product.name,
+                  url: publicPageUrl(currentLocale, ["product", product.slug]),
+                },
+              ]),
+            ],
+          });
           this.selectedImage.set(
             Math.max(
               0,
@@ -109,7 +159,18 @@ export class ProductPage {
           );
           this.state.set("ready");
         },
-        error: () => this.state.set("error"),
+        error: (error: unknown) => {
+          const missing =
+            error instanceof HttpErrorResponse && error.status === 404;
+          this.responseStatus(missing ? 404 : 503);
+          this.product.set(null);
+          this.metadata.set({
+            title: `${missing ? this.i18n.t("notFoundTitle") : seoCopy[currentLocale].unavailableTitle} | ATHLON`,
+            description: this.i18n.t(missing ? "notFoundText" : "errorText"),
+            noindex: true,
+          });
+          this.state.set(missing ? "not-found" : "error");
+        },
       });
   }
 
@@ -204,7 +265,7 @@ export class ProductPage {
 
   addToBasket(): void {
     const product = this.product();
-    if (product && product.availability !== "OUT_OF_STOCK") {
+    if (product && product.availability === "IN_STOCK") {
       this.basket.add(product);
     }
   }

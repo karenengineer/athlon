@@ -2,6 +2,7 @@ import { ConfigService } from "@nestjs/config";
 import { Prisma } from "../generated/prisma/client";
 import { AvailabilityStatus, Locale } from "../generated/prisma/enums";
 import { PrismaService } from "../database/prisma.service";
+import { CardPaymentSandboxService } from "./card-payment-sandbox.service";
 import { CardPaymentTestService } from "./card-payment-test.service";
 
 const translations = [
@@ -125,6 +126,46 @@ describe("CardPaymentTestService", () => {
       ),
     ).rejects.toBeDefined();
     expect(productFindMany).not.toHaveBeenCalled();
+  });
+
+  describe.each(["MOCK", "AMERIA_SANDBOX"])("%s availability", (mode) => {
+    it.each([
+      "OUT_OF_STOCK",
+      "PREORDER",
+      "ON_REQUEST",
+      undefined,
+      null,
+      "UNKNOWN",
+    ])(
+      "rejects %s products without creating a test session",
+      async (availability) => {
+        const createSandboxSession = jest.fn();
+        service = new CardPaymentTestService(
+          {
+            product: { findMany: productFindMany },
+          } as unknown as PrismaService,
+          new ConfigService({
+            CARD_PAYMENT_TEST_FLOW_ENABLED: true,
+            CARD_PAYMENT_TEST_MODE: mode,
+          }),
+          {
+            create: createSandboxSession,
+          } as unknown as CardPaymentSandboxService,
+        );
+        productFindMany.mockResolvedValueOnce([
+          { ...publishedProduct, availability },
+        ]);
+
+        await expect(
+          service.createSession(validInput, { ...owner, sandboxAccess: true }),
+        ).rejects.toMatchObject({ status: 409 });
+        expect(createSandboxSession).not.toHaveBeenCalled();
+        expect(
+          (service as unknown as { sessions: Map<string, unknown> }).sessions
+            .size,
+        ).toBe(0);
+      },
+    );
   });
 
   it("rejects duplicate and oversized product lists before database lookup", async () => {

@@ -2,13 +2,21 @@ import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { distinctUntilChanged, Subscription } from "rxjs";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { Title } from "@angular/platform-browser";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { Product } from "../../core/api/catalog.models";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { INSTAGRAM_PROFILE_URL } from "../../core/social-links";
 import { ProductGrid } from "../../shared/product-grid/product-grid";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
+import {
+  createPageMetadata,
+  createPageResponseStatus,
+} from "../../core/seo/page-metadata";
+import {
+  seoCopy,
+  storeSchema,
+  websiteSchema,
+} from "../../core/seo/seo-content";
 
 type HomeState = "loading" | "ready" | "empty" | "error";
 
@@ -45,7 +53,8 @@ export class HomePage {
   readonly products = signal<Product[]>([]);
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
-  private readonly title = inject(Title);
+  private readonly metadata = createPageMetadata();
+  private readonly responseStatus = createPageResponseStatus();
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
 
@@ -60,7 +69,15 @@ export class HomePage {
   ): void {
     this.loadSubscription?.unsubscribe();
     this.i18n.setLocale(locale);
-    this.title.setTitle(`${this.i18n.t("home")} | ATHLON`);
+    const currentLocale = this.i18n.locale();
+    this.responseStatus(200);
+    this.metadata.set({
+      title: seoCopy[currentLocale].homeTitle,
+      description: seoCopy[currentLocale].homeDescription,
+      locale: currentLocale,
+      path: [],
+      jsonLd: [storeSchema(currentLocale), websiteSchema(currentLocale)],
+    });
     this.state.set("loading");
     this.loadSubscription = this.api
       .products({
@@ -76,7 +93,15 @@ export class HomePage {
           this.products.set(products.items);
           this.state.set(products.items.length ? "ready" : "empty");
         },
-        error: () => this.state.set("error"),
+        error: () => {
+          this.responseStatus(503);
+          this.metadata.set({
+            title: seoCopy[currentLocale].homeTitle,
+            description: seoCopy[currentLocale].homeDescription,
+            noindex: true,
+          });
+          this.state.set("error");
+        },
       });
   }
 }

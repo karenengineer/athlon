@@ -12,7 +12,7 @@ import {
 import { BehaviorSubject } from "rxjs";
 import { HomePage } from "./home-page";
 
-describe("HomePage Instagram community", () => {
+describe("HomePage", () => {
   let http: HttpTestingController;
   let localeParams: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
@@ -40,7 +40,7 @@ describe("HomePage Instagram community", () => {
 
   afterEach(() => http.verify());
 
-  function renderCommunity(locale = "en"): HTMLElement {
+  function renderHome(locale = "en"): HTMLElement {
     localeParams.next(convertToParamMap({ locale }));
     const fixture = TestBed.createComponent(HomePage);
     fixture.detectChanges();
@@ -51,9 +51,42 @@ describe("HomePage Instagram community", () => {
         meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
       });
     fixture.detectChanges();
-    const section = fixture.nativeElement.querySelector(".community");
+    return fixture.nativeElement;
+  }
+
+  function renderCommunity(locale = "en"): HTMLElement {
+    const section =
+      renderHome(locale).querySelector<HTMLElement>(".community")!;
     expect(section).not.toBeNull();
     return section;
+  }
+
+  for (const [locale, delivery] of [
+    ["hy", "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55"],
+    ["ru", "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55"],
+    ["en", "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55"],
+  ] as const) {
+    it(`places the localized delivery heading directly after the hero H1 in ${locale}`, () => {
+      const home = renderHome(locale);
+      const hero = home.querySelector(".hero")!;
+      const heading = hero.querySelector("h1")!;
+      const deliveryHeading = heading.nextElementSibling;
+
+      expect(home.querySelectorAll("h1")).toHaveLength(1);
+      expect(deliveryHeading?.tagName).toBe("H2");
+      expect(deliveryHeading?.textContent?.trim()).toBe(delivery);
+      expect(deliveryHeading?.textContent).toContain("041 44 88 55");
+      expect(deliveryHeading?.nextElementSibling?.classList).toContain(
+        "hero-text",
+      );
+      expect(hero.querySelector(".primary-button")?.getAttribute("href")).toBe(
+        `/${locale}/catalog`,
+      );
+      const image = hero.querySelector("img")!;
+      expect(image.getAttribute("src")).toBe("/brand/athlon-hero-wide.jpeg");
+      expect(image.width).toBe(1280);
+      expect(image.height).toBe(634);
+    });
   }
 
   it("opens the real ATHLON profile from both community actions", () => {
@@ -61,10 +94,12 @@ describe("HomePage Instagram community", () => {
     const links = Array.from(section.querySelectorAll("a"));
 
     expect(links).toHaveLength(2);
-    expect(links[0].textContent).toContain("@__athlon__");
+    expect(links[0].textContent).toContain("@athlon.sports.nutrition");
     expect(links[1].textContent).toContain("Follow on Instagram");
     for (const link of links) {
-      expect(link.href).toBe("https://www.instagram.com/__athlon__/");
+      expect(link.href).toBe(
+        "https://www.instagram.com/athlon.sports.nutrition/",
+      );
       expect(link.target).toBe("_blank");
       expect(link.relList.contains("noopener")).toBe(true);
       expect(link.relList.contains("noreferrer")).toBe(true);

@@ -20,6 +20,37 @@
     <span class="result-count">{{ i18n.productCountLabel(meta().total) }}</span>
   </header>
 
+  @if (publishedCategories().length) {
+  <nav class="category-navigation" [attr.aria-label]="contentCopy().categories">
+    @for (category of publishedCategories(); track category.id) {
+    <a
+      [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+      [attr.aria-current]="selectedCategory()?.slug === category.slug ? 'page' : null"
+      >{{ category.name }}</a
+    >
+    }
+  </nav>
+  } @if (selectedCategory()) {
+  <section
+    class="category-content"
+    [attr.aria-label]="selectedCategory()?.name"
+  >
+    <p class="category-introduction">{{ introduction() }}</p>
+    <h2>{{ contentCopy().guidanceHeading }}</h2>
+    <p class="category-guidance">{{ contentCopy().guidance }}</p>
+    @if (relatedCategories().length) {
+    <nav class="related-categories" [attr.aria-label]="contentCopy().related">
+      <h3>{{ contentCopy().related }}</h3>
+      @for (category of relatedCategories(); track category.id) {
+      <a [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+        >{{ category.name }}</a
+      >
+      }
+    </nav>
+    }
+  </section>
+  }
+
   <form class="filters" (ngSubmit)="applyFilters()">
     <strong>{{ i18n.t("filters") }}</strong>
     <label>
@@ -98,26 +129,40 @@
 
   @switch (state()) { @case ("loading") { <app-status-panel kind="loading" /> }
   @case ("error") { <app-status-panel kind="error" (retry)="retry()" /> } @case
-  ("empty") {
+  ("not-found") { <app-status-panel kind="not-found" /> } @case ("empty") {
   <app-status-panel [kind]="hasActiveFilters() ? 'no-results' : 'empty'" /> }
   @default { <app-product-grid [products]="products()" /> } } @if (state() ===
   "ready" && meta().totalPages > 1) {
   <nav class="pagination" aria-label="Pagination">
-    <button
-      type="button"
-      [disabled]="meta().page <= 1"
-      (click)="goToPage(meta().page - 1)"
+    @if (meta().page > 1) {
+    <a
+      [routerLink]="[]"
+      [queryParams]="paginationQuery(meta().page - 1)"
+      queryParamsHandling="merge"
+      rel="prev"
     >
       ← {{ i18n.t("previous") }}
-    </button>
-    <span>{{ meta().page }} / {{ meta().totalPages }}</span>
-    <button
-      type="button"
-      [disabled]="meta().page >= meta().totalPages"
-      (click)="goToPage(meta().page + 1)"
+    </a>
+    } @else {
+    <span class="pagination-boundary" aria-disabled="true"
+      >← {{ i18n.t("previous") }}</span
+    >
+    }
+    <span aria-current="page">{{ meta().page }} / {{ meta().totalPages }}</span>
+    @if (meta().page < meta().totalPages) {
+    <a
+      [routerLink]="[]"
+      [queryParams]="paginationQuery(meta().page + 1)"
+      queryParamsHandling="merge"
+      rel="next"
     >
       {{ i18n.t("next") }} →
-    </button>
+    </a>
+    } @else {
+    <span class="pagination-boundary" aria-disabled="true"
+      >{{ i18n.t("next") }} →</span
+    >
+    }
   </nav>
   }
 </section>

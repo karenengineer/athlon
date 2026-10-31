@@ -24,7 +24,19 @@ Protect bank initialization and status retrieval with existing guest ownership, 
 
 Persist sandbox attempts separately. Allocate bank OrderIDs with an atomic durable bounded PostgreSQL sequence that never cycles. Reserve once before contacting the bank; never recycle after ambiguous errors. Scope client idempotency to owner and request contents and prevent concurrent duplicate initialization. Enforce range exhaustion. Do not let the mock outcome endpoint change sandbox state.
 
-The UI retains the product basket, clearly distinguishes its catalog value from the fixed AMD 10 bank charge, collects no card data, redirects only to the trusted hosted page, and shows a result only after server verification. Pending/errors support bounded rechecking; no browser return code can claim success.
+The UI retains the product basket until verified success, clearly distinguishes its catalog value from the fixed AMD 10 bank charge, collects no card data, redirects only to the trusted hosted page, and shows a result only after server verification. Pending/errors support bounded rechecking; no browser return code can claim success.
+
+## Verified success page
+
+After an owner-scoped API session reports verified `SUCCEEDED`, checkout replaces the return URL with `/card-payment-test/<locale>/success/<reference>` (`hy`, `ru`, or `en`). Direct entry and refresh must independently re-fetch and validate the session; neither a success-looking URL nor bank return parameters prove payment. The feature flag, guest ownership, sandbox access restriction, client rendering, and noindex policy continue to apply.
+
+The responsive confirmation page shows the actual test amount, payment mode/status, and a localized home link (`/<locale>`). MOCK explicitly says simulated; AMERIA_SANDBOX says bank-confirmed sandbox payment. Both explicitly say no real order was created. This does not enable live merchant checkout, create fulfillment records, or send order emails.
+
+Purchased product quantities are subtracted once, retaining unrelated products and extra quantities added during the bank visit. Basket items and settled reference history share a versioned local-storage record; existing valid array-format baskets remain readable. Reload/back must not subtract again. Pending, failed, cancelled, expired, mismatched, unavailable, or unverified sessions do not change the basket. If browser storage prevents cleanup, retain the basket and offer a read-only verification/cleanup retry, never another payment request.
+
+Local verification covers successful mock/sandbox session reads, all unsuccessful states, forged return parameters, response mismatches, repeat entry, storage failure/recovery, legacy baskets, home navigation, and HY/RU/EN mobile layout. Use mocked HTTP responses only: no real bank calls, payment submission, credentials, or customer data are required for automated checks.
+
+Limitations: storage persistence is browser-local, not a server-side payment ledger or a cross-tab transaction. Simultaneous tab writers can overwrite each other. Quantity subtraction cannot distinguish a product removed and re-added during a bank visit. Keep persisted settlement history; clearing browser storage or an older application tab rewriting the legacy format can remove local deduplication history. A failed cleanup is not evidence that the payment failed, and must not encourage paying again.
 
 ## Configuration and delivery
 

@@ -13,6 +13,7 @@ import {
 import { BehaviorSubject } from "rxjs";
 import { BasketService } from "../../core/basket/basket.service";
 import { BasketPage } from "./basket-page";
+import { PaymentSuccessPage } from "../admin/card-payment-test/payment-success-page";
 
 const endpoint = "/api/v1/public/card-payment-test";
 const checkoutUrl =
@@ -25,7 +26,16 @@ const session = {
   currency: "AMD",
   total: "10",
   basketTotal: "24000",
-  items: [],
+  items: [
+    {
+      productId: "product-id",
+      sku: "SKU",
+      name: "Product",
+      quantity: 1,
+      unitPrice: "24000",
+      lineTotal: "24000",
+    },
+  ],
   expiresAt: "2026-10-16T12:00:00Z",
   checkoutUrl,
 };
@@ -48,7 +58,7 @@ describe("BasketPage Ameriabank sandbox", () => {
       },
     };
     await TestBed.configureTestingModule({
-      imports: [BasketPage],
+      imports: [BasketPage, PaymentSuccessPage],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -110,6 +120,143 @@ describe("BasketPage Ameriabank sandbox", () => {
       .dispatchEvent(new Event("submit", { cancelable: true }));
     return http.expectOne(`${endpoint}/sessions`);
   }
+  const legacyKey = "11111111-1111-4111-8111-111111111111";
+  function seedAttempt(reference?: string, key = legacyKey) {
+    const record = JSON.stringify({
+      key,
+      fingerprint: JSON.stringify({
+        locale: "en",
+        items: [
+          { productId: "product-id", quantity: 1, expectedUnitPrice: "24000" },
+        ],
+      }),
+      ...(reference ? { reference } : {}),
+    });
+    sessionStorage.setItem("athlon_sandbox_request_v1", record);
+    return record;
+  }
+  it.each(["FAILED", "CANCELLED", "EXPIRED"])(
+    "permits safe same-key recovery after an unbound legacy %s GET return",
+    (status) => {
+      const retained = seedAttempt();
+      const fixture = create(false, true);
+      http
+        .expectOne(`${endpoint}/sessions/owner-ref`)
+        .flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(
+        retained,
+      );
+      expect(
+        fixture.nativeElement.querySelector(".order-button").disabled,
+      ).toBe(false);
+      const replay = submit(fixture);
+      expect(replay.request.body.idempotencyKey).toBe(legacyKey);
+      replay.flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+      expect(fixture.componentInstance.customer.name).toBe("Tester");
+      expect(fixture.componentInstance.customer.email).toBe(
+        "test@example.test",
+      );
+      const next = submit(fixture);
+      expect(next.request.body.idempotencyKey).not.toBe(legacyKey);
+      next.flush({}, { status: 503, statusText: "Unavailable" });
+    },
+  );
+  it.each(["FAILED", "CANCELLED", "EXPIRED"])(
+    "recovers a legacy %s replay from the base route and permits a new explicit attempt",
+    (status) => {
+      seedAttempt();
+      const fixture = create();
+      const redirect = vi
+        .spyOn(fixture.componentInstance, "redirectToCheckout")
+        .mockImplementation(() => {});
+      const replay = submit(fixture);
+      expect(replay.request.body.idempotencyKey).toBe(legacyKey);
+      replay.flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(".order-button").disabled,
+      ).toBe(false);
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+      expect(redirect).not.toHaveBeenCalled();
+      const next = submit(fixture);
+      expect(next.request.body.idempotencyKey).not.toBe(legacyKey);
+      next.flush({}, { status: 503, statusText: "Unavailable" });
+    },
+  );
+  it.each(["FAILED", "CANCELLED", "EXPIRED"])(
+    "preserves a newer bound attempt on an old %s return",
+    (status) => {
+      const retained = seedAttempt(
+        "new-pending-ref",
+        "22222222-2222-4222-8222-222222222222",
+      );
+      const fixture = create(false, true);
+      http
+        .expectOne(`${endpoint}/sessions/owner-ref`)
+        .flush({ ...session, status });
+      fixture.detectChanges();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(
+        retained,
+      );
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+    },
+  );
+  it.each([
+    { currency: "USD" },
+    { basketTotal: "1" },
+    { items: [] },
+    { reference: "" },
+    { status: "UNKNOWN" },
+  ])("retains an unverified terminal replay key: %j", (change) => {
+    const retained = seedAttempt();
+    const fixture = create();
+    submit(fixture).flush({ ...session, status: "FAILED", ...change });
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(retained);
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+  });
+  it("does not bind an older in-flight terminal response to a newer request", () => {
+    seedAttempt();
+    const fixture = create();
+    const replay = submit(fixture);
+    const newer = seedAttempt(
+      "new-pending-ref",
+      "22222222-2222-4222-8222-222222222222",
+    );
+    replay.flush({ ...session, status: "FAILED" });
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBe(newer);
+  });
+  it("retains a terminal replay key on cleanup storage failure and recovers through the same key after recreation", () => {
+    seedAttempt();
+    let fixture = create();
+    const replay = submit(fixture);
+    const remove = vi
+      .spyOn(Storage.prototype, "removeItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    try {
+      replay.flush({ ...session, status: "FAILED" });
+    } finally {
+      remove.mockRestore();
+    }
+    fixture.detectChanges();
+    expect(fixture.componentInstance.sandboxStorageBlocked()).toBe(true);
+    expect(
+      JSON.parse(sessionStorage.getItem("athlon_sandbox_request_v1")!).key,
+    ).toBe(legacyKey);
+    fixture.destroy();
+    fixture = create();
+    const retry = submit(fixture);
+    expect(retry.request.body.idempotencyKey).toBe(legacyKey);
+    retry.flush({ ...session, status: "FAILED" });
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+  });
   it("keeps test submission disabled until valid configuration is available", () => {
     const fixture = TestBed.createComponent(BasketPage);
     fixture.detectChanges();
@@ -179,6 +326,101 @@ describe("BasketPage Ameriabank sandbox", () => {
     retry.flush(session);
     expect(redirect).toHaveBeenCalledWith(checkoutUrl);
     expect(TestBed.inject(BasketService).items()).toHaveLength(1);
+  });
+  it("starts a fresh attempt for an identical basket after verified success cleanup and reload", () => {
+    const fixture = create();
+    vi.spyOn(
+      fixture.componentInstance,
+      "redirectToCheckout",
+    ).mockImplementation(() => {});
+    const first = submit(fixture);
+    const oldKey = first.request.body.idempotencyKey;
+    first.flush(session);
+    expect(
+      JSON.parse(sessionStorage.getItem("athlon_sandbox_request_v1")!)
+        .reference,
+    ).toBe("owner-ref");
+    fixture.destroy();
+    route["paramMap"] = new BehaviorSubject(
+      convertToParamMap({ reference: "owner-ref" }),
+    );
+    const success = TestBed.createComponent(PaymentSuccessPage);
+    success.detectChanges();
+    http.expectOne(`${endpoint}/config`).flush({
+      enabled: true,
+      mode: "AMERIA_SANDBOX",
+      csrfToken: "sandbox-csrf",
+      accessRequired: false,
+    });
+    http
+      .expectOne(`${endpoint}/sessions/owner-ref`)
+      .flush({ ...session, status: "SUCCEEDED" });
+    success.detectChanges();
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(0);
+    expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+    success.destroy();
+    TestBed.inject(BasketService).add({
+      id: "product-id",
+      sku: "SKU",
+      slug: "product",
+      name: "Product",
+      price: "24000",
+      currency: "AMD",
+      availability: "IN_STOCK",
+      featured: false,
+      isNew: false,
+      category: { slug: "protein", name: "Protein" },
+      brand: null,
+      images: [],
+      shortDescription: null,
+    });
+    const nextFixture = create();
+    const next = submit(nextFixture);
+    expect(next.request.body.idempotencyKey).not.toBe(oldKey);
+    next.flush({}, { status: 503, statusText: "Unavailable" });
+  });
+  it("keeps a pending attempt key and reference across recreation", () => {
+    let fixture = create();
+    vi.spyOn(
+      fixture.componentInstance,
+      "redirectToCheckout",
+    ).mockImplementation(() => {});
+    const first = submit(fixture);
+    const key = first.request.body.idempotencyKey;
+    first.flush(session);
+    expect(
+      JSON.parse(sessionStorage.getItem("athlon_sandbox_request_v1")!)
+        .reference,
+    ).toBe("owner-ref");
+    fixture.destroy();
+    fixture = create();
+    const retry = submit(fixture);
+    expect(retry.request.body.idempotencyKey).toBe(key);
+    retry.flush({}, { status: 503, statusText: "Unavailable" });
+  });
+  it("blocks bank handoff if the session reference cannot be persisted and retains the request key", () => {
+    const fixture = create();
+    const redirect = vi
+      .spyOn(fixture.componentInstance, "redirectToCheckout")
+      .mockImplementation(() => {});
+    const first = submit(fixture);
+    const key = first.request.body.idempotencyKey;
+    const write = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    try {
+      first.flush(session);
+      fixture.detectChanges();
+      expect(redirect).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.sandboxStorageBlocked()).toBe(true);
+      expect(
+        JSON.parse(sessionStorage.getItem("athlon_sandbox_request_v1")!).key,
+      ).toBe(key);
+    } finally {
+      write.mockRestore();
+    }
   });
   it.each(["customer edit", "component recreation"])(
     "reuses the persisted uncertain sandbox request after %s",
@@ -303,7 +545,7 @@ describe("BasketPage Ameriabank sandbox", () => {
     expect(fixture.nativeElement.textContent).toContain(action);
     expect(fixture.nativeElement.textContent).toContain("AMD 10");
   });
-  it.each(["PENDING", "FAILED", "SUCCEEDED", "CANCELLED", "EXPIRED"])(
+  it.each(["PENDING", "FAILED", "CANCELLED", "EXPIRED"])(
     "ignores forged callback data and shows only server status %s without clearing the basket",
     (status) => {
       const fixture = create(false, true);
@@ -329,7 +571,7 @@ describe("BasketPage Ameriabank sandbox", () => {
       );
       expect(TestBed.inject(BasketService).items()).toHaveLength(1);
       expect(text).not.toContain("Your order has been registered");
-      if (status === "PENDING" || status === "SUCCEEDED") {
+      if (status === "PENDING") {
         expect(
           fixture.nativeElement.querySelector(".order-button").disabled,
         ).toBe(true);
@@ -341,4 +583,47 @@ describe("BasketPage Ameriabank sandbox", () => {
       expect(navigate).not.toHaveBeenCalled();
     },
   );
+  it.each(["return", "replay"])(
+    "opens verified sandbox success after %s without settling on the basket page",
+    (source) => {
+      const fixture = create(false, source === "return");
+      const navigate = vi
+        .spyOn(TestBed.inject(Router), "navigate")
+        .mockResolvedValue(true);
+      const request =
+        source === "return"
+          ? http.expectOne(`${endpoint}/sessions/owner-ref`)
+          : submit(fixture);
+      request.flush({ ...session, status: "SUCCEEDED" });
+      if (source === "replay")
+        expect(
+          JSON.parse(sessionStorage.getItem("athlon_sandbox_request_v1")!)
+            .reference,
+        ).toBe("owner-ref");
+      expect(navigate).toHaveBeenCalledWith(
+        ["/card-payment-test", "en", "success", "owner-ref"],
+        { replaceUrl: true },
+      );
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+    },
+  );
+  it.each([
+    { reference: "different-ref" },
+    { mode: "MOCK" },
+    { currency: "USD" },
+    { total: "24000" },
+    { basketTotal: "1" },
+    { items: [] },
+    { items: [{ ...session.items[0], quantity: -1 }] },
+  ])("does not redirect malformed successful return %j", (change) => {
+    create(false, true);
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), "navigate")
+      .mockResolvedValue(true);
+    http
+      .expectOne(`${endpoint}/sessions/owner-ref`)
+      .flush({ ...session, status: "SUCCEEDED", ...change });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+  });
 });

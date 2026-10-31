@@ -1,0 +1,27 @@
+<article class="information-page page-width">
+  <h1>{{ content().heading }}</h1>
+  <p class="information-introduction">{{ content().introduction }}</p>
+  @for (section of content().sections; track section.heading) {
+  <section class="information-section">
+    <h2>{{ section.heading }}</h2>
+    <p>{{ section.text }}</p>
+  </section>
+  } @if (pageId() === "contact") {
+  <ul class="information-contacts">
+    <li><a href="tel:+37441448855">041 44 88 55</a></li>
+    <li>
+      <a href="mailto:athlonsportgoods@gmail.com">athlonsportgoods@gmail.com</a>
+    </li>
+  </ul>
+  }
+  <nav class="information-actions" [attr.aria-label]="content().heading">
+    <a [routerLink]="['/', i18n.locale(), 'catalog']"
+      >{{ i18n.t("catalog") }}</a
+    >
+    @if (pageId() !== "contact") {
+    <a [routerLink]="['/', i18n.locale(), 'contact']"
+      >{{ navigation[i18n.locale()].pages.contact }}</a
+    >
+    }
+  </nav>
+</article>

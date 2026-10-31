@@ -1,5 +1,6 @@
 import { Routes } from "@angular/router";
 import { localeGuard } from "./core/i18n/locale.guard";
+import { informationPageIds } from "./core/i18n/information-navigation";
 import { cardPaymentTestGuard } from "./features/admin/card-payment-test/card-payment-test.guard";
 import { PublicShell } from "./layout/public-shell/public-shell";
 
@@ -25,6 +26,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "success/:reference",
+        loadComponent: () =>
+          import(
+            "./features/admin/card-payment-test/payment-success-page"
+          ).then((module) => module.PaymentSuccessPage),
+      },
+      {
         path: "payment/:reference",
         canActivate: [cardPaymentTestGuard],
         loadComponent: () =>
@@ -37,7 +45,7 @@ export const routes: Routes = [
   {
     path: ":locale",
     component: PublicShell,
-    canActivate: [localeGuard],
+    canMatch: [localeGuard],
     children: [
       {
         path: "",
@@ -79,6 +87,14 @@ export const routes: Routes = [
             (module) => module.BasketPage,
           ),
       },
+      ...informationPageIds.map((page) => ({
+        path: page,
+        data: { informationPage: page },
+        loadComponent: () =>
+          import("./features/information/information-page").then(
+            (module) => module.InformationPage,
+          ),
+      })),
       {
         path: "**",
         loadComponent: () =>
@@ -88,5 +104,17 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: "**", redirectTo: "hy" },
+  {
+    path: "",
+    component: PublicShell,
+    children: [
+      {
+        path: "**",
+        loadComponent: () =>
+          import("./features/not-found/not-found-page").then(
+            (module) => module.NotFoundPage,
+          ),
+      },
+    ],
+  },
 ];
