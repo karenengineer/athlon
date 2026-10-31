@@ -3,7 +3,7 @@ import { HttpErrorResponse } from "@angular/common/http";
 import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { Title } from "@angular/platform-browser";
+import { createPageMetadata } from "../../core/seo/page-metadata";
 import { catchError, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { BasketService } from "../../core/basket/basket.service";
@@ -61,7 +61,7 @@ export class BasketPage {
   private idempotencyKey = this.cardPaymentTestMode ? "" : loadIdempotencyKey();
   private readonly api = inject(CatalogApiService);
   private readonly router = inject(Router);
-  private readonly title = inject(Title);
+  private readonly metadata = createPageMetadata();
   private readonly cardPaymentTestApi = inject(CardPaymentTestApiService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -70,7 +70,11 @@ export class BasketPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         this.i18n.setLocale(params.get("locale"));
-        this.title.setTitle(`${this.i18n.t("basket")} | ATHLON`);
+        this.metadata.set({
+          title: `${this.i18n.t("basket")} | ATHLON`,
+          description: this.i18n.t("basket"),
+          noindex: true,
+        });
       });
     if (this.cardPaymentTestMode) {
       this.paymentMethod.set("CARD");

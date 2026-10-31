@@ -1,7 +1,10 @@
 import { Component, DestroyRef, inject } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { Title } from "@angular/platform-browser";
+import {
+  createPageMetadata,
+  createPageResponseStatus,
+} from "../../core/seo/page-metadata";
 import { I18nService } from "../../core/i18n/i18n.service";
 
 @Component({
@@ -55,7 +58,8 @@ import { I18nService } from "../../core/i18n/i18n.service";
 export class NotFoundPage {
   readonly i18n = inject(I18nService);
   private readonly route = inject(ActivatedRoute);
-  private readonly title = inject(Title);
+  private readonly metadata = createPageMetadata();
+  private readonly responseStatus = createPageResponseStatus();
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
@@ -63,7 +67,12 @@ export class NotFoundPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         this.i18n.setLocale(params.get("locale"));
-        this.title.setTitle(`${this.i18n.t("notFoundTitle")} | ATHLON`);
+        this.responseStatus(404);
+        this.metadata.set({
+          title: `${this.i18n.t("notFoundTitle")} | ATHLON`,
+          description: this.i18n.t("notFoundText"),
+          noindex: true,
+        });
       });
   }
 }
