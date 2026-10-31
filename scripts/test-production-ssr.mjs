@@ -347,6 +347,17 @@ async function main() {
         );
         req.end();
       });
+    const notFoundCopy = {
+      hy: ["Էջը չի գտնվել", "Հնարավոր է՝ հղումը հին է, կամ էջը տեղափոխվել է։"],
+      ru: [
+        "Страница не найдена",
+        "Возможно, ссылка устарела или страница была перемещена.",
+      ],
+      en: [
+        "Page not found",
+        "The link may be outdated or the page may have moved.",
+      ],
+    };
     const forwarded = (host) => ({
       host,
       "x-forwarded-host": host,
@@ -1045,7 +1056,7 @@ async function main() {
       "SSR makes only GET fixture requests",
     );
     console.log(
-      "PASS root/unsupported HY; admin client/noindex/zero API; unknown and forged host/unsafe proto 400; prefix untrusted; loopback HY SSR health",
+      "PASS root HY redirect; unsupported first segment 404; admin client/noindex/zero API; unknown and forged host/unsafe proto 400; prefix untrusted; loopback HY SSR health",
     );
   } finally {
     try {

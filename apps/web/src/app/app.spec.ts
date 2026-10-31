@@ -239,6 +239,19 @@ describe("ATHLON public application", () => {
     expect(document.title).toBe("Страница не найдена | ATHLON");
   });
 
+  it("renders not-found for an unsupported first path segment instead of redirecting", async () => {
+    const fixture = TestBed.createComponent(App);
+    await router.navigateByUrl("/de/catalog");
+    fixture.detectChanges();
+
+    expect(router.url).toBe("/de/catalog");
+    expect(fixture.nativeElement.textContent).toContain("404");
+    expect(document.title).toContain("ATHLON");
+    expect(
+      document.querySelector('meta[name="robots"]')?.getAttribute("content"),
+    ).toBe("noindex, follow");
+  });
+
   it("updates the homepage locale and title when only the locale route changes", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/en");
@@ -250,11 +263,11 @@ describe("ATHLON public application", () => {
         meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
       });
     fixture.detectChanges();
-    expect(document.title).toBe("Home | ATHLON");
+    expect(document.title).toBe("Sports nutrition in Armenia | ATHLON");
 
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
-    expect(document.title).toBe("Главная | ATHLON");
+    expect(document.title).toBe("Спортивное питание в Армении | ATHLON");
     http
       .expectOne(
         (request) =>

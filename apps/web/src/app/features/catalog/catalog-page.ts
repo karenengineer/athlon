@@ -33,7 +33,7 @@ import { ProductGrid } from "../../shared/product-grid/product-grid";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
 import { catalogContentCopy, categoryIntroduction } from "./category-content";
 
-type CatalogState = "loading" | "ready" | "empty" | "error";
+type CatalogState = "loading" | "ready" | "empty" | "error" | "not-found";
 type CategoryOption = Pick<Category, "id" | "slug" | "name" | "displayOrder">;
 const DEFAULT_CATEGORY_SLUG = "sports-nutrition";
 

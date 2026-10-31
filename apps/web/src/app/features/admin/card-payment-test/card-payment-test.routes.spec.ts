@@ -11,7 +11,7 @@ import { localeGuard } from "../../../core/i18n/locale.guard";
 describe("isolated mock card-payment routes", () => {
   it("keeps regular localized basket checkout on its ordinary locale guard without mock mode", async () => {
     const storefront = routes.find((route) => route.path === ":locale");
-    expect(storefront?.canActivate).toEqual([localeGuard]);
+    expect(storefront?.canMatch).toEqual([localeGuard]);
     const basket = storefront?.children?.find(
       (route) => route.path === "basket",
     );

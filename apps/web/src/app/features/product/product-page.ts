@@ -38,7 +38,9 @@ import {
 })
 export class ProductPage {
   readonly i18n = inject(I18nService);
-  readonly state = signal<"loading" | "ready" | "error">("loading");
+  readonly state = signal<"loading" | "ready" | "error" | "not-found">(
+    "loading",
+  );
   readonly product = signal<Product | null>(null);
   readonly relatedProducts = signal<Product[]>([]);
   readonly settings = signal<PublicSettings>({});

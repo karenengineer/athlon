@@ -7,6 +7,11 @@ import { PrismaService } from "../src/database/prisma.service";
 
 describe("Public SEO sitemap inventory", () => {
   let app: INestApplication;
+  const categoryDate = new Date("2026-03-01T00:00:00.000Z");
+  const category = (slug: string) => ({
+    slug,
+    updatedAt: categoryDate.toISOString(),
+  });
   const prisma = {
     product: { findMany: jest.fn() },
     category: { findMany: jest.fn() },
@@ -76,6 +81,7 @@ describe("Public SEO sitemap inventory", () => {
       where: { parentId: null, published: true },
       select: {
         slug: true,
+        updatedAt: true,
         children: {
           where: { published: true },
           select: { slug: true },
