@@ -7,7 +7,7 @@ export const seoCopy = {
   hy: {
     homeTitle: "Սպորտային սնունդ Հայաստանում | ATHLON",
     homeDescription:
-      "Սպորտային սննդի առցանց խանութ Հայաստանում․ պրոտեին, կրեատին և ամինաթթուներ։ Անվճար առաքում ողջ Հայաստանում։",
+      "Սպորտային սննդի առցանց խանութ Հայաստանում․ օրիգինալ պրոտեին, կրեատին և ամինաթթուներ։ Անվճար առաքում ողջ Հայաստանում։",
     armenia: "Հայաստան",
     delivery: "Անվճար առաքում ողջ Հայաստանում։",
     page: "Էջ",
@@ -18,7 +18,7 @@ export const seoCopy = {
   ru: {
     homeTitle: "Спортивное питание в Армении | ATHLON",
     homeDescription:
-      "Интернет-магазин спортивного питания в Армении: протеин, креатин и аминокислоты. Бесплатная доставка по всей Армении.",
+      "Интернет-магазин спортивного питания в Армении: оригинальный протеин, креатин и аминокислоты. Бесплатная доставка по всей Армении.",
     armenia: "Армения",
     delivery: "Бесплатная доставка по всей Армении.",
     page: "Страница",
@@ -29,7 +29,7 @@ export const seoCopy = {
   en: {
     homeTitle: "Sports nutrition in Armenia | ATHLON",
     homeDescription:
-      "Online sports-nutrition shop in Armenia: protein, creatine and amino acids. Free delivery throughout Armenia.",
+      "Online sports-nutrition shop in Armenia: original protein, creatine and amino acids. Free delivery throughout Armenia.",
     armenia: "Armenia",
     delivery: "Free delivery throughout Armenia.",
     page: "Page",

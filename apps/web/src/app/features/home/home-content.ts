@@ -15,7 +15,7 @@ export const homeContent: Record<Locale, HomeContent> = {
   hy: {
     heading: "Սպորտային սնունդ Հայաստանում",
     introduction:
-      "ATHLON-ը սպորտային սննդի առցանց խանութ է Հայաստանում։ Մեր կատալոգում կգտնեք սպիտակուց (պրոտեին), կրեատին, վիտամիններ, նախավարժանքային ապրանքներ և մարզման աքսեսուարներ։ Յուրաքանչյուր ապրանքի էջում ներկայացված են նկարագրությունը, գինը և առկայությունը, որպեսզի հեշտությամբ համեմատեք տարբերակները և ընտրեք ձեզ անհրաժեշտը։",
+      "ATHLON-ը սպորտային սննդի առցանց խանութ է Հայաստանում։ Մեր կատալոգում կգտնեք սպիտակուց (պրոտեին), կրեատին, վիտամիններ, նախավարժանքային ապրանքներ և մարզման աքսեսուարներ։ Յուրաքանչյուր ապրանքի էջում ներկայացված են նկարագրությունը, գինը և առկայությունը, որպեսզի հեշտությամբ համեմատեք տարբերակները և ընտրեք ձեզ անհրաժեշտը։ Մեր բոլոր ապրանքները օրիգինալ են։",
     catalogHeading: "Ինչ կգտնեք կատալոգում",
     categories: [
       {
@@ -48,6 +48,7 @@ export const homeContent: Record<Locale, HomeContent> = {
     choosing: [
       "Ընտրությունը սկսեք ձեր նպատակից և մարզումների ռեժիմից։ Եթե ցանկանում եք սննդակարգը լրացնել սպիտակուցով, սկսեք սպիտակուցի բաժնից։ Եթե կենտրոնացած եք ուժային մարզումների վրա, ծանոթացեք կրեատինի տարբերակներին։ Վիտամինները և մյուս հավելումները դիտարկեք որպես հավասարակշռված սննդակարգի լրացում, ոչ թե դրա փոխարինող։",
       "Գնելուց առաջ կարդացեք փաթեթի կազմը, չափաբաժինը և օգտագործման ցուցումները։ Համեմատեք նաև չափաբաժինների թիվը, քանի որ նույն գնով փաթեթները կարող են տարբեր քանակ պարունակել։ Առողջական խնդիրների դեպքում նախապես խորհրդակցեք բժշկի հետ։",
+      "Եթե դժվարանում եք ընտրել, մեր ֆիթնես մարզիչը անվճար խորհրդատվություն կտրամադրի։",
     ],
     deliveryHeading: "Առաքում և կապ",
     delivery:
@@ -56,7 +57,7 @@ export const homeContent: Record<Locale, HomeContent> = {
   ru: {
     heading: "Спортивное питание в Армении",
     introduction:
-      "ATHLON — интернет-магазин спортивного питания в Армении. В нашем каталоге есть протеин, креатин, витамины, предтренировочные продукты и аксессуары для тренировок. На странице каждого товара указаны описание, цена и наличие, поэтому варианты легко сравнить и выбрать то, что вам нужно.",
+      "ATHLON — интернет-магазин спортивного питания в Армении. В нашем каталоге есть протеин, креатин, витамины, предтренировочные продукты и аксессуары для тренировок. На странице каждого товара указаны описание, цена и наличие, поэтому варианты легко сравнить и выбрать то, что вам нужно. Все наши товары оригинальные.",
     catalogHeading: "Что есть в каталоге",
     categories: [
       {
@@ -89,6 +90,7 @@ export const homeContent: Record<Locale, HomeContent> = {
     choosing: [
       "Начните со своей цели и режима тренировок. Если хотите дополнить рацион белком, начните с раздела протеина. Если вы сосредоточены на силовых тренировках, посмотрите варианты креатина. Витамины и другие добавки рассматривайте как дополнение к сбалансированному питанию, а не как его замену.",
       "Перед покупкой прочитайте на упаковке состав, размер порции и инструкцию по применению. Сравните и количество порций: упаковки по одной цене могут содержать разное количество продукта. При проблемах со здоровьем сначала проконсультируйтесь с врачом.",
+      "Если сложно выбрать, наш фитнес-тренер бесплатно вас проконсультирует.",
     ],
     deliveryHeading: "Доставка и контакты",
     delivery:
@@ -97,7 +99,7 @@ export const homeContent: Record<Locale, HomeContent> = {
   en: {
     heading: "Sports nutrition in Armenia",
     introduction:
-      "ATHLON is an online sports nutrition shop in Armenia. Our catalog includes protein, creatine, vitamins, pre-workout products and training accessories. Each product page shows the description, price and availability, so you can compare the options and choose what you need.",
+      "ATHLON is an online sports nutrition shop in Armenia. Our catalog includes protein, creatine, vitamins, pre-workout products and training accessories. Each product page shows the description, price and availability, so you can compare the options and choose what you need. All our products are original.",
     catalogHeading: "What you will find in the catalog",
     categories: [
       {
@@ -130,6 +132,7 @@ export const homeContent: Record<Locale, HomeContent> = {
     choosing: [
       "Start with your goal and your training routine. If you want to add protein to your diet, begin with the protein section. If you focus on strength training, look at the creatine options. Treat vitamins and other supplements as an addition to a balanced diet, not a replacement for it.",
       "Before you buy, read the ingredients, serving size and directions on the package. Compare the number of servings too, because packages at the same price can contain different amounts. If you have a health condition, talk to a doctor first.",
+      "If you're not sure what to choose, our fitness coach offers free advice.",
     ],
     deliveryHeading: "Delivery and contact",
     delivery:

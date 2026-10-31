@@ -200,7 +200,7 @@ describe("Localized information pages", () => {
         meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
       });
     expect(meta.getTag('name="description"')?.content).toBe(
-      "Online sports-nutrition shop in Armenia: protein, creatine and amino acids. Free delivery throughout Armenia.",
+      "Online sports-nutrition shop in Armenia: original protein, creatine and amino acids. Free delivery throughout Armenia.",
     );
     expect(TestBed.inject(Title).getTitle()).toBe(
       "Sports nutrition in Armenia | ATHLON",
