@@ -12,11 +12,7 @@ import {
   createPageMetadata,
   createPageResponseStatus,
 } from "../../core/seo/page-metadata";
-import {
-  seoCopy,
-  storeSchema,
-  websiteSchema,
-} from "../../core/seo/seo-content";
+import { seoCopy, storeSchema } from "../../core/seo/seo-content";
 
 type HomeState = "loading" | "ready" | "empty" | "error";
 
@@ -76,7 +72,7 @@ export class HomePage {
       description: seoCopy[currentLocale].homeDescription,
       locale: currentLocale,
       path: [],
-      jsonLd: [storeSchema(currentLocale), websiteSchema(currentLocale)],
+      jsonLd: [storeSchema(currentLocale)],
     });
     this.state.set("loading");
     this.loadSubscription = this.api

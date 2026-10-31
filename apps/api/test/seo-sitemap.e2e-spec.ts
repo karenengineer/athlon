@@ -7,11 +7,6 @@ import { PrismaService } from "../src/database/prisma.service";
 
 describe("Public SEO sitemap inventory", () => {
   let app: INestApplication;
-  const categoryDate = new Date("2026-03-01T00:00:00.000Z");
-  const category = (slug: string) => ({
-    slug,
-    updatedAt: categoryDate.toISOString(),
-  });
   const prisma = {
     product: { findMany: jest.fn() },
     category: { findMany: jest.fn() },
@@ -29,24 +24,16 @@ describe("Public SEO sitemap inventory", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.product.findMany.mockResolvedValue([
-      { slug: "zinc", updatedAt: new Date("2026-02-01T00:00:00.000Z") },
-      { slug: "creatine", updatedAt: new Date("2026-01-01T00:00:00.000Z") },
-      { slug: "creatine", updatedAt: new Date("2026-01-01T00:00:00.000Z") },
+      { slug: "zinc" },
+      { slug: "creatine" },
+      { slug: "creatine" },
     ]);
     prisma.category.findMany.mockResolvedValue([
       {
         slug: "sports-nutrition",
-        updatedAt: categoryDate,
-        children: [
-          { slug: "protein", updatedAt: categoryDate },
-          { slug: "amino-acids", updatedAt: categoryDate },
-        ],
+        children: [{ slug: "protein" }, { slug: "amino-acids" }],
       },
-      {
-        slug: "accessories",
-        updatedAt: categoryDate,
-        children: [{ slug: "protein", updatedAt: categoryDate }],
-      },
+      { slug: "accessories", children: [{ slug: "protein" }] },
     ]);
   });
 
@@ -54,32 +41,29 @@ describe("Public SEO sitemap inventory", () => {
     await app.close();
   });
 
-  it("exposes sorted unique product and category entries through the public GET route", async () => {
+  it("exposes sorted unique product and category slugs through the public GET route", async () => {
     await request(app.getHttpServer())
       .get("/api/v1/public/seo/sitemap")
       .expect(200)
       .expect({
-        products: [
-          { slug: "creatine", updatedAt: "2026-01-01T00:00:00.000Z" },
-          { slug: "zinc", updatedAt: "2026-02-01T00:00:00.000Z" },
-        ],
-        categories: [
-          category("accessories"),
-          category("amino-acids"),
-          category("protein"),
-          category("sports-nutrition"),
+        productSlugs: ["creatine", "zinc"],
+        categorySlugs: [
+          "accessories",
+          "amino-acids",
+          "protein",
+          "sports-nutrition",
         ],
       });
   });
 
-  it("selects only published product entries independently of category publication", async () => {
+  it("selects only published product slugs independently of category publication", async () => {
     await request(app.getHttpServer())
       .get("/api/v1/public/seo/sitemap")
       .expect(200);
 
     expect(prisma.product.findMany).toHaveBeenCalledWith({
       where: { published: true },
-      select: { slug: true, updatedAt: true },
+      select: { slug: true },
     });
   });
 
@@ -95,7 +79,7 @@ describe("Public SEO sitemap inventory", () => {
         updatedAt: true,
         children: {
           where: { published: true },
-          select: { slug: true, updatedAt: true },
+          select: { slug: true },
         },
       },
     });
@@ -108,7 +92,7 @@ describe("Public SEO sitemap inventory", () => {
     await request(app.getHttpServer())
       .get("/api/v1/public/seo/sitemap")
       .expect(200)
-      .expect({ products: [], categories: [] });
+      .expect({ productSlugs: [], categorySlugs: [] });
   });
 
   it.each(["product", "category"] as const)(
@@ -123,8 +107,8 @@ describe("Public SEO sitemap inventory", () => {
         .expect(500)
         .expect(({ body }) => {
           expect(body.code).toBe("INTERNAL_ERROR");
-          expect(body).not.toHaveProperty("products");
-          expect(body).not.toHaveProperty("categories");
+          expect(body).not.toHaveProperty("productSlugs");
+          expect(body).not.toHaveProperty("categorySlugs");
           expect(body.message).toBe("Internal server error");
         });
     },

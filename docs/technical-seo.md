@@ -4,9 +4,7 @@ The canonical public origin is `https://athlon.am`. The code serves `/robots.txt
 directly as text and `/sitemap.xml` directly as XML. The sitemap lists home, catalog,
 about, contact, delivery and returns pages in HY/RU/EN, plus the API's published
 category and product inventory. It excludes private, search, basket and filtered
-URLs. Every URL carries `xhtml:link` HY/RU/EN/x-default alternates (x-default is
-HY). `lastmod` comes from the record's `updatedAt`; home and catalog use the newest
-record. Information pages have no recorded date, so they carry no `lastmod`.
+URLs. No modification dates are invented.
 
 The web process reads only `GET /api/v1/public/seo/sitemap` using its existing
 `SSR_API_BASE_URL`. The base must be the internal `http://api:3000/api/v1` or a
@@ -22,16 +20,9 @@ implementation before increasing catalog size; there is no silent truncation.
 Crawler endpoints retain the production host boundary (`athlon.am`, and
 `127.0.0.1` for internal health checks), HTTP/HTTPS validation and trusted proxy
 header policy. Caddy remains the public boundary. Search/filter pages remain
-crawlable so crawlers can read their `noindex, follow` metadata. Admin, the isolated
-payment test paths, basket/checkout and the private API paths are disallowed in
-robots; these directives do not replace authentication or route security.
-
-Never add a blanket `Disallow: /api/`. Crawlers render JavaScript, and a page that
-cannot reach the public catalog API falls into its error state, which is `noindex`.
-SSR hands API responses to the browser through the HTTP transfer cache
-(`core/api/api-transfer-origin.ts`), so a hydrated page normally makes no API call;
-keep the public reads crawlable as the fallback. A `Cache-Control: no-store` on
-public API responses would disable that cache.
+crawlable so crawlers can read their `noindex, follow` metadata. Admin and the
+isolated payment test paths are disallowed in robots; these directives do not
+replace authentication or route security.
 
 ## Local evidence
 
@@ -45,9 +36,7 @@ for production SSR verification.
 Initial HTML contains one fixed-origin canonical and reciprocal HY/RU/EN
 alternates for indexable equivalent routes. Plain pagination is self-canonical;
 search/filter/basket variants are `noindex, follow`. A true missing public product
-or category, an unknown route and an unsupported first path segment are HTTP 404
-with `noindex`, while required upstream failures are HTTP 503. Only `/` redirects
-to `/hy`. Inert
+or category is HTTP 404, while required upstream failures are HTTP 503. Inert
 JSON-LD describes confirmed store/product/breadcrumb facts without fabricated
 ratings, addresses or return policies.
 

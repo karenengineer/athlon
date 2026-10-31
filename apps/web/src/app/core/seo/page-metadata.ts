@@ -141,12 +141,6 @@ export function createPageMetadata(): {
               href: publicPageUrl(locale, metadata.path, metadata.query),
             });
           }
-        if (!metadata.noindex)
-          append("link", {
-            rel: "alternate",
-            hreflang: "x-default",
-            href: publicPageUrl("hy", metadata.path, metadata.query),
-          });
         const graph: Record<string, string> = {
           "og:title": metadata.title,
           "og:description": metadata.description,
@@ -163,10 +157,6 @@ export function createPageMetadata(): {
         if (image) graph["og:image"] = image;
         for (const [property, content] of Object.entries(graph))
           append("meta", { property, content });
-        append("meta", {
-          name: "twitter:card",
-          content: "summary_large_image",
-        });
       }
       if (!metadata.noindex)
         for (const data of metadata.jsonLd ?? []) {

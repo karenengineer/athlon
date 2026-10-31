@@ -268,7 +268,7 @@ export class CatalogPage {
             this.catalogStatus = 404;
             this.responseStatus(404);
             this.products.set([]);
-            this.state.set("not-found");
+            this.state.set("empty");
           }
           this.invalidPage ||=
             page > Math.max(1, response.products.meta.totalPages);
@@ -322,14 +322,6 @@ export class CatalogPage {
         ? [{ name: label, url: publicPageUrl(locale, path) }]
         : []),
     ];
-    if (this.catalogStatus === 404) {
-      this.pageMetadata.set({
-        title: `${this.i18n.t("notFoundTitle")} | ATHLON`,
-        description: this.i18n.t("notFoundText"),
-        noindex: true,
-      });
-      return;
-    }
     this.pageMetadata.set({
       title: `${query ? `${this.i18n.t("searchResults")}: “${query}”` : `${label} — ${copy.armenia}`}${pageSuffix} | ATHLON`,
       description: isSearch

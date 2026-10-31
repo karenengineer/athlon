@@ -265,16 +265,8 @@ async function main() {
     let body;
     if (url.pathname === "/api/v1/public/seo/sitemap")
       body = {
-        products: ["ssr-fixture", "ssr-fixture", 'encoded<&"'].map((slug) => ({
-          slug,
-          updatedAt: "2026-01-01T00:00:00.000Z",
-        })),
-        categories: ["sports-nutrition", "protein", "accessories"].map(
-          (slug) => ({
-            slug,
-            updatedAt: "2026-01-01T00:00:00.000Z",
-          }),
-        ),
+        productSlugs: ["ssr-fixture", "ssr-fixture", 'encoded<&"'],
+        categorySlugs: ["sports-nutrition", "protein", "accessories"],
       };
     else if (url.pathname === "/api/v1/products/ssr-fixture")
       body = product(locale);
@@ -432,17 +424,11 @@ async function main() {
       assert.deepEqual(
         alternates,
         indexable
-          ? [...locales, "x-default"].map((hreflang) => [
-              hreflang,
-              `https://athlon.am${path.replace(/^\/(hy|ru|en)/, `/${hreflang === "x-default" ? "hy" : hreflang}`)}`,
+          ? locales.map((locale) => [
+              locale,
+              `https://athlon.am${path.replace(/^\/(hy|ru|en)/, `/${locale}`)}`,
             ])
           : [],
-      );
-      assert.equal(
-        document
-          .querySelector('meta[name="twitter:card"]')
-          ?.getAttribute("content"),
-        "summary_large_image",
       );
       assert.equal(
         document
@@ -490,10 +476,7 @@ async function main() {
           response.html,
           /Sitemap: https:\/\/athlon.am\/sitemap.xml/,
         );
-        assert.match(response.html, /Disallow: \/\*\/basket\n/);
-        assert.match(response.html, /Disallow: \/api\/v1\/admin\/\n/);
-        assert.doesNotMatch(response.html, /Disallow: \/api\/\n/);
-        assert.doesNotMatch(response.html, /Disallow:.*(search|catalog|\?)/);
+        assert.doesNotMatch(response.html, /Disallow:.*[?*]/);
       } else {
         assert.match(response.headers["content-type"], /application\/xml/);
         const xml = new JSDOM(response.html, {
@@ -516,7 +499,10 @@ async function main() {
             "/product/encoded%3C%26%22",
           ])
             assert.ok(urls.includes(`https://athlon.am/${locale}${suffix}`));
-        assert.doesNotMatch(response.html, /basket|search|admin|card-payment/);
+        assert.doesNotMatch(
+          response.html,
+          /lastmod|basket|search|admin|card-payment/,
+        );
         xml.window.close();
       }
       for (const headers of [
@@ -684,8 +670,11 @@ async function main() {
         for (const [path, title, description, status] of [
           [
             `/${locale}/catalog/unpublished-fixture`,
-            `${notFoundCopy[locale][0]} | ATHLON`,
-            notFoundCopy[locale][1],
+            copy.catalogTitle.replace(
+              " | ATHLON",
+              ` — ${seoCopy[locale].armenia} | ATHLON`,
+            ),
+            `${copy.catalogDescription} ${seoCopy[locale].delivery}`,
             404,
           ],
           [
@@ -940,12 +929,9 @@ async function main() {
         new URL(rootRedirect.headers.location, `https://${host}`).pathname,
         "/hy",
       );
-      for (const path of ["/de/catalog", "/not-a-real-page"]) {
-        const missing = await get(path, forwarded(host));
-        assert.equal(missing.status, 404, `real 404: ${path}`);
-        assert.equal(missing.headers.location, undefined);
-        assert.match(missing.html, /noindex, follow/);
-      }
+      const unsupported = await get("/de/catalog", forwarded(host));
+      assert.equal(unsupported.status, 404, "unsupported first segment");
+      assert.equal(unsupported.headers.location, undefined);
       for (const path of [
         "/admin/login",
         "/admin/categories/example/edit",

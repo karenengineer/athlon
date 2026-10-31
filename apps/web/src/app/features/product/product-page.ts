@@ -169,7 +169,7 @@ export class ProductPage {
             description: this.i18n.t(missing ? "notFoundText" : "errorText"),
             noindex: true,
           });
-          this.state.set(missing ? "not-found" : "error");
+          this.state.set("error");
         },
       });
   }

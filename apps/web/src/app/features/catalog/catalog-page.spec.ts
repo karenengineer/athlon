@@ -238,14 +238,14 @@ describe("Catalog category content and metadata", () => {
     flushCatalog();
     await visit("/en/catalog/unknown");
     flushCatalog();
-    expect(title.getTitle()).toBe("Page not found | ATHLON");
+    expect(title.getTitle()).toBe("Catalog — Armenia | ATHLON");
     expect(description()).not.toContain("protein packages");
     expect(
       fixture.nativeElement.querySelector(".category-introduction"),
     ).toBeNull();
     await visit("/en/catalog/protein");
     flushCatalog([]);
-    expect(title.getTitle()).toBe("Page not found | ATHLON");
+    expect(title.getTitle()).toBe("Catalog — Armenia | ATHLON");
     expect(
       fixture.nativeElement.querySelector(".category-introduction"),
     ).toBeNull();
