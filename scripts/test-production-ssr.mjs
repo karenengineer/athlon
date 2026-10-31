@@ -11,6 +11,38 @@ import { createRequire } from "node:module";
 const { JSDOM } = createRequire(resolve("apps/web/package.json"))("jsdom");
 
 const locales = ["hy", "ru", "en"];
+const seoCopy = {
+  hy: {
+    homeTitle: "Սպորտային սնունդ Հայաստանում | ATHLON",
+    homeDescription:
+      "Սպորտային սննդի առցանց խանութ Հայաստանում․ պրոտեին, կրեատին և ամինաթթուներ։ Անվճար առաքում ողջ Հայաստանում։",
+    armenia: "Հայաստան",
+    delivery: "Անվճար առաքում ողջ Հայաստանում։",
+    page: "Էջ",
+    productDescription:
+      "Ապրանքի տվյալները, գինը և առկայությունը ATHLON սպորտային սննդի առցանց խանութում Հայաստանում։",
+  },
+  ru: {
+    homeTitle: "Спортивное питание в Армении | ATHLON",
+    homeDescription:
+      "Интернет-магазин спортивного питания в Армении: протеин, креатин и аминокислоты. Бесплатная доставка по всей Армении.",
+    armenia: "Армения",
+    delivery: "Бесплатная доставка по всей Армении.",
+    page: "Страница",
+    productDescription:
+      "Информация о товаре, цене и наличии в интернет-магазине спортивного питания ATHLON в Армении.",
+  },
+  en: {
+    homeTitle: "Sports nutrition in Armenia | ATHLON",
+    homeDescription:
+      "Online sports-nutrition shop in Armenia: protein, creatine and amino acids. Free delivery throughout Armenia.",
+    armenia: "Armenia",
+    delivery: "Free delivery throughout Armenia.",
+    page: "Page",
+    productDescription:
+      "Product details, price and availability at ATHLON, an online sports-nutrition shop in Armenia.",
+  },
+};
 const categoryCopy = {
   hy: {
     root: "Տեղական SSR սպորտային սնունդ",
@@ -231,26 +263,51 @@ async function main() {
       return;
     }
     let body;
-    if (url.pathname === "/api/v1/products/ssr-fixture") body = product(locale);
-    else if (url.pathname === "/api/v1/products") {
+    if (url.pathname === "/api/v1/public/seo/sitemap")
+      body = {
+        products: ["ssr-fixture", "ssr-fixture", 'encoded<&"'].map((slug) => ({
+          slug,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        })),
+        categories: ["sports-nutrition", "protein", "accessories"].map(
+          (slug) => ({
+            slug,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          }),
+        ),
+      };
+    else if (url.pathname === "/api/v1/products/ssr-fixture")
+      body = product(locale);
+    else if (url.pathname === "/api/v1/products/ssr-outage") {
+      res.writeHead(503, { "content-type": "application/json" });
+      res.end(JSON.stringify({ message: "Synthetic product failure" }));
+      return;
+    } else if (url.pathname === "/api/v1/products") {
       if (url.searchParams.get("brand") === "fixture-error") {
         res.writeHead(503, { "content-type": "application/json" });
         res.end(JSON.stringify({ message: "Synthetic catalog failure" }));
         return;
       }
       const empty = url.searchParams.get("brand") === "fixture-empty";
+      const page = Number(url.searchParams.get("page") ?? 1);
       body = {
-        items: empty ? [] : [product(locale)],
+        items:
+          empty || page > 2
+            ? []
+            : Array.from({ length: page === 2 ? 1 : 24 }, () =>
+                product(locale),
+              ),
         meta: {
-          page: 1,
+          page,
           pageSize: 24,
-          total: empty ? 0 : 1,
-          totalPages: empty ? 0 : 1,
+          total: empty ? 0 : 25,
+          totalPages: empty ? 0 : 2,
         },
       };
     } else if (url.pathname === "/api/v1/categories") body = categories(locale);
     else if (url.pathname === "/api/v1/brands") body = [];
-    else if (url.pathname === "/api/v1/public/settings") body = {};
+    else if (url.pathname === "/api/v1/public/settings")
+      body = { cardPaymentsEnabled: false };
     else {
       res.writeHead(404);
       res.end();
@@ -298,6 +355,17 @@ async function main() {
         );
         req.end();
       });
+    const notFoundCopy = {
+      hy: ["Էջը չի գտնվել", "Հնարավոր է՝ հղումը հին է, կամ էջը տեղափոխվել է։"],
+      ru: [
+        "Страница не найдена",
+        "Возможно, ссылка устарела или страница была перемещена.",
+      ],
+      en: [
+        "Page not found",
+        "The link may be outdated or the page may have moved.",
+      ],
+    };
     const forwarded = (host) => ({
       host,
       "x-forwarded-host": host,
@@ -328,10 +396,10 @@ async function main() {
       );
       assert.equal(document.querySelector("app-header .announcement"), null);
     };
-    const initialDocument = (response, selector, check) => {
-      assert.equal(response.status, 200);
+    const initialDocument = (response, selector, check, status = 200) => {
+      assert.equal(response.status, status);
       assert.match(response.html, /ng-server-context="ssr"/);
-      const { window } = new JSDOM(visible(response.html));
+      const { window } = new JSDOM(response.html);
       try {
         assert.ok(
           window.document.querySelector(selector),
@@ -342,6 +410,129 @@ async function main() {
         window.close();
       }
     };
+    const structuredData = (document) =>
+      [
+        ...document.querySelectorAll(
+          'script[type="application/ld+json"][data-athlon-seo]',
+        ),
+      ].map((script) => JSON.parse(script.textContent));
+    const discovery = (document, path, indexable = true) => {
+      const canonical = document.querySelectorAll('link[rel="canonical"]');
+      assert.equal(canonical.length, 1, `one canonical: ${path}`);
+      assert.equal(
+        canonical[0].getAttribute("href"),
+        `https://athlon.am${path}`,
+      );
+      const alternates = [
+        ...document.querySelectorAll('link[rel="alternate"][hreflang]'),
+      ].map((link) => [
+        link.getAttribute("hreflang"),
+        link.getAttribute("href"),
+      ]);
+      assert.deepEqual(
+        alternates,
+        indexable
+          ? [...locales, "x-default"].map((hreflang) => [
+              hreflang,
+              `https://athlon.am${path.replace(/^\/(hy|ru|en)/, `/${hreflang === "x-default" ? "hy" : hreflang}`)}`,
+            ])
+          : [],
+      );
+      assert.equal(
+        document
+          .querySelector('meta[name="twitter:card"]')
+          ?.getAttribute("content"),
+        "summary_large_image",
+      );
+      assert.equal(
+        document
+          .querySelector('meta[property="og:url"]')
+          ?.getAttribute("content"),
+        `https://athlon.am${path}`,
+      );
+      assert.match(
+        document
+          .querySelector('meta[property="og:image"]')
+          ?.getAttribute("content") ?? "",
+        /^https:\/\//,
+      );
+      assert.equal(
+        document
+          .querySelector('meta[name="robots"]')
+          ?.getAttribute("content") ?? null,
+        indexable ? null : "noindex, follow",
+      );
+      if (!indexable) assert.deepEqual(structuredData(document), []);
+    };
+    const failedMetadata = (document) => {
+      assert.equal(
+        document.querySelector('meta[name="robots"]')?.getAttribute("content"),
+        "noindex, follow",
+      );
+      assert.equal(
+        document.querySelector(
+          'link[rel="canonical"], link[rel="alternate"], meta[property^="og:"]',
+        ),
+        null,
+      );
+      assert.deepEqual(structuredData(document), []);
+    };
+    // Direct HTTP crawler responses bypass locale redirects, while retaining
+    // equivalent production host/protocol/prefix validation before Angular.
+    for (const path of ["/robots.txt", "/sitemap.xml"]) {
+      const response = await get(path, forwarded("athlon.am"));
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.location, undefined);
+      assert.doesNotMatch(response.html, /<app-root|ng-server-context/);
+      if (path === "/robots.txt") {
+        assert.match(response.headers["content-type"], /text\/plain/);
+        assert.match(
+          response.html,
+          /Sitemap: https:\/\/athlon.am\/sitemap.xml/,
+        );
+        assert.match(response.html, /Disallow: \/\*\/basket\n/);
+        assert.match(response.html, /Disallow: \/api\/v1\/admin\/\n/);
+        assert.doesNotMatch(response.html, /Disallow: \/api\/\n/);
+        assert.doesNotMatch(response.html, /Disallow:.*(search|catalog|\?)/);
+      } else {
+        assert.match(response.headers["content-type"], /application\/xml/);
+        const xml = new JSDOM(response.html, {
+          contentType: "application/xml",
+        });
+        const urls = [...xml.window.document.querySelectorAll("loc")].map(
+          (node) => node.textContent,
+        );
+        assert.deepEqual(urls, [...new Set(urls)].sort());
+        for (const locale of locales)
+          for (const suffix of [
+            "",
+            "/catalog",
+            "/about",
+            "/contact",
+            "/delivery",
+            "/returns",
+            "/catalog/protein",
+            "/product/ssr-fixture",
+            "/product/encoded%3C%26%22",
+          ])
+            assert.ok(urls.includes(`https://athlon.am/${locale}${suffix}`));
+        assert.doesNotMatch(response.html, /basket|search|admin|card-payment/);
+        xml.window.close();
+      }
+      for (const headers of [
+        { host: "unknown.example" },
+        { host: "localhost" },
+        { ...forwarded("athlon.am"), "x-forwarded-host": "evil.example" },
+        { ...forwarded("athlon.am"), host: "evil.example" },
+        { ...forwarded("athlon.am"), "x-forwarded-proto": "ftp" },
+        { ...forwarded("athlon.am"), "x-forwarded-prefix": "/injected" },
+        { ...forwarded("athlon.am"), "x-forwarded-port": "443" },
+      ]) {
+        const before = calls.length;
+        assert.equal((await get(path, headers)).status, 400);
+        assert.equal(calls.length, before);
+      }
+    }
     for (const host of ["athlon.am"]) {
       for (const locale of ["hy", "ru", "en"]) {
         const before = calls.length;
@@ -356,6 +547,29 @@ async function main() {
           visible(response.html).includes(names[locale]),
           `visible localized product: ${host}/${locale}`,
         );
+        // Preserve scripts when parsing inert JSON-LD; JSDOM never executes them.
+        const parsed = new JSDOM(response.html);
+        try {
+          metadata(
+            parsed.window.document,
+            `${names[locale]} — ${seoCopy[locale].armenia} | ATHLON`,
+            seoCopy[locale].productDescription,
+          );
+          discovery(parsed.window.document, `/${locale}/product/ssr-fixture`);
+          const schema = structuredData(parsed.window.document);
+          const item = schema.find((entry) => entry["@type"] === "Product");
+          assert.equal(item.name, names[locale]);
+          assert.equal(item.sku, "SSR-FIXTURE");
+          assert.equal(item.offers.priceCurrency, "AMD");
+          assert.equal(item.offers.price, "15000");
+          assert.equal(item.offers.availability, "https://schema.org/InStock");
+          assert.ok(
+            schema.some((entry) => entry["@type"] === "BreadcrumbList"),
+          );
+          assert.equal(item.aggregateRating, undefined);
+        } finally {
+          parsed.window.close();
+        }
         assert.ok(
           calls
             .slice(before)
@@ -420,7 +634,17 @@ async function main() {
                 ?.getAttribute("href"),
               `/${locale}/catalog/${slug}`,
             );
-            metadata(document, `${name} | ATHLON`, description);
+            metadata(
+              document,
+              `${name} — ${seoCopy[locale].armenia} | ATHLON`,
+              `${description} ${seoCopy[locale].delivery}`,
+            );
+            discovery(document, `/${locale}/catalog/${slug}`);
+            assert.ok(
+              structuredData(document).some(
+                (entry) => entry["@type"] === "BreadcrumbList",
+              ),
+            );
             footer(document, locale);
           });
           assert.ok(
@@ -446,42 +670,154 @@ async function main() {
             text(document.querySelector(".category-introduction")),
             copy.childDescription,
           );
-          metadata(document, `${copy.child} | ATHLON`, copy.childDescription);
+          metadata(
+            document,
+            `${copy.child} — ${seoCopy[locale].armenia} | ATHLON`,
+            `${copy.childDescription} ${seoCopy[locale].delivery}`,
+          );
+          discovery(
+            document,
+            `/${locale}/catalog/protein?brand=fixture-empty`,
+            false,
+          );
         });
-        for (const [path, title, description] of [
+        for (const [path, title, description, status] of [
           [
             `/${locale}/catalog/unpublished-fixture`,
-            copy.catalogTitle,
-            copy.catalogDescription,
+            `${notFoundCopy[locale][0]} | ATHLON`,
+            notFoundCopy[locale][1],
+            404,
           ],
           [
             `/${locale}/catalog/protein?brand=fixture-error`,
-            copy.catalogTitle,
-            copy.catalogDescription,
+            copy.catalogTitle.replace(
+              " | ATHLON",
+              ` — ${seoCopy[locale].armenia} | ATHLON`,
+            ),
+            `${copy.catalogDescription} ${seoCopy[locale].delivery}`,
+            503,
           ],
           [
             `/${locale}/catalog/protein?q=fixture`,
             copy.searchTitle,
             copy.searchDescription,
+            200,
           ],
           [
             `/${locale}/search?q=fixture`,
             copy.searchTitle,
             copy.searchDescription,
+            200,
           ],
         ]) {
           const response = await get(path, forwarded(host));
-          initialDocument(response, "app-catalog-page", (document) => {
-            assert.equal(
-              document.querySelector(".category-content"),
-              null,
-              `no unrelated guidance: ${path}`,
-            );
-            metadata(document, title, description);
-          });
+          initialDocument(
+            response,
+            "app-catalog-page",
+            (document) => {
+              assert.equal(
+                document.querySelector(".category-content"),
+                null,
+                `no unrelated guidance: ${path}`,
+              );
+              metadata(document, title, description);
+              if (status !== 200) failedMetadata(document);
+              else discovery(document, path, false);
+            },
+            status,
+          );
         }
         console.log(
           `PASS ${host}/${locale}: empty category retains relevant content; unknown/error/search have no unrelated guidance or metadata`,
+        );
+
+        const pageTwo = await get(
+          `/${locale}/catalog/protein?page=2`,
+          forwarded(host),
+        );
+        initialDocument(pageTwo, "app-catalog-page", (document) => {
+          discovery(document, `/${locale}/catalog/protein?page=2`);
+          assert.equal(
+            document.title,
+            `${copy.child} — ${seoCopy[locale].armenia} — ${seoCopy[locale].page} 2 | ATHLON`,
+          );
+          assert.equal(document.querySelectorAll("app-product-card").length, 1);
+          assert.ok(
+            document.querySelector(
+              `.pagination a[href="/${locale}/catalog/protein"]`,
+            ),
+            "real previous-page anchor",
+          );
+          assert.ok(
+            document.querySelector('.pagination [aria-current="page"]'),
+            "current page context",
+          );
+        });
+        const pageOne = await get(
+          `/${locale}/catalog/protein?page=1&utm_source=fixture`,
+          forwarded(host),
+        );
+        initialDocument(pageOne, "app-catalog-page", (document) => {
+          discovery(document, `/${locale}/catalog/protein`);
+          const href = document
+            .querySelector('.pagination a[rel="next"]')
+            ?.getAttribute("href");
+          assert.ok(href, "real next-page anchor");
+          const next = new URL(href, "https://athlon.am");
+          assert.equal(next.pathname, `/${locale}/catalog/protein`);
+          assert.equal(next.searchParams.get("page"), "2");
+          assert.equal(
+            next.searchParams.get("utm_source"),
+            "fixture",
+            "next-page anchor preserves query",
+          );
+        });
+        const filtered = await get(
+          `/${locale}/catalog/protein?brand=fixture&page=2`,
+          forwarded(host),
+        );
+        initialDocument(filtered, "app-catalog-page", (document) => {
+          discovery(
+            document,
+            `/${locale}/catalog/protein?brand=fixture&page=2`,
+            false,
+          );
+          assert.ok(
+            document.querySelector(
+              `.pagination a[href="/${locale}/catalog/protein?brand=fixture"]`,
+            ),
+            "previous-page anchor preserves filter",
+          );
+        });
+        for (const page of ["0", "999", "bad"]) {
+          initialDocument(
+            await get(
+              `/${locale}/catalog/protein?page=${page}`,
+              forwarded(host),
+            ),
+            "app-catalog-page",
+            (document) =>
+              discovery(
+                document,
+                `/${locale}/catalog/protein?page=${page}`,
+                false,
+              ),
+          );
+        }
+        for (const [path, status, selector] of [
+          [`/${locale}/product/missing-fixture`, 404, "app-product-page"],
+          [`/${locale}/product/ssr-outage`, 503, "app-product-page"],
+          [`/${locale}/unknown-fixture`, 404, "app-not-found-page"],
+        ]) {
+          initialDocument(
+            await get(path, forwarded(host)),
+            selector,
+            failedMetadata,
+            status,
+          );
+        }
+        console.log(
+          `PASS ${host}/${locale}: self-canonical page2 with real filtered anchors, page1 normalization, invalid pagination noindex, true404 and upstream503`,
         );
 
         for (const [
@@ -550,6 +886,14 @@ async function main() {
                 );
               }
               metadata(document, `${heading} | ATHLON`, description);
+              discovery(document, `/${locale}/${page}`);
+              if (page === "about")
+                assert.equal(
+                  structuredData(document).find(
+                    (entry) => entry["@type"] === "OnlineStore",
+                  )?.email,
+                  "athlonsportgoods@gmail.com",
+                );
               footer(document, locale);
             },
           );
@@ -572,21 +916,35 @@ async function main() {
             "P",
           );
           footer(document, locale);
+          metadata(
+            document,
+            seoCopy[locale].homeTitle,
+            seoCopy[locale].homeDescription,
+          );
+          discovery(document, `/${locale}`);
+          const store = structuredData(document).find(
+            (entry) => entry["@type"] === "OnlineStore",
+          );
+          assert.equal(store.telephone, "+37441448855");
+          assert.equal(store.areaServed.name, "Armenia");
+          assert.equal(store.address, undefined);
+          assert.equal(store.aggregateRating, undefined);
         });
         console.log(
           `PASS ${host}/${locale}: home H1 immediately followed by localized delivery H2/phone; no global announcement`,
         );
       }
-      for (const [path, target] of [
-        ["/", "/hy"],
-        ["/de/catalog", "/hy/catalog"],
-      ]) {
-        const response = await get(path, forwarded(host));
-        assert.equal(response.status, 302);
-        assert.equal(
-          new URL(response.headers.location, `https://${host}`).pathname,
-          target,
-        );
+      const rootRedirect = await get("/", forwarded(host));
+      assert.equal(rootRedirect.status, 302, "preserved root redirect");
+      assert.equal(
+        new URL(rootRedirect.headers.location, `https://${host}`).pathname,
+        "/hy",
+      );
+      for (const path of ["/de/catalog", "/not-a-real-page"]) {
+        const missing = await get(path, forwarded(host));
+        assert.equal(missing.status, 404, `real 404: ${path}`);
+        assert.equal(missing.headers.location, undefined);
+        assert.match(missing.html, /noindex, follow/);
       }
       for (const path of [
         "/admin/login",
@@ -716,7 +1074,7 @@ async function main() {
       "SSR makes only GET fixture requests",
     );
     console.log(
-      "PASS root/unsupported HY; admin client/noindex/zero API; unknown and forged host/unsafe proto 400; prefix untrusted; loopback HY SSR health",
+      "PASS root HY redirect; unsupported first segment 404; admin client/noindex/zero API; unknown and forged host/unsafe proto 400; prefix untrusted; loopback HY SSR health",
     );
   } finally {
     try {

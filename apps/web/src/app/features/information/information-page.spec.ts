@@ -189,7 +189,7 @@ describe("Localized information pages", () => {
     );
   });
 
-  it("restores the baseline description on home and product navigation without replacing their titles", async () => {
+  it("replaces information copy with the current home and product metadata", async () => {
     await visit("/en/delivery");
     expect(page()).not.toBeNull();
     await visit("/en");
@@ -200,9 +200,11 @@ describe("Localized information pages", () => {
         meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
       });
     expect(meta.getTag('name="description"')?.content).toBe(
-      "Original store description",
+      "Online sports-nutrition shop in Armenia: protein, creatine and amino acids. Free delivery throughout Armenia.",
     );
-    expect(TestBed.inject(Title).getTitle()).toBe("Home | ATHLON");
+    expect(TestBed.inject(Title).getTitle()).toBe(
+      "Sports nutrition in Armenia | ATHLON",
+    );
     await visit("/en/returns");
     await visit("/en/product/fixture-product");
     http
@@ -229,9 +231,9 @@ describe("Localized information pages", () => {
         items: [],
         meta: { page: 1, pageSize: 5, total: 0, totalPages: 0 },
       });
-    expect(meta.getTag('name="description"')?.content).toBe(
-      "Original store description",
+    expect(meta.getTag('name="description"')?.content).toBe("Fixture");
+    expect(TestBed.inject(Title).getTitle()).toBe(
+      "Fixture product — Armenia | ATHLON",
     );
-    expect(TestBed.inject(Title).getTitle()).toBe("Fixture product | ATHLON");
   });
 });

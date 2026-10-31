@@ -69,11 +69,13 @@ describe("default public locale", () => {
     });
   }
 
-  it("redirects an unsupported locale to Armenian preserving the catalog path", async () => {
+  it("renders Armenian not-found for an unsupported locale without redirecting", async () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl("/de/catalog/sports-nutrition");
-    expect(TestBed.inject(Router).url).toBe("/hy/catalog/sports-nutrition");
-    flushCatalog("hy");
+    expect(TestBed.inject(Router).url).toBe("/de/catalog/sports-nutrition");
+    expect(TestBed.inject(I18nService).locale()).toBe("hy");
+    expect(harness.routeNativeElement?.textContent).toContain("404");
+    expect(http.match(() => true)).toEqual([]);
   });
 
   it("starts with Armenian copy before navigation", () => {
@@ -133,7 +135,7 @@ describe("default public locale", () => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [
-          provideRouter([{ ...publicRoute, path: "missing", canActivate: [] }]),
+          provideRouter([{ ...publicRoute, path: "missing", canMatch: [] }]),
           provideHttpClient(),
           provideHttpClientTesting(),
         ],

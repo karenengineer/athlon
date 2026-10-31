@@ -7,6 +7,7 @@ import {
 import express from "express";
 import { join } from "node:path";
 import { adminRobotsMiddleware } from "./admin-robots.middleware";
+import { createSeoCrawlerMiddleware } from "./seo-crawler.middleware";
 
 const browserDistFolder = join(import.meta.dirname, "../browser");
 
@@ -22,18 +23,7 @@ const angularApp = new AngularNodeAppEngine({
   ],
 });
 app.use(adminRobotsMiddleware);
-
-/**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
- *
- * Example:
- * ```ts
- * app.get('/api/{*splat}', (req, res) => {
- *   // Handle API request
- * });
- * ```
- */
+app.use(createSeoCrawlerMiddleware());
 
 /**
  * Serve static files from /browser

@@ -26,9 +26,11 @@ import { I18nService } from "../../core/i18n/i18n.service";
             i18n.t(
               kind() === "error"
                 ? "errorTitle"
-                : kind() === "no-results"
-                  ? "noResultsTitle"
-                  : "emptyTitle"
+                : kind() === "not-found"
+                  ? "notFoundTitle"
+                  : kind() === "no-results"
+                    ? "noResultsTitle"
+                    : "emptyTitle"
             )
           }}
         </h2>
@@ -37,9 +39,11 @@ import { I18nService } from "../../core/i18n/i18n.service";
             i18n.t(
               kind() === "error"
                 ? "errorText"
-                : kind() === "no-results"
-                  ? "noResultsText"
-                  : "emptyText"
+                : kind() === "not-found"
+                  ? "notFoundText"
+                  : kind() === "no-results"
+                    ? "noResultsText"
+                    : "emptyText"
             )
           }}
         </p>
@@ -138,7 +142,7 @@ import { I18nService } from "../../core/i18n/i18n.service";
 })
 export class StatusPanel {
   readonly kind = input.required<
-    "loading" | "empty" | "no-results" | "error"
+    "loading" | "empty" | "no-results" | "error" | "not-found"
   >();
   readonly retry = output<void>();
   readonly i18n = inject(I18nService);

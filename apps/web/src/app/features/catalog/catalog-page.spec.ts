@@ -141,8 +141,10 @@ describe("Catalog category content and metadata", () => {
       "/en/catalog/sports-nutrition",
       "/en/catalog/new-category",
     ]);
-    expect(title.getTitle()).toBe("Protein | ATHLON");
-    expect(description()).toBe("<b>Compare packages</b>");
+    expect(title.getTitle()).toBe("Protein — Armenia | ATHLON");
+    expect(description()).toBe(
+      "<b>Compare packages</b> Free delivery throughout Armenia.",
+    );
   });
 
   for (const [locale, fallbackFragment, guidanceFragment] of [
@@ -180,7 +182,7 @@ describe("Catalog category content and metadata", () => {
     await visit("/en/catalog/protein");
     flushCatalog();
     expect(description()).toBe(
-      "Compare the protein packages in this category.",
+      "Compare the protein packages in this category. Free delivery throughout Armenia.",
     );
     await visit("/en/catalog/new-category?sort=priceAsc");
     expect(description()).not.toContain("protein packages");
@@ -188,7 +190,7 @@ describe("Catalog category content and metadata", () => {
       fixture.nativeElement.querySelector(".category-introduction"),
     ).toBeNull();
     flushCatalog();
-    expect(title.getTitle()).toBe("New category | ATHLON");
+    expect(title.getTitle()).toBe("New category — Armenia | ATHLON");
     expect(description()).toContain("New category");
   });
 
@@ -200,8 +202,10 @@ describe("Catalog category content and metadata", () => {
     categories[0].children[0].name = "Протеин";
     categories[0].children[0].description = "Сравните упаковки протеина.";
     flushCatalog(categories);
-    expect(title.getTitle()).toBe("Протеин | ATHLON");
-    expect(description()).toBe("Сравните упаковки протеина.");
+    expect(title.getTitle()).toBe("Протеин — Армения | ATHLON");
+    expect(description()).toBe(
+      "Сравните упаковки протеина. Бесплатная доставка по всей Армении.",
+    );
     expect(
       fixture.nativeElement.querySelector(
         '.category-navigation a[href="/en/catalog/protein"]',
@@ -234,14 +238,14 @@ describe("Catalog category content and metadata", () => {
     flushCatalog();
     await visit("/en/catalog/unknown");
     flushCatalog();
-    expect(title.getTitle()).toBe("Catalog | ATHLON");
+    expect(title.getTitle()).toBe("Page not found | ATHLON");
     expect(description()).not.toContain("protein packages");
     expect(
       fixture.nativeElement.querySelector(".category-introduction"),
     ).toBeNull();
     await visit("/en/catalog/protein");
     flushCatalog([]);
-    expect(title.getTitle()).toBe("Catalog | ATHLON");
+    expect(title.getTitle()).toBe("Page not found | ATHLON");
     expect(
       fixture.nativeElement.querySelector(".category-introduction"),
     ).toBeNull();
@@ -256,7 +260,7 @@ describe("Catalog category content and metadata", () => {
       .flush({}, { status: 503, statusText: "Unavailable" });
     http.match((request) => request.url.endsWith("/products"));
     fixture.detectChanges();
-    expect(title.getTitle()).toBe("Catalog | ATHLON");
+    expect(title.getTitle()).toBe("Catalog — Armenia | ATHLON");
     expect(description()).not.toContain("protein packages");
     expect(
       fixture.nativeElement.querySelector(".category-guidance"),
