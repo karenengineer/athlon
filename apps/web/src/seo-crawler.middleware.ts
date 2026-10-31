@@ -1,9 +1,5 @@
 import type { RequestHandler } from "express";
 
-interface InventoryEntry {
-  slug: string;
-  updatedAt: string;
-}
 interface Inventory {
   productSlugs: string[];
   categorySlugs: string[];
@@ -17,7 +13,6 @@ interface CrawlerOptions {
   maxInventoryBytes?: number;
 }
 const ORIGIN = "https://athlon.am";
-const LOCALES = ["hy", "ru", "en"];
 const MAX_URLS = 50_000;
 const MAX_XML_BYTES = 50 * 1024 * 1024;
 const ROBOTS = `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /card-payment-test\n\nSitemap: ${ORIGIN}/sitemap.xml\n`;
@@ -38,7 +33,10 @@ function validateInventory(value: unknown): Inventory {
           typeof slug !== "string" ||
           !slug.trim() ||
           slug.length > 4096 ||
-          [...slug].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127),
+          [...slug].some(
+            (character) =>
+              character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+          ),
       )
     )
       throw new Error("Invalid inventory slugs");

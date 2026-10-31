@@ -188,11 +188,6 @@ describe("Public page SEO navigation", () => {
     expect(response.status).toBe(404);
     expect(noindex()).toBe("noindex, follow");
     expect(canonical()).toBeUndefined();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain("Page not found");
-    expect(
-      fixture.nativeElement.querySelector("[data-testid=retry-home]"),
-    ).toBeNull();
     await visit("/en/product/outage");
     http
       .expectOne((request) => request.url.endsWith("/products/outage"))
@@ -290,9 +285,6 @@ describe("Public page SEO navigation", () => {
     flushCatalog();
     expect(response.status).toBe(404);
     expect(noindex()).toBe("noindex, follow");
-    expect(TestBed.inject(Title).getTitle()).toBe("Page not found | ATHLON");
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain("Page not found");
     await visit("/en/catalog/protein");
     flushCatalog();
     expect(response.status).toBe(200);

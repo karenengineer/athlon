@@ -748,12 +748,18 @@ async function main() {
         );
         initialDocument(pageOne, "app-catalog-page", (document) => {
           discovery(document, `/${locale}/catalog/protein`);
-          const href = document.querySelector('.pagination a[rel="next"]')?.getAttribute("href");
+          const href = document
+            .querySelector('.pagination a[rel="next"]')
+            ?.getAttribute("href");
           assert.ok(href, "real next-page anchor");
           const next = new URL(href, "https://athlon.am");
           assert.equal(next.pathname, `/${locale}/catalog/protein`);
           assert.equal(next.searchParams.get("page"), "2");
-          assert.equal(next.searchParams.get("utm_source"), "fixture", "next-page anchor preserves query");
+          assert.equal(
+            next.searchParams.get("utm_source"),
+            "fixture",
+            "next-page anchor preserves query",
+          );
         });
         const filtered = await get(
           `/${locale}/catalog/protein?brand=fixture&page=2`,
@@ -917,17 +923,15 @@ async function main() {
           `PASS ${host}/${locale}: home H1 immediately followed by localized delivery H2/phone; no global announcement`,
         );
       }
-      for (const [path, target] of [
-        ["/", "/hy"],
-        ["/de/catalog", "/hy/catalog"],
-      ]) {
-        const response = await get(path, forwarded(host));
-        assert.equal(response.status, 302, `preserved redirect: ${path}`);
-        assert.equal(
-          new URL(response.headers.location, `https://${host}`).pathname,
-          target,
-        );
-      }
+      const rootRedirect = await get("/", forwarded(host));
+      assert.equal(rootRedirect.status, 302, "preserved root redirect");
+      assert.equal(
+        new URL(rootRedirect.headers.location, `https://${host}`).pathname,
+        "/hy",
+      );
+      const unsupported = await get("/de/catalog", forwarded(host));
+      assert.equal(unsupported.status, 404, "unsupported first segment");
+      assert.equal(unsupported.headers.location, undefined);
       for (const path of [
         "/admin/login",
         "/admin/categories/example/edit",
