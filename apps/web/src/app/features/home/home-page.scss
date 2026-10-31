@@ -280,6 +280,45 @@ svg {
   font-size: 1.5rem;
 }
 
+.store-guide {
+  padding: 40px 0;
+  color: #171719;
+  background: #fff;
+  line-height: 1.6;
+}
+
+.store-guide .page-width > * {
+  max-width: 76ch;
+}
+
+.store-guide h2 {
+  margin: 0 0 12px;
+}
+
+.store-guide h3 {
+  margin: 24px 0 8px;
+}
+
+.store-guide p {
+  margin: 0 0 12px;
+  color: #595960;
+}
+
+.store-guide ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #595960;
+}
+
+.store-guide li {
+  margin-bottom: 6px;
+}
+
+.store-guide a {
+  color: #171719;
+  font-weight: 800;
+}
+
 @media (max-width: 860px) {
   .hero {
     min-height: 270px;

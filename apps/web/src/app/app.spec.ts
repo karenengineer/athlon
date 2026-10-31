@@ -87,7 +87,9 @@ describe("ATHLON public application", () => {
       "[data-testid=category-control]",
     );
     expect(categoryControls).toHaveLength(0);
-    expect(fixture.nativeElement.textContent).not.toContain("Аксессуары");
+    expect(
+      fixture.nativeElement.querySelector(".showcase").textContent,
+    ).not.toContain("Аксессуары");
     expect(fixture.nativeElement.textContent).toContain("Демо протеин");
     expect(fixture.nativeElement.textContent).toContain("Уточнить цену");
   });

@@ -31,7 +31,11 @@ import {
 import { breadcrumbSchema, seoCopy } from "../../core/seo/seo-content";
 import { ProductGrid } from "../../shared/product-grid/product-grid";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
-import { catalogContentCopy, categoryIntroduction } from "./category-content";
+import {
+  catalogContentCopy,
+  categoryGuidance,
+  categoryIntroduction,
+} from "./category-content";
 
 type CatalogState = "loading" | "ready" | "empty" | "error" | "not-found";
 type CategoryOption = Pick<Category, "id" | "slug" | "name" | "displayOrder">;
@@ -183,6 +187,10 @@ export class CatalogPage {
     });
   }
 
+  guidance(): string {
+    return categoryGuidance(this.selectedCategory(), this.i18n.locale());
+  }
+
   contentCopy() {
     return catalogContentCopy[this.i18n.locale()];
   }
@@ -268,7 +276,7 @@ export class CatalogPage {
             this.catalogStatus = 404;
             this.responseStatus(404);
             this.products.set([]);
-            this.state.set("empty");
+            this.state.set("not-found");
           }
           this.invalidPage ||=
             page > Math.max(1, response.products.meta.totalPages);
@@ -322,6 +330,14 @@ export class CatalogPage {
         ? [{ name: label, url: publicPageUrl(locale, path) }]
         : []),
     ];
+    if (this.catalogStatus === 404) {
+      this.pageMetadata.set({
+        title: `${this.i18n.t("notFoundTitle")} | ATHLON`,
+        description: this.i18n.t("notFoundText"),
+        noindex: true,
+      });
+      return;
+    }
     this.pageMetadata.set({
       title: `${query ? `${this.i18n.t("searchResults")}: “${query}”` : `${label} — ${copy.armenia}`}${pageSuffix} | ATHLON`,
       description: isSearch

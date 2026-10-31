@@ -10,6 +10,8 @@ import { provideRouter, Router } from "@angular/router";
 import { App } from "../../app";
 import { routes } from "../../app.routes";
 import { Category, Product } from "../api/catalog.models";
+import { Locale } from "../i18n/i18n.service";
+import { homeContent } from "../../features/home/home-content";
 import { PublicShell } from "../../layout/public-shell/public-shell";
 
 const categories: Category[] = [
@@ -135,9 +137,20 @@ describe("Public page SEO navigation", () => {
       ).toContain(armenia);
       expect(canonical()).toBe(`https://athlon.am/${locale}`);
       expect(document.querySelectorAll('link[rel="alternate"]')).toHaveLength(
-        3,
+        4,
       );
-      expect(schemas()[0]["@type"]).toBe("OnlineStore");
+      expect(schemas().map((value) => value["@type"])).toEqual([
+        "OnlineStore",
+        "WebSite",
+      ]);
+      fixture.detectChanges();
+      const guide = fixture.nativeElement.querySelector(".store-guide");
+      expect(guide.querySelector("h2").textContent).toBe(
+        homeContent[locale as Locale].heading,
+      );
+      expect(
+        guide.querySelector(`a[href="/${locale}/catalog/protein"]`),
+      ).not.toBeNull();
       await visit(`/${locale}/catalog/protein`);
       flushCatalog();
       expect(response.status).toBe(200);
@@ -188,6 +201,11 @@ describe("Public page SEO navigation", () => {
     expect(response.status).toBe(404);
     expect(noindex()).toBe("noindex, follow");
     expect(canonical()).toBeUndefined();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Page not found");
+    expect(
+      fixture.nativeElement.querySelector("[data-testid=retry-home]"),
+    ).toBeNull();
     await visit("/en/product/outage");
     http
       .expectOne((request) => request.url.endsWith("/products/outage"))
@@ -285,6 +303,9 @@ describe("Public page SEO navigation", () => {
     flushCatalog();
     expect(response.status).toBe(404);
     expect(noindex()).toBe("noindex, follow");
+    expect(TestBed.inject(Title).getTitle()).toBe("Page not found | ATHLON");
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Page not found");
     await visit("/en/catalog/protein");
     flushCatalog();
     expect(response.status).toBe(200);

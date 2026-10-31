@@ -57,7 +57,15 @@ describe("Page metadata ownership", () => {
       Array.from(document.querySelectorAll('link[rel="alternate"]')).map(
         (node) => node.getAttribute("hreflang"),
       ),
-    ).toEqual(["hy", "ru", "en"]);
+    ).toEqual(["hy", "ru", "en", "x-default"]);
+    expect(
+      document
+        .querySelector('link[hreflang="x-default"]')
+        ?.getAttribute("href"),
+    ).toBe(document.querySelector('link[hreflang="hy"]')?.getAttribute("href"));
+    expect(TestBed.inject(Meta).getTag('name="twitter:card"')?.content).toBe(
+      "summary_large_image",
+    );
     const script = document.querySelector('script[type="application/ld+json"]');
     expect(script?.textContent).not.toContain("<");
     expect(JSON.parse(script!.textContent!).name).toContain("</script>");

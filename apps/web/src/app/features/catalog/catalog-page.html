@@ -37,7 +37,7 @@
   >
     <p class="category-introduction">{{ introduction() }}</p>
     <h2>{{ contentCopy().guidanceHeading }}</h2>
-    <p class="category-guidance">{{ contentCopy().guidance }}</p>
+    <p class="category-guidance">{{ guidance() }}</p>
     @if (relatedCategories().length) {
     <nav class="related-categories" [attr.aria-label]="contentCopy().related">
       <h3>{{ contentCopy().related }}</h3>

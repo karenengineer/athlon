@@ -30,8 +30,13 @@ describe("real crawler endpoints", () => {
     );
   });
   const inventory = {
-    productSlugs: ["z", 'a<&"', "z", "հայ /x"],
-    categorySlugs: ["protein"],
+    products: [
+      { slug: "z", updatedAt: "2026-03-01T10:00:00.000Z" },
+      { slug: 'a<&"', updatedAt: "2026-01-01T10:00:00.000Z" },
+      { slug: "z", updatedAt: "2026-03-01T10:00:00.000Z" },
+      { slug: "հայ /x", updatedAt: "2026-01-02T10:00:00.000Z" },
+    ],
+    categories: [{ slug: "protein", updatedAt: "2026-02-01T10:00:00.000Z" }],
   };
   const setup = async (
     options: Parameters<typeof createSeoCrawlerMiddleware>[0] = {},
@@ -81,7 +86,22 @@ describe("real crawler endpoints", () => {
     expect(response.headers.get("content-type")).toContain("text/plain");
     const body = await response.text();
     expect(body).toContain("Sitemap: https://athlon.am/sitemap.xml");
-    expect(body).not.toMatch(/Disallow:.*[?*]/);
+    for (const rule of [
+      "/admin",
+      "/api/docs",
+      "/api/v1/admin/",
+      "/api/v1/public/card-payment-test",
+      "/api/v1/public/orders",
+      "/card-payment-test",
+      "/*/basket",
+      "/*/checkout",
+    ])
+      expect(body).toContain(`Disallow: ${rule}\n`);
+    expect(body).not.toMatch(/Disallow:.*(search|catalog|product|\?)/);
+    expect(body).not.toContain("Disallow: /api/\n");
+    expect(body).not.toMatch(
+      /Disallow: \/api\/v1\/(products|categories|brands)/,
+    );
     expect(web.calls()).toBe(0);
     expect((await web.get("/hy")).status).toBe(418);
   });
@@ -112,8 +132,39 @@ describe("real crawler endpoints", () => {
       ])
         expect(urls).toContain(`https://athlon.am/${locale}${page}`);
     }
-    expect(xml).not.toMatch(/lastmod|basket|search|admin|card-payment|<&/);
+    expect(xml).not.toMatch(/basket|search|admin|card-payment|<&/);
     expect(web.calls()).toBe(1);
+  });
+  it("links every locale version with hreflang alternates and real lastmod", async () => {
+    const web = await setup();
+    const xml = await (await web.get("/sitemap.xml")).text();
+    expect(xml).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
+    const entry = (loc: string) =>
+      xml.split("<url>").find((part) => part.includes(`<loc>${loc}</loc>`))!;
+    const product = entry("https://athlon.am/ru/product/z");
+    expect(product).toContain("<lastmod>2026-03-01T10:00:00.000Z</lastmod>");
+    for (const [hreflang, locale] of [
+      ["hy", "hy"],
+      ["ru", "ru"],
+      ["en", "en"],
+      ["x-default", "hy"],
+    ])
+      expect(product).toContain(
+        `<xhtml:link rel="alternate" hreflang="${hreflang}" href="https://athlon.am/${locale}/product/z"/>`,
+      );
+    expect(entry("https://athlon.am/en/catalog/protein")).toContain(
+      "<lastmod>2026-02-01T10:00:00.000Z</lastmod>",
+    );
+    // Listings change with their newest record; information pages have no
+    // recorded modification date, so none is invented.
+    expect(entry("https://athlon.am/hy")).toContain(
+      "<lastmod>2026-03-01T10:00:00.000Z</lastmod>",
+    );
+    expect(entry("https://athlon.am/hy/catalog")).toContain("<lastmod>");
+    expect(entry("https://athlon.am/hy/about")).not.toContain("<lastmod>");
+    expect(entry("https://athlon.am/hy/about")).toContain(
+      'hreflang="x-default"',
+    );
   });
   it.each<Record<string, string>>([
     { host: "unknown.example" },
@@ -165,10 +216,20 @@ describe("real crawler endpoints", () => {
   });
   it.each([
     "not JSON",
-    JSON.stringify({ productSlugs: [null], categorySlugs: [] }),
-    JSON.stringify({ productSlugs: [""], categorySlugs: [] }),
-    JSON.stringify({ productSlugs: ["\ud800"], categorySlugs: [] }),
-    JSON.stringify({ productSlugs: [], categorySlugs: [], secret: "extra" }),
+    JSON.stringify({ products: [null], categories: [] }),
+    JSON.stringify({
+      products: [{ slug: "", updatedAt: "2026-01-01T00:00:00.000Z" }],
+      categories: [],
+    }),
+    JSON.stringify({
+      products: [{ slug: "x", updatedAt: "not a date" }],
+      categories: [],
+    }),
+    JSON.stringify({
+      products: [{ slug: "x", updatedAt: "2026-01-01T00:00:00.000Z", cost: 1 }],
+      categories: [],
+    }),
+    JSON.stringify({ products: [], categories: [], secret: "extra" }),
   ])("fails closed for invalid inventory", async (body) => {
     const web = await setup({ fetchInventory: async () => new Response(body) });
     expect((await web.get("/sitemap.xml")).status).toBe(503);
@@ -204,19 +265,25 @@ describe("real crawler endpoints", () => {
   });
   it("accepts empty published inventory and enforces URL/XML bounds without truncation", () => {
     expect([
-      ...renderSitemap({ productSlugs: [], categorySlugs: [] }).matchAll(
-        /<loc>/g,
-      ),
+      ...renderSitemap({ products: [], categories: [] }).matchAll(/<loc>/g),
     ]).toHaveLength(18);
     expect(() =>
       renderSitemap({
-        productSlugs: Array.from({ length: 16661 }, (_, index) => `p-${index}`),
-        categorySlugs: [],
+        products: Array.from({ length: 16661 }, (_, index) => ({
+          slug: `p-${index}`,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        })),
+        categories: [],
       }),
     ).toThrow(/limit/i);
     expect(() =>
       renderSitemap(
-        { productSlugs: ["x".repeat(100)], categorySlugs: [] },
+        {
+          products: [
+            { slug: "x".repeat(100), updatedAt: "2026-01-01T00:00:00.000Z" },
+          ],
+          categories: [],
+        },
         100,
       ),
     ).toThrow(/limit/i);

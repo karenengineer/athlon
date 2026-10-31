@@ -56,6 +56,32 @@
   </div>
 </section>
 
+@if (content(); as text) {
+<section class="store-guide" aria-labelledby="store-guide-title">
+  <div class="page-width">
+    <h2 id="store-guide-title">{{ text.heading }}</h2>
+    <p>{{ text.introduction }}</p>
+    <h3>{{ text.catalogHeading }}</h3>
+    <ul>
+      @for (category of text.categories; track category.slug) {
+      <li>
+        <a [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+          >{{ category.name }}</a
+        >
+        — {{ category.text }}
+      </li>
+      }
+    </ul>
+    <h3>{{ text.choosingHeading }}</h3>
+    @for (paragraph of text.choosing; track paragraph) {
+    <p>{{ paragraph }}</p>
+    }
+    <h3>{{ text.deliveryHeading }}</h3>
+    <p>{{ text.delivery }}</p>
+  </div>
+</section>
+}
+
 <section class="community" aria-labelledby="community-title">
   <div class="page-width">
     <header class="ig-head">
