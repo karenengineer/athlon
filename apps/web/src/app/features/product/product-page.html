@@ -1,7 +1,8 @@
 <section class="product-page page-width">
   @switch (state()) { @case ("loading") { <app-status-panel kind="loading" /> }
-  @case ("error") { <app-status-panel kind="error" (retry)="load()" /> }
-  @default { @if (product(); as item) {
+  @case ("error") { <app-status-panel kind="error" (retry)="load()" /> } @case
+  ("not-found") { <app-status-panel kind="not-found" /> } @default { @if
+  (product(); as item) {
   <nav class="breadcrumbs" aria-label="Breadcrumb">
     <a [routerLink]="['/', i18n.locale(), 'catalog']"
       >{{ i18n.t("catalog") }}</a

@@ -45,7 +45,7 @@ export const routes: Routes = [
   {
     path: ":locale",
     component: PublicShell,
-    canActivate: [localeGuard],
+    canMatch: [localeGuard],
     children: [
       {
         path: "",
@@ -104,5 +104,17 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: "**", redirectTo: "hy" },
+  {
+    path: "",
+    component: PublicShell,
+    children: [
+      {
+        path: "**",
+        loadComponent: () =>
+          import("./features/not-found/not-found-page").then(
+            (module) => module.NotFoundPage,
+          ),
+      },
+    ],
+  },
 ];

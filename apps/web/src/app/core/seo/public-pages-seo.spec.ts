@@ -135,9 +135,12 @@ describe("Public page SEO navigation", () => {
       ).toContain(armenia);
       expect(canonical()).toBe(`https://athlon.am/${locale}`);
       expect(document.querySelectorAll('link[rel="alternate"]')).toHaveLength(
-        3,
+        4,
       );
-      expect(schemas()[0]["@type"]).toBe("OnlineStore");
+      expect(schemas().map((value) => value["@type"])).toEqual([
+        "OnlineStore",
+        "WebSite",
+      ]);
       await visit(`/${locale}/catalog/protein`);
       flushCatalog();
       expect(response.status).toBe(200);
@@ -151,6 +154,18 @@ describe("Public page SEO navigation", () => {
       );
       expect(TestBed.inject(Title).getTitle()).toContain(armenia);
       const schema = schemas().find((value) => value["@type"] === "Product");
+      expect(schema.offers.shippingDetails).toEqual({
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: 0,
+          currency: "AMD",
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "AM",
+        },
+      });
       expect(schema.name).toBe(product.name);
       expect(schema.offers).toMatchObject({
         price: "15000",
@@ -176,6 +191,11 @@ describe("Public page SEO navigation", () => {
     expect(response.status).toBe(404);
     expect(noindex()).toBe("noindex, follow");
     expect(canonical()).toBeUndefined();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Page not found");
+    expect(
+      fixture.nativeElement.querySelector("[data-testid=retry-home]"),
+    ).toBeNull();
     await visit("/en/product/outage");
     http
       .expectOne((request) => request.url.endsWith("/products/outage"))
@@ -187,6 +207,9 @@ describe("Public page SEO navigation", () => {
     );
     await visit("/ru/does-not-exist");
     expect(response.status).toBe(404);
+    await visit("/bogus/path");
+    expect(response.status).toBe(404);
+    expect(router.url).toBe("/bogus/path");
   });
 
   it("keeps optional failures successful and omits offers for unknown availability or invalid prices", async () => {
@@ -270,6 +293,9 @@ describe("Public page SEO navigation", () => {
     flushCatalog();
     expect(response.status).toBe(404);
     expect(noindex()).toBe("noindex, follow");
+    expect(TestBed.inject(Title).getTitle()).toBe("Page not found | ATHLON");
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Page not found");
     await visit("/en/catalog/protein");
     flushCatalog();
     expect(response.status).toBe(200);

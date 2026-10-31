@@ -1,8 +1,12 @@
 import type { RequestHandler } from "express";
 
+interface InventoryEntry {
+  slug: string;
+  updatedAt: string;
+}
 interface Inventory {
-  productSlugs: string[];
-  categorySlugs: string[];
+  products: InventoryEntry[];
+  categories: InventoryEntry[];
 }
 interface CrawlerOptions {
   apiBaseUrl?: string;
@@ -13,32 +17,72 @@ interface CrawlerOptions {
   maxInventoryBytes?: number;
 }
 const ORIGIN = "https://athlon.am";
+const LOCALES = ["hy", "ru", "en"];
 const MAX_URLS = 50_000;
 const MAX_XML_BYTES = 50 * 1024 * 1024;
-const ROBOTS = `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /card-payment-test\n\nSitemap: ${ORIGIN}/sitemap.xml\n`;
+// Public catalog API reads stay crawlable: a crawler that cannot fetch them while
+// rendering sees the page's error state, which is noindex.
+const ROBOTS = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/docs
+Disallow: /api/v1/admin/
+Disallow: /api/v1/public/card-payment-test
+Disallow: /api/v1/public/orders
+Disallow: /card-payment-test
+Disallow: /*/basket
+Disallow: /*/checkout
+
+Sitemap: ${ORIGIN}/sitemap.xml
+`;
+
+function validEntry(entry: unknown): boolean {
+  if (!entry || typeof entry !== "object") return false;
+  const { slug, updatedAt } = entry as Record<string, unknown>;
+  return (
+    Object.keys(entry).length === 2 &&
+    typeof slug === "string" &&
+    !!slug.trim() &&
+    slug.length <= 4096 &&
+    ![...slug].some(
+      (character) =>
+        character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+    ) &&
+    typeof updatedAt === "string" &&
+    !Number.isNaN(Date.parse(updatedAt))
+  );
+}
 
 function validateInventory(value: unknown): Inventory {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error("Invalid inventory");
   const record = value as Record<string, unknown>;
-  if (Object.keys(record).sort().join(",") !== "categorySlugs,productSlugs")
+  if (Object.keys(record).sort().join(",") !== "categories,products")
     throw new Error("Invalid inventory fields");
-  for (const key of ["productSlugs", "categorySlugs"]) {
-    const slugs = record[key];
+  for (const key of ["products", "categories"]) {
+    const entries = record[key];
     if (
-      !Array.isArray(slugs) ||
-      slugs.length > MAX_URLS ||
-      slugs.some(
-        (slug: unknown) =>
-          typeof slug !== "string" ||
-          !slug.trim() ||
-          slug.length > 4096 ||
-          [...slug].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127),
-      )
+      !Array.isArray(entries) ||
+      entries.length > MAX_URLS ||
+      !entries.every(validEntry)
     )
-      throw new Error("Invalid inventory slugs");
+      throw new Error("Invalid inventory entries");
   }
   return record as unknown as Inventory;
+}
+
+function escapeXml(value: string): string {
+  return value.replace(
+    /[<>&"']/g,
+    (character) =>
+      ({
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        '"': "&quot;",
+        "'": "&apos;",
+      })[character]!,
+  );
 }
 
 /** Fixed-origin complete sitemap. Any bound failure discards the entire document. */
@@ -47,44 +91,49 @@ export function renderSitemap(
   maxBytes = MAX_XML_BYTES,
 ): string {
   validateInventory(inventory);
-  const urls = new Set<string>();
-  const add = (path: string) => {
-    urls.add(`${ORIGIN}${path}`);
-    if (urls.size > MAX_URLS) throw new Error("Sitemap URL limit exceeded");
-  };
-  for (const locale of ["hy", "ru", "en"]) {
-    for (const path of [
-      "",
-      "/catalog",
-      "/about",
-      "/contact",
-      "/delivery",
-      "/returns",
-    ])
-      add(`/${locale}${path}`);
-    for (const slug of inventory.categorySlugs)
-      add(`/${locale}/catalog/${encodeURIComponent(slug)}`);
-    for (const slug of inventory.productSlugs)
-      add(`/${locale}/product/${encodeURIComponent(slug)}`);
+  const newest = [...inventory.products, ...inventory.categories]
+    .map((entry) => entry.updatedAt)
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0];
+  // Listings change with their newest record. Information pages have no recorded
+  // modification date, so they carry no lastmod rather than an invented one.
+  const pages = new Map<string, string | undefined>();
+  for (const path of ["", "/catalog"]) pages.set(path, newest);
+  for (const path of ["/about", "/contact", "/delivery", "/returns"])
+    pages.set(path, undefined);
+  for (const { slug, updatedAt } of inventory.categories)
+    pages.set(`/catalog/${encodeURIComponent(slug)}`, updatedAt);
+  for (const { slug, updatedAt } of inventory.products)
+    pages.set(`/product/${encodeURIComponent(slug)}`, updatedAt);
+  if (pages.size * LOCALES.length > MAX_URLS)
+    throw new Error("Sitemap URL limit exceeded");
+
+  const entries: { loc: string; part: string }[] = [];
+  for (const [path, lastmod] of pages) {
+    const alternates = [...LOCALES, "x-default"]
+      .map((hreflang) => {
+        const locale = hreflang === "x-default" ? "hy" : hreflang;
+        const href = escapeXml(`${ORIGIN}/${locale}${path}`);
+        return `    <xhtml:link rel="alternate" hreflang="${hreflang}" href="${href}"/>\n`;
+      })
+      .join("");
+    const modified = lastmod
+      ? `    <lastmod>${escapeXml(lastmod)}</lastmod>\n`
+      : "";
+    for (const locale of LOCALES) {
+      const loc = `${ORIGIN}/${locale}${path}`;
+      entries.push({
+        loc,
+        part: `  <url>\n    <loc>${escapeXml(loc)}</loc>\n${modified}${alternates}  </url>\n`,
+      });
+    }
   }
-  const escapeXml = (value: string) =>
-    value.replace(
-      /[<>&"']/g,
-      (character) =>
-        ({
-          "<": "&lt;",
-          ">": "&gt;",
-          "&": "&amp;",
-          '"': "&quot;",
-          "'": "&apos;",
-        })[character]!,
-    );
   const parts = [
-    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n',
+    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n',
   ];
   let bytes = Buffer.byteLength(parts[0]! + "</urlset>\n");
-  for (const url of [...urls].sort()) {
-    const part = `  <url><loc>${escapeXml(url)}</loc></url>\n`;
+  for (const { part } of entries.sort((a, b) =>
+    a.loc < b.loc ? -1 : a.loc > b.loc ? 1 : 0,
+  )) {
     bytes += Buffer.byteLength(part);
     if (bytes > Math.min(maxBytes, MAX_XML_BYTES))
       throw new Error("Sitemap XML byte limit exceeded");

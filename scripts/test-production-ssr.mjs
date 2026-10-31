@@ -265,8 +265,16 @@ async function main() {
     let body;
     if (url.pathname === "/api/v1/public/seo/sitemap")
       body = {
-        productSlugs: ["ssr-fixture", "ssr-fixture", 'encoded<&"'],
-        categorySlugs: ["sports-nutrition", "protein", "accessories"],
+        products: ["ssr-fixture", "ssr-fixture", 'encoded<&"'].map((slug) => ({
+          slug,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        })),
+        categories: ["sports-nutrition", "protein", "accessories"].map(
+          (slug) => ({
+            slug,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          }),
+        ),
       };
     else if (url.pathname === "/api/v1/products/ssr-fixture")
       body = product(locale);
@@ -347,6 +355,17 @@ async function main() {
         );
         req.end();
       });
+    const notFoundCopy = {
+      hy: ["Էջը չի գտնվել", "Հնարավոր է՝ հղումը հին է, կամ էջը տեղափոխվել է։"],
+      ru: [
+        "Страница не найдена",
+        "Возможно, ссылка устарела или страница была перемещена.",
+      ],
+      en: [
+        "Page not found",
+        "The link may be outdated or the page may have moved.",
+      ],
+    };
     const forwarded = (host) => ({
       host,
       "x-forwarded-host": host,
@@ -413,11 +432,17 @@ async function main() {
       assert.deepEqual(
         alternates,
         indexable
-          ? locales.map((locale) => [
-              locale,
-              `https://athlon.am${path.replace(/^\/(hy|ru|en)/, `/${locale}`)}`,
+          ? [...locales, "x-default"].map((hreflang) => [
+              hreflang,
+              `https://athlon.am${path.replace(/^\/(hy|ru|en)/, `/${hreflang === "x-default" ? "hy" : hreflang}`)}`,
             ])
           : [],
+      );
+      assert.equal(
+        document
+          .querySelector('meta[name="twitter:card"]')
+          ?.getAttribute("content"),
+        "summary_large_image",
       );
       assert.equal(
         document
@@ -465,7 +490,10 @@ async function main() {
           response.html,
           /Sitemap: https:\/\/athlon.am\/sitemap.xml/,
         );
-        assert.doesNotMatch(response.html, /Disallow:.*[?*]/);
+        assert.match(response.html, /Disallow: \/\*\/basket\n/);
+        assert.match(response.html, /Disallow: \/api\/v1\/admin\/\n/);
+        assert.doesNotMatch(response.html, /Disallow: \/api\/\n/);
+        assert.doesNotMatch(response.html, /Disallow:.*(search|catalog|\?)/);
       } else {
         assert.match(response.headers["content-type"], /application\/xml/);
         const xml = new JSDOM(response.html, {
@@ -488,10 +516,7 @@ async function main() {
             "/product/encoded%3C%26%22",
           ])
             assert.ok(urls.includes(`https://athlon.am/${locale}${suffix}`));
-        assert.doesNotMatch(
-          response.html,
-          /lastmod|basket|search|admin|card-payment/,
-        );
+        assert.doesNotMatch(response.html, /basket|search|admin|card-payment/);
         xml.window.close();
       }
       for (const headers of [
@@ -659,11 +684,8 @@ async function main() {
         for (const [path, title, description, status] of [
           [
             `/${locale}/catalog/unpublished-fixture`,
-            copy.catalogTitle.replace(
-              " | ATHLON",
-              ` — ${seoCopy[locale].armenia} | ATHLON`,
-            ),
-            `${copy.catalogDescription} ${seoCopy[locale].delivery}`,
+            `${notFoundCopy[locale][0]} | ATHLON`,
+            notFoundCopy[locale][1],
             404,
           ],
           [
@@ -737,12 +759,18 @@ async function main() {
         );
         initialDocument(pageOne, "app-catalog-page", (document) => {
           discovery(document, `/${locale}/catalog/protein`);
-          const href = document.querySelector('.pagination a[rel="next"]')?.getAttribute("href");
+          const href = document
+            .querySelector('.pagination a[rel="next"]')
+            ?.getAttribute("href");
           assert.ok(href, "real next-page anchor");
           const next = new URL(href, "https://athlon.am");
           assert.equal(next.pathname, `/${locale}/catalog/protein`);
           assert.equal(next.searchParams.get("page"), "2");
-          assert.equal(next.searchParams.get("utm_source"), "fixture", "next-page anchor preserves query");
+          assert.equal(
+            next.searchParams.get("utm_source"),
+            "fixture",
+            "next-page anchor preserves query",
+          );
         });
         const filtered = await get(
           `/${locale}/catalog/protein?brand=fixture&page=2`,
@@ -906,16 +934,17 @@ async function main() {
           `PASS ${host}/${locale}: home H1 immediately followed by localized delivery H2/phone; no global announcement`,
         );
       }
-      for (const [path, target] of [
-        ["/", "/hy"],
-        ["/de/catalog", "/hy/catalog"],
-      ]) {
-        const response = await get(path, forwarded(host));
-        assert.equal(response.status, 302, `preserved redirect: ${path}`);
-        assert.equal(
-          new URL(response.headers.location, `https://${host}`).pathname,
-          target,
-        );
+      const rootRedirect = await get("/", forwarded(host));
+      assert.equal(rootRedirect.status, 302, "preserved root redirect");
+      assert.equal(
+        new URL(rootRedirect.headers.location, `https://${host}`).pathname,
+        "/hy",
+      );
+      for (const path of ["/de/catalog", "/not-a-real-page"]) {
+        const missing = await get(path, forwarded(host));
+        assert.equal(missing.status, 404, `real 404: ${path}`);
+        assert.equal(missing.headers.location, undefined);
+        assert.match(missing.html, /noindex, follow/);
       }
       for (const path of [
         "/admin/login",
@@ -1045,7 +1074,7 @@ async function main() {
       "SSR makes only GET fixture requests",
     );
     console.log(
-      "PASS root/unsupported HY; admin client/noindex/zero API; unknown and forged host/unsafe proto 400; prefix untrusted; loopback HY SSR health",
+      "PASS root HY redirect; unsupported first segment 404; admin client/noindex/zero API; unknown and forged host/unsafe proto 400; prefix untrusted; loopback HY SSR health",
     );
   } finally {
     try {

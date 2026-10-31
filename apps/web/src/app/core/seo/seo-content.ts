@@ -57,11 +57,24 @@ export function storeSchema(locale: Locale): Record<string, unknown> {
     "@id": `${PUBLIC_ORIGIN}/#store`,
     name: "ATHLON",
     url: publicPageUrl(locale),
+    logo: `${PUBLIC_ORIGIN}/brand/athlon-logo-round.jpeg`,
     description: seoCopy[locale].homeDescription,
     telephone: "+37441448855",
     email: "athlonsportgoods@gmail.com",
     areaServed: { "@type": "Country", name: "Armenia" },
     sameAs: [INSTAGRAM_PROFILE_URL, FACEBOOK_PROFILE_URL],
+  };
+}
+
+export function websiteSchema(locale: Locale): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${PUBLIC_ORIGIN}/#website`,
+    name: "ATHLON",
+    url: publicPageUrl(locale),
+    inLanguage: locale,
+    publisher: { "@id": `${PUBLIC_ORIGIN}/#store` },
   };
 }
 
@@ -120,6 +133,18 @@ export function productSchema(
             price,
             priceCurrency: "AMD",
             availability: `https://schema.org/${availability}`,
+            shippingDetails: {
+              "@type": "OfferShippingDetails",
+              shippingRate: {
+                "@type": "MonetaryAmount",
+                value: 0,
+                currency: "AMD",
+              },
+              shippingDestination: {
+                "@type": "DefinedRegion",
+                addressCountry: "AM",
+              },
+            },
           },
         }
       : {}),
