@@ -32,7 +32,9 @@
   </nav>
   } @if (selectedCategory()) {
   <section
+    id="category-content"
     class="category-content"
+    [class.is-open]="categoryTextOpen()"
     [attr.aria-label]="selectedCategory()?.name"
   >
     <p class="category-introduction">{{ introduction() }}</p>
@@ -49,10 +51,38 @@
     </nav>
     }
   </section>
+  <button
+    type="button"
+    class="category-content-toggle"
+    data-testid="category-content-toggle"
+    aria-controls="category-content"
+    [attr.aria-expanded]="categoryTextOpen()"
+    (click)="categoryTextOpen.set(!categoryTextOpen())"
+  >
+    {{ categoryTextOpen() ? contentCopy().showLess : contentCopy().showMore }}
+  </button>
   }
 
-  <form class="filters" (ngSubmit)="applyFilters()">
+  <form
+    id="catalog-filters"
+    class="filters"
+    [class.is-open]="filtersOpen()"
+    (ngSubmit)="applyFilters()"
+  >
     <strong>{{ i18n.t("filters") }}</strong>
+    <button
+      type="button"
+      class="filters-toggle"
+      data-testid="filters-toggle"
+      aria-controls="catalog-filters"
+      [attr.aria-expanded]="filtersOpen()"
+      (click)="filtersOpen.set(!filtersOpen())"
+    >
+      <span>{{ i18n.t("filters") }}</span>
+      @if (hasActiveFilters()) {
+      <span class="filters-toggle-dot" aria-hidden="true"></span>
+      }
+    </button>
     <label>
       <span>{{ i18n.t("allProductTypes") }}</span>
       <select name="category" [(ngModel)]="categoryFilter">
