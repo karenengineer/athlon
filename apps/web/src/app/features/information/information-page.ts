@@ -11,6 +11,7 @@ import { createPageMetadata } from "../../core/seo/page-metadata";
 import { informationContent } from "./information-content";
 import { storeSchema } from "../../core/seo/seo-content";
 import { createPageResponseStatus } from "../../core/seo/page-metadata";
+import { businessDetails } from "../../core/business-details";
 
 @Component({
   selector: "app-information-page",
@@ -23,6 +24,7 @@ export class InformationPage {
   readonly pageId = signal<InformationPageId>("about");
   readonly content = signal(informationContent.hy.about);
   readonly navigation = informationNavigation;
+  readonly business = businessDetails;
   private readonly route = inject(ActivatedRoute);
   private readonly metadata = createPageMetadata();
   private readonly responseStatus = createPageResponseStatus();

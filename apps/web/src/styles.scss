@@ -1,4 +1,13 @@
 @font-face {
+  font-family: "Vrdznagir Armenian";
+  src: url("/fonts/Vrdznagir.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0530-058F, U+FB13-FB17;
+}
+
+@font-face {
   font-family: "Noto Sans Armenian Display";
   src: url("/fonts/noto-sans-armenian-condensed-black.ttf") format("truetype");
   font-style: normal;
@@ -17,14 +26,16 @@
 
 :root {
   color-scheme: light;
-  font-family: Inter, Montserrat, "Arial Narrow", Arial, sans-serif;
+  font-family:
+    "Vrdznagir Armenian", Inter, Montserrat, "Arial Narrow", Arial, sans-serif;
   font-synthesis: none;
   --athlon-black: #080809;
   --athlon-red: #2b2b2f;
   --athlon-light: #f0f0f2;
   --page-width: 1200px;
   --font-slogan:
-    "Noto Sans Armenian Display", "Oswald", "Arial Narrow", Arial, sans-serif;
+    "Vrdznagir Armenian", "Noto Sans Armenian Display", "Oswald",
+    "Arial Narrow", Arial, sans-serif;
 }
 
 * {
@@ -54,7 +65,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 

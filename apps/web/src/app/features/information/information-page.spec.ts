@@ -12,6 +12,27 @@ import { routes } from "../../app.routes";
 const pageCases = [
   [
     "hy",
+    "terms",
+    "Օգտագործման և գնման պայմաններ",
+    "ATHLON-ի օգտագործման և գնման պայմանները",
+  ],
+  [
+    "hy",
+    "privacy",
+    "Գաղտնիության քաղաքականություն",
+    "Ինչպես է ATHLON-ը մշակում",
+  ],
+  [
+    "ru",
+    "terms",
+    "Условия использования и покупки",
+    "Условия использования и покупки в ATHLON",
+  ],
+  ["ru", "privacy", "Политика конфиденциальности", "Как ATHLON обрабатывает"],
+  ["en", "terms", "Terms and conditions", "ATHLON terms for using the website"],
+  ["en", "privacy", "Privacy policy", "How ATHLON handles"],
+  [
+    "hy",
     "about",
     "ATHLON-ի մասին",
     "Սպորտային սննդի առցանց խանութ Հայաստանում",
@@ -111,6 +132,47 @@ describe("Localized information pages", () => {
   );
 
   for (const locale of ["hy", "ru", "en"]) {
+    it(`provides policy links and a contact-only business address in ${locale}`, async () => {
+      await visit(`/${locale}/contact`);
+      const address = page().querySelector("address");
+      expect(address).not.toBeNull();
+      expect(address?.textContent).toContain("5");
+      const expected = {
+        hy: [
+          "Կարեն Գևորգյան",
+          "Երևան",
+          "այցերի կամ ապրանքն ինքնուրույն վերցնելու համար նախատեսված չէ",
+        ],
+        ru: [
+          "Карен Геворгян",
+          "Ереван",
+          "не предназначен для посещений или самовывоза",
+        ],
+        en: ["Karen Gevorgyan", "Yerevan", "not open for visits or pickup"],
+      }[locale as "hy" | "ru" | "en"];
+      for (const text of expected) {
+        expect(address?.textContent).toContain(text);
+        expect(
+          fixture.nativeElement.querySelector("footer address")?.textContent,
+        ).toContain(text);
+      }
+      for (const slug of ["terms", "privacy"]) {
+        expect(
+          fixture.nativeElement.querySelector(
+            `footer a[href="/${locale}/${slug}"]`,
+          ),
+        ).not.toBeNull();
+        await visit(`/${locale}/${slug}`);
+        expect(
+          document.head
+            .querySelector('link[rel="canonical"]')
+            ?.getAttribute("href"),
+        ).toBe(`https://athlon.am/${locale}/${slug}`);
+        expect(page().textContent).toContain(expected[0]);
+        expect(page().textContent).toContain("athlonsportgoods@gmail.com");
+      }
+    });
+
     it(`provides accessible confirmed contact links in ${locale}`, async () => {
       await visit(`/${locale}/contact`);
       expect(page()).not.toBeNull();

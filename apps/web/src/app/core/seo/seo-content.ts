@@ -1,4 +1,5 @@
 import { Product } from "../api/catalog.models";
+import { businessDetails } from "../business-details";
 import { Locale } from "../i18n/i18n.service";
 import { FACEBOOK_PROFILE_URL, INSTAGRAM_PROFILE_URL } from "../social-links";
 import { publicImageUrl, publicPageUrl, PUBLIC_ORIGIN } from "./page-metadata";
@@ -61,6 +62,12 @@ export function storeSchema(locale: Locale): Record<string, unknown> {
     description: seoCopy[locale].homeDescription,
     telephone: "+37441448855",
     email: "athlonsportgoods@gmail.com",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: businessDetails[locale].street,
+      addressLocality: businessDetails[locale].city,
+      addressCountry: "AM",
+    },
     areaServed: { "@type": "Country", name: "Armenia" },
     sameAs: [INSTAGRAM_PROFILE_URL, FACEBOOK_PROFILE_URL],
   };

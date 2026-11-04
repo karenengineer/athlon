@@ -1,5 +1,6 @@
 import { Locale } from "../../core/i18n/i18n.service";
 import { InformationPageId } from "../../core/i18n/information-navigation";
+import { policyContent } from "./policy-content";
 
 export interface InformationContent {
   heading: string;
@@ -13,6 +14,7 @@ export const informationContent: Record<
   Record<InformationPageId, InformationContent>
 > = {
   hy: {
+    ...policyContent.hy,
     about: {
       heading: "ATHLON-ի մասին",
       description:
@@ -70,6 +72,7 @@ export const informationContent: Record<
     },
   },
   ru: {
+    ...policyContent.ru,
     about: {
       heading: "Об ATHLON",
       description:
@@ -128,6 +131,7 @@ export const informationContent: Record<
     },
   },
   en: {
+    ...policyContent.en,
     about: {
       heading: "About ATHLON",
       description:

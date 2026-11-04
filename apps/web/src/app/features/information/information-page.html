@@ -13,6 +13,14 @@
       <a href="mailto:athlonsportgoods@gmail.com">athlonsportgoods@gmail.com</a>
     </li>
   </ul>
+  <section class="information-section">
+    <h2>{{ business[i18n.locale()].label }}</h2>
+    <address>
+      <span>{{ business[i18n.locale()].seller }}</span>
+      <span>{{ business[i18n.locale()].address }}</span>
+      <span>{{ business[i18n.locale()].contactOnly }}</span>
+    </address>
+  </section>
   }
   <nav class="information-actions" [attr.aria-label]="content().heading">
     <a [routerLink]="['/', i18n.locale(), 'catalog']"
