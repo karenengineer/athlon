@@ -143,6 +143,17 @@ describe("Public page SEO navigation", () => {
         "OnlineStore",
         "WebSite",
       ]);
+      expect(schemas()[0].address).toEqual({
+        "@type": "PostalAddress",
+        streetAddress: {
+          hy: "Եղբայրության 5",
+          ru: "ул. Ехбайрутян, 5",
+          en: "Yeghbayrutyan 5",
+        }[locale],
+        addressLocality: { hy: "Երևան", ru: "Ереван", en: "Yerevan" }[locale],
+        addressCountry: "AM",
+      });
+      expect(schemas()[0]).not.toHaveProperty("openingHours");
       fixture.detectChanges();
       const guide = fixture.nativeElement.querySelector(".store-guide");
       expect(guide.querySelector("h2").textContent).toBe(

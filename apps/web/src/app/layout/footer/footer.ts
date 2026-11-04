@@ -1,6 +1,7 @@
 import { Component, inject } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { I18nService } from "../../core/i18n/i18n.service";
+import { businessDetails } from "../../core/business-details";
 import {
   informationNavigation,
   informationPageIds,
@@ -18,6 +19,11 @@ import {
       <div>
         <strong>ATHLON</strong>
         <p>{{ i18n.t("footerText") }}</p>
+        <address>
+          <span>{{ business[i18n.locale()].seller }}</span>
+          <span>{{ business[i18n.locale()].address }}</span>
+          <span>{{ business[i18n.locale()].contactOnly }}</span>
+        </address>
       </div>
       <a [routerLink]="['/', i18n.locale(), 'catalog']">{{
         i18n.t("catalog")
@@ -79,6 +85,16 @@ import {
     p {
       margin: 7px 0 0;
       color: #a2a2a8;
+    }
+    address {
+      max-width: 320px;
+      display: grid;
+      gap: 5px;
+      margin-top: 14px;
+      font-size: 0.875rem;
+      font-style: normal;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
     }
     a {
       margin-left: auto;
@@ -146,6 +162,7 @@ export class Footer {
   readonly instagramUrl = INSTAGRAM_PROFILE_URL;
   readonly facebookUrl = FACEBOOK_PROFILE_URL;
   readonly information = informationNavigation;
+  readonly business = businessDetails;
   readonly informationPages = informationPageIds;
   readonly year = new Date().getFullYear();
 }

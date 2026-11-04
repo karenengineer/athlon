@@ -43,6 +43,14 @@ p {
   list-style: none;
 }
 
+address {
+  display: grid;
+  gap: 8px;
+  color: #4d4d55;
+  font-style: normal;
+  line-height: 1.7;
+}
+
 a {
   min-height: 44px;
   display: inline-flex;
