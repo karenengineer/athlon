@@ -55,6 +55,9 @@ export class CatalogPage {
   readonly brands = signal<Brand[]>([]);
   readonly selectedCategory = signal<Omit<Category, "children"> | null>(null);
   readonly introduction = signal("");
+  /** Mobile only: filters and category text start collapsed (CSS keeps desktop expanded). */
+  readonly filtersOpen = signal(false);
+  readonly categoryTextOpen = signal(false);
   readonly meta = signal<ProductPageResponse["meta"]>({
     page: 1,
     pageSize: 24,
@@ -108,6 +111,7 @@ export class CatalogPage {
   }
 
   applyFilters(): void {
+    this.filtersOpen.set(false);
     const query = this.route.snapshot.queryParamMap.get("q") || undefined;
     const category = this.categoryFilter || DEFAULT_CATEGORY_SLUG;
     void this.router.navigate(["/", this.i18n.locale(), "catalog", category], {
