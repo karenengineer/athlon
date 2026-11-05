@@ -30,7 +30,9 @@
   position: relative;
   z-index: 2;
   padding: 15px 0 18px;
-  font-family: inherit;
+  h1 {
+    font-family: inherit !important;
+  }
 }
 
 .eyebrow {
