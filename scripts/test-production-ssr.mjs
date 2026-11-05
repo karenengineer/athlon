@@ -991,15 +991,13 @@ async function main() {
           );
           assert.equal(document.querySelectorAll("app-home-page h1").length, 1);
           const heading = document.querySelector(".hero-copy h1");
+          assert.equal(heading?.previousElementSibling, null);
           assert.equal(heading?.nextElementSibling?.tagName, "H2");
           assert.ok(
             heading.nextElementSibling.classList.contains("hero-delivery"),
           );
           assert.equal(text(heading.nextElementSibling), copy.announcement);
-          assert.equal(
-            heading.nextElementSibling.nextElementSibling?.tagName,
-            "P",
-          );
+          assert.equal(heading.nextElementSibling.nextElementSibling, null);
           footer(document, locale);
           metadata(
             document,
