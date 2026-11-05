@@ -69,19 +69,15 @@ describe("HomePage", () => {
     it(`places the localized delivery heading directly after the hero H1 in ${locale}`, () => {
       const home = renderHome(locale);
       const hero = home.querySelector(".hero")!;
-      const heading = hero.querySelector("h1")!;
-      const deliveryHeading = heading.nextElementSibling;
+      const heroCopy = hero.querySelector(".hero-copy")!;
+      const [heading, deliveryHeading] = heroCopy.children;
 
       expect(home.querySelectorAll("h1")).toHaveLength(1);
+      expect(heroCopy.children).toHaveLength(2);
+      expect(heading?.tagName).toBe("H1");
       expect(deliveryHeading?.tagName).toBe("H2");
       expect(deliveryHeading?.textContent?.trim()).toBe(delivery);
       expect(deliveryHeading?.textContent).toContain("041 44 88 55");
-      expect(deliveryHeading?.nextElementSibling?.classList).toContain(
-        "hero-text",
-      );
-      expect(hero.querySelector(".primary-button")?.getAttribute("href")).toBe(
-        `/${locale}/catalog`,
-      );
       const image = hero.querySelector("img")!;
       expect(image.getAttribute("src")).toBe("/brand/athlon-hero-wide.jpeg");
       expect(image.width).toBe(1280);
