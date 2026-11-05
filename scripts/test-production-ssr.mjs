@@ -129,6 +129,18 @@ const informationCopy = {
       "Վերադարձի կամ փոխանակման հարցով օգնության համար կապվեք մեզ հետ։",
       "Նշեք պատվերի համարը և ձեր հարցը։ Մենք կօգնենք պարզել ձեր պատվերի հետ կապված հետագա քայլերը։",
     ],
+    terms: [
+      "Օգտագործման և գնման պայմաններ",
+      "ATHLON-ի օգտագործման և գնման պայմանները․ պատվերներ, գներ, առաքում, վճարում և կապ վաճառողի հետ։",
+      "Այս պայմանները վերաբերում են athlon.am կայքից օգտվելուն և ATHLON-ից գնումներին։ Թարմացվել է՝ 4 նոյեմբերի 2026 թ․։",
+      "Կարեն Գևորգյան",
+    ],
+    privacy: [
+      "Գաղտնիության քաղաքականություն",
+      "Ինչպես է ATHLON-ը մշակում պատվերի և կապի տվյալները, օգտագործում դիտարկչի պահոցը և ընդունում տվյալների վերաբերյալ հարցումները։",
+      "Այս էջը բացատրում է athlon.am կայքի միջոցով տրամադրված տվյալների մշակումը։ Թարմացվել է՝ 4 նոյեմբերի 2026 թ․։",
+      "Կարեն Գևորգյան",
+    ],
   },
   ru: {
     about: [
@@ -155,6 +167,18 @@ const informationCopy = {
       "Свяжитесь с нами, если вам нужна помощь по вопросу возврата или обмена.",
       "Укажите номер заказа и ваш вопрос. Мы поможем разобраться с дальнейшими действиями по вашему заказу.",
     ],
+    terms: [
+      "Условия использования и покупки",
+      "Условия использования и покупки в ATHLON: заказы, цены, доставка, оплата и связь с продавцом.",
+      "Эти условия относятся к использованию сайта athlon.am и покупкам в ATHLON. Обновлено: 4 ноября 2026 года.",
+      "Карен Геворгян",
+    ],
+    privacy: [
+      "Политика конфиденциальности",
+      "Как ATHLON обрабатывает данные заказов и контактов, использует хранилище браузера и принимает обращения о персональных данных.",
+      "Эта страница объясняет обработку данных, предоставленных через athlon.am. Обновлено: 4 ноября 2026 года.",
+      "Карен Геворгян",
+    ],
   },
   en: {
     about: [
@@ -180,6 +204,18 @@ const informationCopy = {
       "Help with return and exchange questions at ATHLON. Contact us with your order reference and question.",
       "Contact us if you need help with a return or exchange question.",
       "Include your order reference and question. We will help you work out the next steps for your order.",
+    ],
+    terms: [
+      "Terms and conditions",
+      "ATHLON terms for using the website and shopping: orders, prices, delivery, payment and seller contact details.",
+      "These terms concern use of athlon.am and purchases from ATHLON. Updated: 4 November 2026.",
+      "Karen Gevorgyan",
+    ],
+    privacy: [
+      "Privacy policy",
+      "How ATHLON handles order and contact data, uses browser storage and receives requests about personal data.",
+      "This page explains the handling of data provided through athlon.am. Updated: 4 November 2026.",
+      "Karen Gevorgyan",
     ],
   },
 };
@@ -399,6 +435,31 @@ async function main() {
         ]),
         `localized footer links: ${locale}`,
       );
+      const address = text(document.querySelector("footer address"));
+      for (const value of {
+        hy: [
+          "Կարեն Գևորգյան",
+          "Եղբայրության 5",
+          "Երևան",
+          "այցերի կամ ապրանքն ինքնուրույն վերցնելու համար նախատեսված չէ",
+        ],
+        ru: [
+          "Карен Геворгян",
+          "Ехбайрутян, 5",
+          "Ереван",
+          "не предназначен для посещений или самовывоза",
+        ],
+        en: [
+          "Karen Gevorgyan",
+          "Yeghbayrutyan 5",
+          "Yerevan",
+          "not open for visits or pickup",
+        ],
+      }[locale])
+        assert.ok(
+          address?.includes(value),
+          `business address in ${locale}: ${value}`,
+        );
       assert.equal(document.querySelector("app-header .announcement"), null);
     };
     const initialDocument = (response, selector, check, status = 200) => {
@@ -516,6 +577,8 @@ async function main() {
             "/contact",
             "/delivery",
             "/returns",
+            "/terms",
+            "/privacy",
             "/catalog/protein",
             "/product/ssr-fixture",
             "/product/encoded%3C%26%22",
@@ -859,6 +922,10 @@ async function main() {
                 );
               if (page === "contact") {
                 assert.equal(
+                  text(article.querySelector("address")),
+                  text(document.querySelector("footer address")),
+                );
+                assert.equal(
                   text(
                     article.querySelector(
                       '.information-contacts a[href="tel:+37441448855"]',
@@ -904,7 +971,7 @@ async function main() {
           );
         }
         console.log(
-          `PASS ${host}/${locale}: all four information routes, localized title/description, contact links, delivery/returns facts and footer in initial SSR HTML`,
+          `PASS ${host}/${locale}: all six information routes, localized title/description, contact links, delivery/returns facts and footer in initial SSR HTML`,
         );
 
         const home = await get(`/${locale}`, forwarded(host));
@@ -924,15 +991,13 @@ async function main() {
           );
           assert.equal(document.querySelectorAll("app-home-page h1").length, 1);
           const heading = document.querySelector(".hero-copy h1");
+          assert.equal(heading?.previousElementSibling, null);
           assert.equal(heading?.nextElementSibling?.tagName, "H2");
           assert.ok(
             heading.nextElementSibling.classList.contains("hero-delivery"),
           );
           assert.equal(text(heading.nextElementSibling), copy.announcement);
-          assert.equal(
-            heading.nextElementSibling.nextElementSibling?.tagName,
-            "P",
-          );
+          assert.equal(heading.nextElementSibling.nextElementSibling, null);
           footer(document, locale);
           metadata(
             document,
@@ -945,7 +1010,27 @@ async function main() {
           );
           assert.equal(store.telephone, "+37441448855");
           assert.equal(store.areaServed.name, "Armenia");
-          assert.equal(store.address, undefined);
+          assert.deepEqual(store.address, {
+            "@type": "PostalAddress",
+            streetAddress: {
+              hy: "Եղբայրության 5",
+              ru: "ул. Ехбайрутян, 5",
+              en: "Yeghbayrutyan 5",
+            }[locale],
+            addressLocality: {
+              hy: "Երևան",
+              ru: "Ереван",
+              en: "Yerevan",
+            }[locale],
+            addressCountry: "AM",
+          });
+          assert.equal(store.openingHours, undefined);
+          assert.equal(store.geo, undefined);
+          assert.ok(
+            structuredData(document).every(
+              (entry) => entry["@type"] !== "LocalBusiness",
+            ),
+          );
           assert.equal(store.aggregateRating, undefined);
         });
         console.log(

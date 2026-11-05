@@ -5,6 +5,8 @@ export const informationPageIds = [
   "contact",
   "delivery",
   "returns",
+  "terms",
+  "privacy",
 ] as const;
 
 export type InformationPageId = (typeof informationPageIds)[number];
@@ -20,6 +22,8 @@ export const informationNavigation: Record<
       contact: "Կապ",
       delivery: "Առաքում և վճարում",
       returns: "Վերադարձ և փոխանակում",
+      terms: "Օգտագործման և գնման պայմաններ",
+      privacy: "Գաղտնիության քաղաքականություն",
     },
   },
   ru: {
@@ -29,6 +33,8 @@ export const informationNavigation: Record<
       contact: "Контакты",
       delivery: "Доставка и оплата",
       returns: "Возврат и обмен",
+      terms: "Условия использования и покупки",
+      privacy: "Политика конфиденциальности",
     },
   },
   en: {
@@ -38,6 +44,8 @@ export const informationNavigation: Record<
       contact: "Contact",
       delivery: "Delivery and payment",
       returns: "Returns and exchanges",
+      terms: "Terms and conditions",
+      privacy: "Privacy policy",
     },
   },
 };

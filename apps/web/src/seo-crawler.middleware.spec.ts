@@ -126,6 +126,8 @@ describe("real crawler endpoints", () => {
         "/contact",
         "/delivery",
         "/returns",
+        "/terms",
+        "/privacy",
         "/catalog/protein",
         "/product/a%3C%26%22",
         "/product/%D5%B0%D5%A1%D5%B5%20%2Fx",
@@ -266,7 +268,7 @@ describe("real crawler endpoints", () => {
   it("accepts empty published inventory and enforces URL/XML bounds without truncation", () => {
     expect([
       ...renderSitemap({ products: [], categories: [] }).matchAll(/<loc>/g),
-    ]).toHaveLength(18);
+    ]).toHaveLength(24);
     expect(() =>
       renderSitemap({
         products: Array.from({ length: 16661 }, (_, index) => ({

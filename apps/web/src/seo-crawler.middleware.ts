@@ -98,7 +98,14 @@ export function renderSitemap(
   // modification date, so they carry no lastmod rather than an invented one.
   const pages = new Map<string, string | undefined>();
   for (const path of ["", "/catalog"]) pages.set(path, newest);
-  for (const path of ["/about", "/contact", "/delivery", "/returns"])
+  for (const path of [
+    "/about",
+    "/contact",
+    "/delivery",
+    "/returns",
+    "/terms",
+    "/privacy",
+  ])
     pages.set(path, undefined);
   for (const { slug, updatedAt } of inventory.categories)
     pages.set(`/catalog/${encodeURIComponent(slug)}`, updatedAt);
