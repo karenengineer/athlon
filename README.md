@@ -201,6 +201,14 @@ clients around that proxy.
 
 #### Ameriabank REST certification
 
+In ATHLON Admin, open **Sandbox payments** at `/admin/sandbox-payments` and
+find the captured test payment by its Ameriabank order ID or session reference.
+Choose **Refund AMD 10** and confirm. The page shows **Refunded** after the
+server verifies the full refund with Ameriabank. If the result is uncertain,
+use **Recheck bank status** on the payment row. Refunds require the Ameriabank
+sandbox to be enabled. Use the admin panel for the whole refund attempt, including
+any status recheck, so one interface tracks the attempt.
+
 After returning from Ameriabank, open the payment status in the same unlocked
 browser. If the bank reports an AMD 10 preauthorization within the cancellation
 window, the page offers a cancellation action. Confirm it to send a cancellation

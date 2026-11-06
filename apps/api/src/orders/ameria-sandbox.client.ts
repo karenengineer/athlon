@@ -58,6 +58,18 @@ export class AmeriaSandboxClient {
         "Sandbox cancellation was not acknowledged",
       );
   }
+  async refund(paymentId: string): Promise<void> {
+    const response = await this.post("RefundPayment", {
+      ...this.credentials(),
+      PaymentID: paymentId,
+      Amount: 10,
+    });
+    if (response.ResponseCode !== "00")
+      throw new ServiceUnavailableException(
+        "Sandbox refund was not acknowledged",
+      );
+  }
+
   private credentials() {
     return {
       Username: this.config.getOrThrow<string>("AMERIA_SANDBOX_USERNAME"),
@@ -65,7 +77,11 @@ export class AmeriaSandboxClient {
     };
   }
   private async post(
-    method: "InitPayment" | "GetPaymentDetails" | "CancelPayment",
+    method:
+      | "InitPayment"
+      | "GetPaymentDetails"
+      | "CancelPayment"
+      | "RefundPayment",
     body: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const controller = new AbortController();

@@ -504,6 +504,9 @@ model CardPaymentSandboxSession {
   providerPaymentId          String?   @unique @db.VarChar(100)
   cancellationAttemptedAt    DateTime?
   cancellationAcknowledgedAt DateTime?
+  refundAttemptedAt          DateTime?
+  refundAcknowledgedAt       DateTime?
+  refundedAt                 DateTime?
   expiresAt                  DateTime
   nextCheckAt                DateTime  @default(now())
   createdAt                  DateTime  @default(now())

@@ -27,6 +27,13 @@ export const adminRoutes: Routes = [
               ),
           },
           {
+            path: "sandbox-payments",
+            loadComponent: () =>
+              import("./sandbox-payments/sandbox-payments-page").then(
+                (module) => module.SandboxPaymentsPage,
+              ),
+          },
+          {
             path: "products/new",
             canDeactivate: [adminDirtyFormGuard],
             loadComponent: () =>

@@ -26,7 +26,7 @@ const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 const CANCELLATION_WINDOW_MS = 72 * 60 * 60_000;
 
-function bankAmountIs(value: unknown, amount: 0 | 10): boolean {
+export function bankAmountIs(value: unknown, amount: 0 | 10): boolean {
   return (
     value === amount ||
     value === String(amount) ||
@@ -35,8 +35,8 @@ function bankAmountIs(value: unknown, amount: 0 | 10): boolean {
   );
 }
 
-function sameBankPayment(
-  row: CardPaymentSandboxSession,
+export function sameBankPayment(
+  row: Pick<CardPaymentSandboxSession, "reference" | "ameriaOrderId">,
   details: Record<string, unknown>,
 ): boolean {
   return (
