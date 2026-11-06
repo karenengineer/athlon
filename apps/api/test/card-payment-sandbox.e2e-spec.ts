@@ -28,7 +28,7 @@ describe("Guest Ameria sandbox HTTP flow (bank mocked)", () => {
   let app: INestApplication;
   let config: ConfigService;
   const rows = new Map<string, any>();
-  const bank = { initialize: jest.fn(), details: jest.fn() };
+  const bank = { initialize: jest.fn(), details: jest.fn(), cancel: jest.fn() };
   const productFindMany = jest.fn();
   const orderCreate = jest.fn();
   const model = {
@@ -50,6 +50,8 @@ describe("Guest Ameria sandbox HTTP flow (bank mocked)", () => {
         initialization: "INITIALIZING",
         ameriaOrderId: 30543001 + rows.size,
         nextCheckAt: new Date(0),
+        createdAt: new Date(),
+        cancellationAttemptedAt: null,
         ...data,
       };
       rows.set(row.reference, row);
@@ -64,6 +66,9 @@ describe("Guest Ameria sandbox HTTP flow (bank mocked)", () => {
       if (
         !row ||
         (where.status && where.status !== row.status) ||
+        (where.cancellationAttemptedAt !== undefined &&
+          (row.cancellationAttemptedAt as Date | null)?.getTime() !==
+            (where.cancellationAttemptedAt as Date | null)?.getTime()) ||
         (where.nextCheckAt instanceof Date &&
           (row.nextCheckAt as Date).getTime() !==
             (where.nextCheckAt as Date).getTime()) ||
@@ -242,6 +247,46 @@ describe("Guest Ameria sandbox HTTP flow (bank mocked)", () => {
     const retry = await post(guest, "sessions").send(data).expect(201);
     expect(retry.body.reference).toBe(first.body.reference);
     expect(bank.initialize).toHaveBeenCalledTimes(1);
+  });
+  it("guards the sandbox cancel endpoint and confirms the bank result using the stored payment ID", async () => {
+    const guest = await unlocked();
+    const other = await unlocked();
+    const created = await post(guest, "sessions").send(input()).expect(201);
+    const reference = created.body.reference as string;
+    const path = `sessions/${reference}/cancel`;
+    await post(guest, path)
+      .set("x-card-payment-test-csrf", "invalid")
+      .expect(403);
+    await post(guest, path).set("Origin", "https://untrusted.test").expect(403);
+    await post(other, path).expect(404);
+    config.set("CARD_PAYMENT_TEST_MODE", "MOCK");
+    await post(guest, path).expect(403);
+    config.set("CARD_PAYMENT_TEST_MODE", "AMERIA_SANDBOX");
+    expect(bank.details).not.toHaveBeenCalled();
+    expect(bank.cancel).not.toHaveBeenCalled();
+
+    const approved = {
+      ResponseCode: "00",
+      Amount: 10,
+      Currency: "051",
+      OrderID: 30543001,
+      Opaque: reference,
+      OrderStatus: "1",
+      PaymentState: "payment_approved",
+      ApprovedAmount: 10,
+      DepositedAmount: 0,
+      RefundedAmount: 0,
+    };
+    bank.details.mockResolvedValueOnce(approved).mockResolvedValueOnce({
+      ...approved,
+      OrderStatus: "3",
+      PaymentState: "payment_void",
+    });
+    const response = await post(guest, `${path}?paymentId=forged`).expect(201);
+    expect(response.body).toMatchObject({ status: "CANCELLED", reference });
+    expect(response.body).not.toHaveProperty("checkoutUrl");
+    expect(bank.cancel).toHaveBeenCalledTimes(1);
+    expect(bank.cancel).toHaveBeenCalledWith("fixture-bank-payment");
   });
   it("returns404 for malformed references without a database UUID conversion error", async () => {
     const guest = await unlocked();

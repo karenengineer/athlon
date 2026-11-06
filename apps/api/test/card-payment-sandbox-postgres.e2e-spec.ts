@@ -17,7 +17,7 @@ integration("Isolated actual PostgreSQL sandbox payment persistence", () => {
   let created = false;
   let prisma: PrismaService | undefined;
   let service: CardPaymentSandboxService;
-  const bank = { initialize: jest.fn(), details: jest.fn() };
+  const bank = { initialize: jest.fn(), details: jest.fn(), cancel: jest.fn() };
   const owner = {
     id: "isolated-browser",
     sandboxAccess: true,
@@ -209,6 +209,66 @@ integration("Isolated actual PostgreSQL sandbox payment persistence", () => {
     expect(await prisma!.paymentAttempt.count()).toBe(0);
     expect(await prisma!.sale.count()).toBe(0);
     expect(await prisma!.orderNotification.count()).toBe(0);
+  });
+  it("claims a cancellation once across service instances and persists the acknowledged bank void", async () => {
+    const { reference } = await service.create(basket(), owner);
+    const session = await prisma!.cardPaymentSandboxSession.findUniqueOrThrow({
+      where: { reference },
+    });
+    const approved = {
+      ResponseCode: "00",
+      OrderID: session.ameriaOrderId,
+      Opaque: reference,
+      OrderStatus: "1",
+      PaymentState: "payment_approved",
+      Amount: 10,
+      Currency: "051",
+      ApprovedAmount: 10,
+      DepositedAmount: 0,
+      RefundedAmount: 0,
+    };
+    let release!: () => void;
+    const preflightReady = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let preflights = 0;
+    bank.details.mockImplementation(async () => {
+      if (++preflights === 2) release();
+      await preflightReady;
+      return approved;
+    });
+    bank.cancel.mockImplementation(async () => {
+      const claimed = await prisma!.cardPaymentSandboxSession.findUniqueOrThrow(
+        {
+          where: { reference },
+        },
+      );
+      expect(claimed.cancellationAttemptedAt).toBeInstanceOf(Date);
+      bank.details.mockResolvedValue({
+        ...approved,
+        OrderStatus: "3",
+        PaymentState: "payment_void",
+      });
+    });
+    const another = new CardPaymentSandboxService(
+      prisma!,
+      bank as unknown as AmeriaSandboxClient,
+    );
+    await Promise.all([
+      service.cancel(reference, owner),
+      another.cancel(reference, owner),
+    ]);
+    expect(bank.cancel).toHaveBeenCalledTimes(1);
+    expect(bank.cancel).toHaveBeenCalledWith(session.providerPaymentId);
+    expect(
+      await prisma!.cardPaymentSandboxSession.findUniqueOrThrow({
+        where: { reference },
+      }),
+    ).toMatchObject({
+      status: "CANCELLED",
+      cancellationAttemptedAt: expect.any(Date),
+      cancellationAcknowledgedAt: expect.any(Date),
+    });
   });
   it("consumes rolled-back sequence allocations and exhausts at30544000 without cycling or bank calls", async () => {
     const before = await prisma!.$queryRaw<

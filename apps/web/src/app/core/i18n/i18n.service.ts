@@ -118,6 +118,9 @@ type Copy = {
   paymentSandboxAccessError: string;
   paymentSandboxPending: string;
   paymentSandboxRecheck: string;
+  paymentSandboxCancelAction: string;
+  paymentSandboxCancelConfirm: string;
+  paymentSandboxCancellationUnconfirmed: string;
   paymentSandboxSuccess: string;
   paymentSandboxStorageError: string;
   paymentTestNoCharge: string;
@@ -270,6 +273,10 @@ const copy: Record<Locale, Copy> = {
     paymentSandboxPending:
       "Банк ещё не подтвердил оплату. Проверьте статус повторно; корзина сохранена.",
     paymentSandboxRecheck: "Проверить статус в банке",
+    paymentSandboxCancelAction: "Отменить тестовый платёж",
+    paymentSandboxCancelConfirm: "Отменить этот тестовый платёж в Ameriabank?",
+    paymentSandboxCancellationUnconfirmed:
+      "Отмена ещё не подтверждена. Проверьте статус в банке.",
     paymentSandboxSuccess:
       "Оплата подтверждена Ameriabank в тестовой среде. Реальный заказ не создан, корзина сохранена.",
     paymentTestNoCharge:
@@ -426,6 +433,11 @@ const copy: Record<Locale, Copy> = {
     paymentSandboxPending:
       "Բանկը դեռ չի հաստատել վճարումը։ Կրկին ստուգեք կարգավիճակը․ զամբյուղը պահպանված է։",
     paymentSandboxRecheck: "Ստուգել կարգավիճակը բանկում",
+    paymentSandboxCancelAction: "Չեղարկել թեստային վճարումը",
+    paymentSandboxCancelConfirm:
+      "Չեղարկե՞լ այս թեստային վճարումն Ամերիաբանկում։",
+    paymentSandboxCancellationUnconfirmed:
+      "Չեղարկումը դեռ չի հաստատվել։ Ստուգեք կարգավիճակը բանկում։",
     paymentSandboxSuccess:
       "Ամերիաբանկը հաստատել է վճարումը թեստային միջավայրում։ Իրական պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
     paymentTestNoCharge:
@@ -582,6 +594,10 @@ const copy: Record<Locale, Copy> = {
     paymentSandboxPending:
       "Payment is not confirmed yet by the bank. Check again; the basket is preserved.",
     paymentSandboxRecheck: "Recheck bank status",
+    paymentSandboxCancelAction: "Cancel test payment",
+    paymentSandboxCancelConfirm: "Cancel this test payment at Ameriabank?",
+    paymentSandboxCancellationUnconfirmed:
+      "Cancellation is not confirmed yet. Recheck the bank status.",
     paymentSandboxSuccess:
       "Payment confirmed by Ameriabank in the sandbox. No real order was placed; the basket is preserved.",
     paymentTestNoCharge:
