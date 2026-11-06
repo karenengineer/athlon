@@ -107,8 +107,9 @@ uses the exact sandbox API at
 bank's test card data only on that hosted page. ATHLON never receives, stores, or logs
 PAN/CVV. The server confirms payment with authenticated `GetPaymentDetails` and
 checks the stored payment ID, merchant OrderID, AMD amount, currency, and final bank
-status. The test checkout supports one-step payment. Use the private tool below
-for sandbox refund and cancellation evidence.
+status. The test checkout supports one-step payment. The sandbox return page also
+supports bank cancellation when Ameriabank reports an eligible preauthorization.
+Use the private tool below for the certification report.
 
 The test page is separate from ordinary checkout, has no public navigation link, and
 requires no admin login, customer account, or profile. Open one of these routes after
@@ -199,6 +200,32 @@ only configure trusted proxy hops when the API is not directly reachable by untr
 clients around that proxy.
 
 #### Ameriabank REST certification
+
+After returning from Ameriabank, open the payment status in the same unlocked
+browser. If the bank reports an AMD 10 preauthorization within the cancellation
+window, the page offers a cancellation action. Confirm it to send a cancellation
+to Ameriabank's sandbox. The page shows a cancellation once the bank reports the
+authorization voided. If the outcome is uncertain, use **Recheck bank status** to
+reconcile it. The server records each attempt before contacting the bank so that
+a browser retry cannot submit it again. The browser session lasts up to 15
+minutes. After it expires, the operator tool can cancel eligible payments that
+have no recorded browser cancellation attempt.
+
+The current one-step sandbox checkout creates deposits. Ask Ameriabank how to
+obtain eligible preauthorizations on your test terminal. Use one interface per
+payment for cancellation. The browser records attempts in PostgreSQL and the
+local CLI tracks its own attempts in the evidence directory.
+
+Use this read-only DBeaver query for browser cancellations that Ameriabank
+acknowledged and that the application subsequently verified as voided.
+
+```sql
+SELECT "ameriaOrderId", "providerPaymentId", "cancellationAttemptedAt",
+       "cancellationAcknowledgedAt", status
+FROM "CardPaymentSandboxSession"
+WHERE status = 'CANCELLED' AND "cancellationAcknowledgedAt" IS NOT NULL
+ORDER BY "cancellationAcknowledgedAt" DESC;
+```
 
 Run the private operator tool locally with Node 22. It uses only Ameriabank's sandbox
 REST host. Use a private environment file outside the repository containing

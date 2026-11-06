@@ -15,21 +15,20 @@ describe("CardPaymentSandboxService", () => {
     total: "12000",
   };
   const rows = new Map<string, any>();
-  const bank = { initialize: jest.fn(), details: jest.fn() };
+  const bank = { initialize: jest.fn(), details: jest.fn(), cancel: jest.fn() };
   let service: CardPaymentSandboxService;
   const model = {
-    findUnique: jest.fn(({ where }: any) =>
-      Promise.resolve(
-        where.reference
-          ? (rows.get(where.reference) ?? null)
-          : ([...rows.values()].find(
-              (row) =>
-                row.ownerHash === where.ownerHash_idempotencyKey.ownerHash &&
-                row.idempotencyKey ===
-                  where.ownerHash_idempotencyKey.idempotencyKey,
-            ) ?? null),
-      ),
-    ),
+    findUnique: jest.fn(({ where }: any) => {
+      const row = where.reference
+        ? rows.get(where.reference)
+        : [...rows.values()].find(
+            (row) =>
+              row.ownerHash === where.ownerHash_idempotencyKey.ownerHash &&
+              row.idempotencyKey ===
+                where.ownerHash_idempotencyKey.idempotencyKey,
+          );
+      return Promise.resolve(row ? { ...row } : null);
+    }),
     create: jest.fn(({ data }: any) => {
       if (
         [...rows.values()].some(
@@ -46,6 +45,9 @@ describe("CardPaymentSandboxService", () => {
         initialization: "INITIALIZING",
         ameriaOrderId: 30543001 + rows.size,
         nextCheckAt: new Date(0),
+        createdAt: new Date(),
+        cancellationAttemptedAt: null,
+        cancellationAcknowledgedAt: null,
         ...data,
       };
       rows.set(row.reference, row);
@@ -63,6 +65,9 @@ describe("CardPaymentSandboxService", () => {
           (row.nextCheckAt as Date).getTime() !==
             (where.nextCheckAt as Date).getTime()) ||
         (where.nextCheckAt?.lte && row.nextCheckAt > where.nextCheckAt.lte) ||
+        (where.cancellationAttemptedAt !== undefined &&
+          (row.cancellationAttemptedAt as Date | null)?.getTime() !==
+            (where.cancellationAttemptedAt as Date | null)?.getTime()) ||
         (where.status && row.status !== where.status)
       )
         return Promise.resolve({ count: 0 });
@@ -78,6 +83,7 @@ describe("CardPaymentSandboxService", () => {
       checkoutUrl:
         "https://servicestest.ameriabank.am/VPOS/Payments/Pay?id=fixture-payment&lang=am",
     });
+    bank.cancel.mockResolvedValue(undefined);
     service = new CardPaymentSandboxService(
       prismaFixture(),
       bank as unknown as AmeriaSandboxClient,
@@ -137,6 +143,179 @@ describe("CardPaymentSandboxService", () => {
       status: 503,
     });
     expect(bank.initialize).not.toHaveBeenCalled();
+  });
+
+  function authorization(reference: string) {
+    return {
+      ResponseCode: "00",
+      OrderID: 30543001,
+      Opaque: reference,
+      OrderStatus: 1,
+      PaymentState: "payment_approved",
+      Amount: 10,
+      Currency: "051",
+      ApprovedAmount: 10,
+      DepositedAmount: 0,
+      RefundedAmount: 0,
+    };
+  }
+
+  it("advertises only an eligible authorization and verifies a single concurrent cancellation", async () => {
+    const { reference } = await service.create(input, owner);
+    const approved = authorization(reference);
+    const cancelled = {
+      ...approved,
+      OrderStatus: 3,
+      PaymentState: "payment_void",
+    };
+    bank.details.mockResolvedValue(approved);
+    expect(await service.get(reference, owner.id)).toMatchObject({
+      status: "PENDING",
+      cancellationStatus: "AVAILABLE",
+    });
+    bank.cancel.mockImplementationOnce(() => {
+      expect(rows.get(reference).cancellationAttemptedAt).toBeInstanceOf(Date);
+      bank.details.mockResolvedValue(cancelled);
+      return Promise.resolve();
+    });
+    await Promise.all([
+      service.cancel(reference, owner),
+      service.cancel(reference, owner),
+    ]);
+    expect(bank.cancel).toHaveBeenCalledTimes(1);
+    expect(bank.cancel).toHaveBeenCalledWith("fixture-payment");
+    expect(rows.get(reference).cancellationAcknowledgedAt).toBeInstanceOf(Date);
+    const stored = await service.get(reference, owner.id);
+    expect(stored.status).toBe("CANCELLED");
+    expect(stored).not.toHaveProperty("cancellationStatus");
+    expect(stored).not.toHaveProperty("checkoutUrl");
+  });
+
+  it("retains an unconfirmed cancellation after a lost response and reconciles without another bank write", async () => {
+    const { reference } = await service.create(input, owner);
+    const approved = authorization(reference);
+    bank.details.mockResolvedValue(approved);
+    bank.cancel.mockRejectedValueOnce(new Error("fixture transport timeout"));
+    const attempted = await service.cancel(reference, owner);
+    expect(attempted).toMatchObject({
+      status: "PENDING",
+      cancellationStatus: "UNCONFIRMED",
+    });
+    expect(attempted).not.toHaveProperty("checkoutUrl");
+
+    const restarted = new CardPaymentSandboxService(
+      prismaFixture(),
+      bank as unknown as AmeriaSandboxClient,
+    );
+    await restarted.cancel(reference, owner);
+    bank.details.mockResolvedValue({
+      ...approved,
+      OrderStatus: 3,
+      PaymentState: "payment_void",
+    });
+    expect(await restarted.get(reference, owner.id)).toMatchObject({
+      status: "CANCELLED",
+    });
+    expect(bank.cancel).toHaveBeenCalledTimes(1);
+    expect(rows.get(reference).cancellationAcknowledgedAt).toBeNull();
+  });
+
+  it("cannot overwrite an attempted cancellation with a status poll started before its claim", async () => {
+    const { reference } = await service.create(input, owner);
+    const approved = authorization(reference);
+    let signalPoll!: () => void;
+    let finishPoll!: () => void;
+    const started = new Promise<void>((resolve) => {
+      signalPoll = resolve;
+    });
+    const delayed = new Promise<void>((resolve) => {
+      finishPoll = resolve;
+    });
+    bank.details
+      .mockResolvedValue(approved)
+      .mockImplementationOnce(async () => {
+        signalPoll();
+        await delayed;
+        return {
+          ...approved,
+          OrderStatus: 2,
+          PaymentState: "payment_deposited",
+          DepositedAmount: 10,
+        };
+      });
+    const poll = service.get(reference, owner.id);
+    await started;
+    bank.cancel.mockRejectedValueOnce(new Error("fixture transport timeout"));
+    await service.cancel(reference, owner);
+    finishPoll();
+    expect(await poll).toMatchObject({
+      status: "PENDING",
+      cancellationStatus: "UNCONFIRMED",
+    });
+    expect(rows.get(reference).status).toBe("PENDING");
+  });
+
+  it("waits for the exact bank void even after the cancellation is acknowledged", async () => {
+    const { reference } = await service.create(input, owner);
+    const approved = authorization(reference);
+    bank.details.mockResolvedValueOnce(approved).mockResolvedValue({
+      ...approved,
+      OrderStatus: 4,
+      PaymentState: "payment_refunded",
+    });
+    expect(await service.cancel(reference, owner)).toMatchObject({
+      status: "PENDING",
+      cancellationStatus: "UNCONFIRMED",
+    });
+    expect(await service.get(reference, owner.id)).toMatchObject({
+      status: "PENDING",
+      cancellationStatus: "UNCONFIRMED",
+    });
+  });
+
+  it.each([
+    { OrderStatus: 2, PaymentState: "payment_deposited", DepositedAmount: 10 },
+    { OrderStatus: 3, PaymentState: "payment_void" },
+    { ApprovedAmount: 0 },
+    { DepositedAmount: 1 },
+    { RefundedAmount: 1 },
+    { Opaque: "another-order" },
+    { OrderID: 30543002 },
+    { Currency: "840" },
+    { Amount: 11 },
+  ])(
+    "never sends a cancellation for ineligible bank details %j",
+    async (invalid) => {
+      const { reference } = await service.create(input, owner);
+      bank.details.mockResolvedValue({
+        ...authorization(reference),
+        ...invalid,
+      });
+      await expect(service.cancel(reference, owner)).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(bank.cancel).not.toHaveBeenCalled();
+      expect(rows.get(reference).cancellationAttemptedAt).toBeNull();
+    },
+  );
+
+  it("requires current browser authorization, ownership and a fresh bank session", async () => {
+    const { reference } = await service.create(input, owner);
+    await expect(
+      service.cancel(reference, { ...owner, sandboxAccess: false }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      service.cancel(reference, { ...owner, expiresAtMs: 0 }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      service.cancel(reference, { ...owner, id: "different-browser" }),
+    ).rejects.toMatchObject({ status: 404 });
+    rows.get(reference).createdAt = new Date(Date.now() - 72 * 60 * 60_000);
+    await expect(service.cancel(reference, owner)).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(bank.details).not.toHaveBeenCalled();
+    expect(bank.cancel).not.toHaveBeenCalled();
   });
   it.each([
     "------------------------------------",

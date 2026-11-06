@@ -32,6 +32,7 @@ export interface CardPaymentTestSession {
   total: string;
   basketTotal?: string;
   checkoutUrl?: string;
+  cancellationStatus?: "AVAILABLE" | "UNCONFIRMED";
   items: Array<{
     productId: string;
     sku: string;
@@ -233,6 +234,18 @@ export class CardPaymentTestService {
     }
     session.status = finalStatus;
     return this.toPublicSession(session);
+  }
+
+  cancelSession(
+    reference: string,
+    owner: CardPaymentTestOwner,
+  ): Promise<CardPaymentTestSession> {
+    this.assertEnabled();
+    if (this.getMode() !== "AMERIA_SANDBOX")
+      throw new ForbiddenException("Cancellation requires Ameriabank sandbox");
+    if (!this.sandbox)
+      throw new ServiceUnavailableException("Sandbox is unavailable");
+    return this.sandbox.cancel(reference, owner);
   }
 
   private findSession(reference: string, ownerId: string) {

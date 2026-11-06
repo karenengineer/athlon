@@ -256,6 +256,17 @@ h1 {
   font-weight: 800;
 }
 
+.sandbox-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sandbox-status-actions button {
+  min-height: 44px;
+  padding-inline: 12px;
+}
+
 .order-success {
   position: fixed;
   z-index: 1000;
