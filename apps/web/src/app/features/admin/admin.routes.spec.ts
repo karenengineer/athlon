@@ -203,6 +203,87 @@ describe("admin route boundaries and UI", () => {
     ).not.toBeNull();
   });
 
+  it("confirms one sandbox refund and uses a status check for an unconfirmed result", async () => {
+    const session = TestBed.inject(AdminSessionService);
+    session.user.set({
+      id: "admin-id",
+      email: "admin@athlon.test",
+      role: "ADMIN",
+    });
+    TestBed.inject(AdminI18nService).setLocale("en");
+    const csrf = vi.spyOn(session, "csrfToken").mockReturnValue("fixture-csrf");
+    const confirm = vi
+      .spyOn(window, "confirm")
+      .mockReturnValueOnce(false)
+      .mockReturnValue(true);
+    const endpoint = "/api/v1/admin/sandbox-payments";
+    const item = {
+      reference: "00000000-0000-4000-8000-000000000011",
+      ameriaOrderId: 30543001,
+      createdAt: "2026-11-06T15:00:00Z",
+      status: "SUCCEEDED",
+      canRefund: true,
+    };
+    try {
+      const harness = await RouterTestingHarness.create();
+      await harness.navigateByUrl("/admin/sandbox-payments");
+      http
+        .expectOne(`${endpoint}?page=1`)
+        .flush({ items: [item], hasNext: true, refundsEnabled: true });
+      harness.detectChanges();
+      const page = harness.routeNativeElement!;
+      const findButton = (label: string) =>
+        Array.from(page.querySelectorAll("button")).find(
+          (button) => button.textContent?.trim() === label,
+        );
+      expect(
+        page.querySelector('a[href="/admin/sandbox-payments"]'),
+      ).not.toBeNull();
+      expect(page.textContent).toContain("30543001");
+
+      const refund = findButton("Refund AMD 10")!;
+      refund.click();
+      expect(confirm).toHaveBeenLastCalledWith(
+        expect.stringMatching(/AMD 10.*Ameriabank.*sandbox/i),
+      );
+      http.expectNone((request) => request.method === "POST");
+
+      refund.click();
+      refund.click();
+      const post = http.expectOne({
+        method: "POST",
+        url: `${endpoint}/${item.reference}/refund`,
+      });
+      expect(post.request.headers.get("x-csrf-token")).toBe("fixture-csrf");
+      expect(post.request.body).toEqual({});
+      post.flush({ ...item, status: "REFUND_UNCONFIRMED", canRefund: false });
+      refund.click();
+      http.expectNone((request) => request.method === "POST");
+      harness.detectChanges();
+      expect(findButton("Refund AMD 10")).toBeUndefined();
+      findButton("Recheck bank status")!.click();
+      http
+        .expectOne({
+          method: "POST",
+          url: `${endpoint}/${item.reference}/recheck`,
+        })
+        .flush({ ...item, status: "REFUNDED", canRefund: false });
+      harness.detectChanges();
+      expect(page.textContent).toContain("Refunded");
+      expect(findButton("Recheck bank status")).toBeUndefined();
+
+      findButton("Next")!.click();
+      http
+        .expectOne(`${endpoint}?page=2`)
+        .flush({ items: [], hasNext: false, refundsEnabled: true });
+      harness.detectChanges();
+      expect(findButton("Next")?.disabled).toBe(true);
+    } finally {
+      confirm.mockRestore();
+      csrf.mockRestore();
+    }
+  });
+
   it("shows dashboard errors, supports retry, and distinguishes persisted zero totals", () => {
     const fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();

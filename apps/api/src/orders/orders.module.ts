@@ -12,9 +12,15 @@ import { CardPaymentTestGuestContextService } from "./card-payment-test-guest-co
 import { CardPaymentTestGuestGuard } from "./card-payment-test-guest.guard";
 import { AmeriaSandboxClient } from "./ameria-sandbox.client";
 import { CardPaymentSandboxService } from "./card-payment-sandbox.service";
+import { AdminSandboxPaymentsController } from "./admin-sandbox-payments.controller";
+import { AdminSandboxPaymentsService } from "./admin-sandbox-payments.service";
 
 @Module({
-  controllers: [OrdersController, CardPaymentTestController],
+  controllers: [
+    OrdersController,
+    CardPaymentTestController,
+    AdminSandboxPaymentsController,
+  ],
   providers: [
     OrdersService,
     CardPaymentTestService,
@@ -22,6 +28,7 @@ import { CardPaymentSandboxService } from "./card-payment-sandbox.service";
     CardPaymentTestGuestGuard,
     AmeriaSandboxClient,
     CardPaymentSandboxService,
+    AdminSandboxPaymentsService,
     OrderEmailService,
     OrderPersistenceService,
     AmeriaVposClient,

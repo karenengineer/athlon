@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import { PrismaService } from "../src/database/prisma.service";
 import { Locale } from "../src/generated/prisma/enums";
+import { AdminSandboxPaymentsService } from "../src/orders/admin-sandbox-payments.service";
 import { AmeriaSandboxClient } from "../src/orders/ameria-sandbox.client";
 import { CardPaymentSandboxService } from "../src/orders/card-payment-sandbox.service";
 import { cleanupOwnedResources } from "./isolated-cleanup";
@@ -17,7 +18,12 @@ integration("Isolated actual PostgreSQL sandbox payment persistence", () => {
   let created = false;
   let prisma: PrismaService | undefined;
   let service: CardPaymentSandboxService;
-  const bank = { initialize: jest.fn(), details: jest.fn(), cancel: jest.fn() };
+  const bank = {
+    initialize: jest.fn(),
+    details: jest.fn(),
+    cancel: jest.fn(),
+    refund: jest.fn(),
+  };
   const owner = {
     id: "isolated-browser",
     sandboxAccess: true,
@@ -268,6 +274,81 @@ integration("Isolated actual PostgreSQL sandbox payment persistence", () => {
       status: "CANCELLED",
       cancellationAttemptedAt: expect.any(Date),
       cancellationAcknowledgedAt: expect.any(Date),
+    });
+  });
+  it("claims one admin refund across service instances and persists the bank-confirmed result", async () => {
+    const { reference } = await service.create(basket(), owner);
+    const session = await prisma!.cardPaymentSandboxSession.findUniqueOrThrow({
+      where: { reference },
+    });
+    const captured = {
+      ResponseCode: "00",
+      OrderID: session.ameriaOrderId,
+      Opaque: reference,
+      OrderStatus: "2",
+      PaymentState: "payment_deposited",
+      Amount: 10,
+      Currency: "051",
+      DepositedAmount: 10,
+      RefundedAmount: 0,
+    };
+    bank.details.mockResolvedValue(captured);
+    expect(await service.get(reference, owner.id)).toMatchObject({
+      status: "SUCCEEDED",
+    });
+    let release!: () => void;
+    const preflightReady = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let reads = 0;
+    bank.details.mockImplementation(async () => {
+      reads++;
+      if (reads <= 2) {
+        if (reads === 2) release();
+        await preflightReady;
+        return captured;
+      }
+      return {
+        ...captured,
+        OrderStatus: "4",
+        PaymentState: "payment_refunded",
+        RefundedAmount: 10,
+      };
+    });
+    bank.refund.mockImplementation(async () => {
+      const claimed = await prisma!.cardPaymentSandboxSession.findUniqueOrThrow(
+        {
+          where: { reference },
+        },
+      );
+      expect(claimed.refundAttemptedAt).toBeInstanceOf(Date);
+    });
+    const config = new ConfigService({
+      CARD_PAYMENT_TEST_FLOW_ENABLED: true,
+      CARD_PAYMENT_TEST_MODE: "AMERIA_SANDBOX",
+      AMERIA_PAYMENTS_ENABLED: false,
+    });
+    const newAdminService = () =>
+      new AdminSandboxPaymentsService(
+        prisma!,
+        bank as unknown as AmeriaSandboxClient,
+        config,
+      );
+    await Promise.all([
+      newAdminService().refund(reference),
+      newAdminService().refund(reference),
+    ]);
+    expect(bank.refund).toHaveBeenCalledTimes(1);
+    expect(bank.refund).toHaveBeenCalledWith(session.providerPaymentId);
+    expect(
+      await prisma!.cardPaymentSandboxSession.findUniqueOrThrow({
+        where: { reference },
+      }),
+    ).toMatchObject({
+      status: "SUCCEEDED",
+      refundAttemptedAt: expect.any(Date),
+      refundAcknowledgedAt: expect.any(Date),
+      refundedAt: expect.any(Date),
     });
   });
   it("consumes rolled-back sequence allocations and exhausts at30544000 without cycling or bank calls", async () => {

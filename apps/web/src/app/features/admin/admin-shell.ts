@@ -21,6 +21,7 @@ export class AdminShell {
     { key: "products", path: "/admin/products" },
     { key: "categories", path: "/admin/categories" },
     { key: "brands", path: "/admin/brands" },
+    { key: "sandboxPayments", path: "/admin/sandbox-payments" },
   ];
   readonly financeLinks: readonly {
     key: AdminCopyKey;
