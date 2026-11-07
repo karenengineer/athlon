@@ -15,11 +15,12 @@ const csrf = "isolated-sandbox-csrf-fixture";
 const payment = () => ({
   reference,
   ameriaOrderId: 30543001,
-  createdAt: new Date("2026-11-06T12:00:00Z"),
+  createdAt: new Date(),
   providerPaymentId: "fixture-bank-payment",
   initialization: "READY",
   status: "SUCCEEDED",
-  cancellationAttemptedAt: null,
+  cancellationAttemptedAt: null as Date | null,
+  cancellationAcknowledgedAt: null as Date | null,
   refundAttemptedAt: null as Date | null,
   refundAcknowledgedAt: null as Date | null,
   refundedAt: null as Date | null,
@@ -42,6 +43,7 @@ describe("Admin sandbox payments HTTP flow (bank mocked)", () => {
   const bank = {
     details: jest.fn(),
     refund: jest.fn().mockResolvedValue(undefined),
+    cancel: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeAll(async () => {
@@ -84,12 +86,15 @@ describe("Admin sandbox payments HTTP flow (bank mocked)", () => {
     await request(app.getHttpServer())
       .post(`${base}/${reference}/refund`)
       .expect(401);
-    for (const action of ["refund", "recheck"]) {
+    for (const action of ["refund", "cancel", "recheck"]) {
       await request(app.getHttpServer())
         .post(`${base}/${reference}/${action}`)
         .set("Cookie", cookies)
         .expect(403);
     }
+    await request(app.getHttpServer())
+      .post(`${base}/${reference}/cancel`)
+      .expect(401);
     expect(model.findMany).not.toHaveBeenCalled();
     expect(model.findUnique).not.toHaveBeenCalled();
     expect(bank.details).not.toHaveBeenCalled();
@@ -127,6 +132,7 @@ describe("Admin sandbox payments HTTP flow (bank mocked)", () => {
           createdAt: row.createdAt.toISOString(),
           status: "SUCCEEDED",
           canRefund: true,
+          canCancel: true,
         },
       ],
       hasNext: false,
@@ -147,5 +153,42 @@ describe("Admin sandbox payments HTTP flow (bank mocked)", () => {
     expect(row.status).toBe("SUCCEEDED");
     expect(bank.refund).toHaveBeenCalledWith("fixture-bank-payment");
     expect(bank.refund).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels a captured payment through the guarded admin endpoint", async () => {
+    const capture = {
+      Amount: 10,
+      Currency: "051",
+      Opaque: reference,
+      OrderID: row.ameriaOrderId,
+      ResponseCode: "00",
+      OrderStatus: "2",
+      PaymentState: "payment_deposited",
+      DepositedAmount: 10,
+      RefundedAmount: 0,
+    };
+    bank.details.mockResolvedValueOnce(capture).mockResolvedValueOnce({
+      ...capture,
+      OrderStatus: "3",
+      PaymentState: "payment_void",
+      DepositedAmount: 0,
+    });
+    const cancellation = await request(app.getHttpServer())
+      .post(`${base}/${reference}/cancel`)
+      .set("Cookie", cookies)
+      .set("x-csrf-token", csrf)
+      .expect("Cache-Control", "no-store")
+      .expect(200);
+    expect(cancellation.body).toMatchObject({
+      reference,
+      status: "CANCELLED",
+      canCancel: false,
+      canRefund: false,
+    });
+    expect(row.cancellationAttemptedAt).toBeInstanceOf(Date);
+    expect(row.cancellationAcknowledgedAt).toBeInstanceOf(Date);
+    expect(bank.cancel).toHaveBeenCalledTimes(1);
+    expect(bank.cancel).toHaveBeenCalledWith(row.providerPaymentId);
+    expect(bank.refund).not.toHaveBeenCalled();
   });
 });

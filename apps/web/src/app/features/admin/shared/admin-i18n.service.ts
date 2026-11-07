@@ -104,7 +104,7 @@ const copy = {
     dashboard: "Ամփոփում",
     sandboxPayments: "Թեստային վճարումներ",
     sandboxPaymentsDescription:
-      "Դիտեք Ամերիաբանկի թեստային վճարումները և կատարեք գանձված գումարի ամբողջական վերադարձ։",
+      "Դիտեք Ամերիաբանկի թեստային վճարումները, կատարեք գումարի վերադարձ կամ չեղարկում բանկի թեստային միջավայրում։",
     sandboxPaymentDate: "Ամսաթիվ (UTC)",
     sandboxPaymentOrderId: "Բանկի պատվերի համարը",
     sandboxPaymentAmount: "Գումար",
@@ -118,14 +118,19 @@ const copy = {
     sandboxPaymentExpired: "Ժամկետն անցել է",
     sandboxPaymentRefunded: "Վերադարձված է",
     sandboxPaymentRefundUnconfirmed: "Վերադարձը դեռ չի հաստատվել",
+    sandboxPaymentCancellationUnconfirmed: "Չեղարկումը դեռ չի հաստատվել",
+    sandboxPaymentCancel: "Չեղարկել վճարումը",
+    sandboxPaymentCancelConfirmation:
+      "Ամերիաբանկի թեստային միջավայրում չեղարկե՞լ {orderId} պատվերի վճարումը։",
     sandboxPaymentRefund: "Վերադարձնել 10 դրամ",
     sandboxPaymentRefundConfirmation:
       "Ամերիաբանկի թեստային միջավայրում վերադարձնե՞լ {orderId} պատվերի 10 դրամը։",
     sandboxPaymentRecheck: "Ստուգել կարգավիճակը բանկում",
     sandboxPaymentChecking: "Ստուգվում է բանկի կարգավիճակը…",
     sandboxPaymentActionError:
-      "Չհաջողվեց հաստատել վերադարձը։ Նախ ստուգեք վճարման կարգավիճակը։",
-    sandboxPaymentRefundsDisabled: "Թեստային վճարումների վերադարձն անջատված է։",
+      "Չհաջողվեց հաստատել բանկի գործողության արդյունքը։ Նախ ստուգեք վճարման կարգավիճակը։",
+    sandboxPaymentRefundsDisabled:
+      "Թեստային վճարումների գործողություններն անջատված են։",
     sandboxPaymentsReload: "Թարմացնել ցանկը",
     sandboxPaymentsEmpty: "Թեստային վճարումներ չկան։",
     financeInventory: "Ֆինանսներ և պաշարներ",
@@ -265,7 +270,7 @@ const copy = {
     dashboard: "Обзор",
     sandboxPayments: "Тестовые платежи",
     sandboxPaymentsDescription:
-      "Просматривайте тестовые платежи Америабанка и возвращайте полную сумму списания.",
+      "Просматривайте тестовые платежи Америабанка, выполняйте возврат или отмену в тестовой среде банка.",
     sandboxPaymentDate: "Дата (UTC)",
     sandboxPaymentOrderId: "Номер заказа в банке",
     sandboxPaymentAmount: "Сумма",
@@ -279,14 +284,18 @@ const copy = {
     sandboxPaymentExpired: "Срок истёк",
     sandboxPaymentRefunded: "Возвращён",
     sandboxPaymentRefundUnconfirmed: "Возврат ещё не подтверждён",
+    sandboxPaymentCancellationUnconfirmed: "Отмена ещё не подтверждена",
+    sandboxPaymentCancel: "Отменить платёж",
+    sandboxPaymentCancelConfirmation:
+      "Отменить платёж по заказу {orderId} в тестовой среде Америабанка?",
     sandboxPaymentRefund: "Вернуть 10 AMD",
     sandboxPaymentRefundConfirmation:
       "Вернуть 10 AMD по заказу {orderId} в тестовой среде Америабанка?",
     sandboxPaymentRecheck: "Проверить статус в банке",
     sandboxPaymentChecking: "Проверяем статус в банке…",
     sandboxPaymentActionError:
-      "Не удалось подтвердить возврат. Сначала проверьте статус платежа.",
-    sandboxPaymentRefundsDisabled: "Возвраты тестовых платежей отключены.",
+      "Не удалось подтвердить результат операции банка. Сначала проверьте статус платежа.",
+    sandboxPaymentRefundsDisabled: "Операции с тестовыми платежами отключены.",
     sandboxPaymentsReload: "Обновить список",
     sandboxPaymentsEmpty: "Тестовых платежей нет.",
     financeInventory: "Финансы и запасы",
@@ -425,7 +434,7 @@ const copy = {
     dashboard: "Dashboard",
     sandboxPayments: "Sandbox payments",
     sandboxPaymentsDescription:
-      "View Ameriabank sandbox payments and issue full refunds for captured payments.",
+      "View Ameriabank sandbox payments and request a refund or cancellation in the bank's test environment.",
     sandboxPaymentDate: "Date (UTC)",
     sandboxPaymentOrderId: "Bank order ID",
     sandboxPaymentAmount: "Amount",
@@ -439,14 +448,18 @@ const copy = {
     sandboxPaymentExpired: "Expired",
     sandboxPaymentRefunded: "Refunded",
     sandboxPaymentRefundUnconfirmed: "Refund unconfirmed",
+    sandboxPaymentCancellationUnconfirmed: "Cancellation unconfirmed",
+    sandboxPaymentCancel: "Cancel payment",
+    sandboxPaymentCancelConfirmation:
+      "Cancel payment for order {orderId} in the Ameriabank sandbox?",
     sandboxPaymentRefund: "Refund AMD 10",
     sandboxPaymentRefundConfirmation:
       "Refund AMD 10 for order {orderId} in the Ameriabank sandbox?",
     sandboxPaymentRecheck: "Recheck bank status",
     sandboxPaymentChecking: "Checking with the bank…",
     sandboxPaymentActionError:
-      "Could not confirm the refund. Check the payment status before continuing.",
-    sandboxPaymentRefundsDisabled: "Sandbox refunds are disabled.",
+      "Could not confirm the bank operation. Check the payment status before continuing.",
+    sandboxPaymentRefundsDisabled: "Sandbox payment operations are disabled.",
     sandboxPaymentsReload: "Refresh list",
     sandboxPaymentsEmpty: "No sandbox payments found.",
     financeInventory: "Finance & Inventory",

@@ -209,6 +209,15 @@ use **Recheck bank status** on the payment row. Refunds require the Ameriabank
 sandbox to be enabled. Use the admin panel for the whole refund attempt, including
 any status recheck, so one interface tracks the attempt.
 
+For an unrefunded test payment initialized within the past 72 hours, the admin
+panel also offers **Cancel payment**. Confirm to submit `CancelPayment` to the
+bank. The server checks the payment's identity, amount, currency, and current
+authorization or captured state before submitting. Acceptance depends on the
+test terminal. The panel shows **Cancelled** after the bank confirms
+`OrderStatus=3` and `PaymentState=payment_void`. An uncertain result offers
+**Recheck bank status**. Each payment has one stored cancellation attempt, and
+the server coordinates it with refund attempts.
+
 After returning from Ameriabank, open the payment status in the same unlocked
 browser. If the bank reports an AMD 10 preauthorization within the cancellation
 window, the page offers a cancellation action. Confirm it to send a cancellation

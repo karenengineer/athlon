@@ -47,7 +47,7 @@
               {{ i18n.translate(statusLabels[item.status]) }}
             </span>
           </td>
-          <td>
+          <td class="actions">
             @if (result.refundsEnabled && item.canRefund) {
             <button
               type="button"
@@ -57,12 +57,23 @@
             >
               {{ i18n.translate("sandboxPaymentRefund") }}
             </button>
-            } @else if ( result.refundsEnabled && item.status ===
-            "REFUND_UNCONFIRMED" ) {
+            } @if (result.refundsEnabled && item.canCancel) {
+            <button
+              type="button"
+              class="danger"
+              [disabled]="busy()"
+              (click)="cancel(item)"
+            >
+              {{ i18n.translate("sandboxPaymentCancel") }}
+            </button>
+            } @if ( result.refundsEnabled && ( item.status ===
+            "REFUND_UNCONFIRMED" || item.status === "CANCELLATION_UNCONFIRMED"
+            )) {
             <button type="button" [disabled]="busy()" (click)="recheck(item)">
               {{ i18n.translate("sandboxPaymentRecheck") }}
             </button>
-            } @else { — }
+            } @else if (!result.refundsEnabled || (!item.canRefund &&
+            !item.canCancel)) { — }
           </td>
           <td><code>{{ item.reference }}</code></td>
         </tr>

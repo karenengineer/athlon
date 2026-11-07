@@ -36,6 +36,15 @@ export class AdminSandboxPaymentsController {
     return this.payments.refund(reference);
   }
 
+  @Post(":reference/cancel")
+  @UseGuards(CsrfGuard, ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Header("Cache-Control", "no-store")
+  @HttpCode(200)
+  cancel(@Param("reference", ParseUUIDPipe) reference: string) {
+    return this.payments.cancel(reference);
+  }
+
   @Post(":reference/recheck")
   @UseGuards(CsrfGuard, ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })

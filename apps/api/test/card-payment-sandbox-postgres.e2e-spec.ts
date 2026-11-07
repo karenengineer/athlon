@@ -351,6 +351,88 @@ integration("Isolated actual PostgreSQL sandbox payment persistence", () => {
       refundedAt: expect.any(Date),
     });
   });
+  it("atomically allows only one admin refund or cancellation for a captured payment", async () => {
+    const { reference } = await service.create(basket(), owner);
+    const session = await prisma!.cardPaymentSandboxSession.findUniqueOrThrow({
+      where: { reference },
+    });
+    await prisma!.cardPaymentSandboxSession.update({
+      where: { reference },
+      data: { status: "SUCCEEDED" },
+    });
+    const captured = {
+      ResponseCode: "00",
+      OrderID: session.ameriaOrderId,
+      Opaque: reference,
+      Amount: 10,
+      Currency: "051",
+      OrderStatus: "2",
+      PaymentState: "payment_deposited",
+      DepositedAmount: 10,
+      RefundedAmount: 0,
+    };
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let reads = 0;
+    let operation: "refund" | "cancel" | null = null;
+    bank.details.mockImplementation(async () => {
+      if (++reads <= 2) {
+        if (reads === 2) release();
+        await ready;
+        return captured;
+      }
+      return operation === "refund"
+        ? {
+            ...captured,
+            OrderStatus: "4",
+            PaymentState: "payment_refunded",
+            RefundedAmount: 10,
+          }
+        : {
+            ...captured,
+            OrderStatus: "3",
+            PaymentState: "payment_void",
+            DepositedAmount: 0,
+          };
+    });
+    bank.cancel.mockImplementation(() => {
+      operation = "cancel";
+      return Promise.resolve();
+    });
+    bank.refund.mockImplementation(() => {
+      operation = "refund";
+      return Promise.resolve();
+    });
+    const config = new ConfigService({
+      CARD_PAYMENT_TEST_FLOW_ENABLED: true,
+      CARD_PAYMENT_TEST_MODE: "AMERIA_SANDBOX",
+      AMERIA_PAYMENTS_ENABLED: false,
+    });
+    const createAdminService = () =>
+      new AdminSandboxPaymentsService(
+        prisma!,
+        bank as unknown as AmeriaSandboxClient,
+        config,
+      );
+    await Promise.all([
+      createAdminService().refund(reference),
+      createAdminService().cancel(reference),
+    ]);
+    expect(bank.refund.mock.calls.length + bank.cancel.mock.calls.length).toBe(
+      1,
+    );
+    const updated = await prisma!.cardPaymentSandboxSession.findUniqueOrThrow({
+      where: { reference },
+    });
+    expect(Boolean(updated.refundAttemptedAt)).not.toBe(
+      Boolean(updated.cancellationAttemptedAt),
+    );
+    expect(
+      operation === "refund" ? updated.refundedAt : updated.status,
+    ).toEqual(operation === "refund" ? expect.any(Date) : "CANCELLED");
+  });
   it("consumes rolled-back sequence allocations and exhausts at30544000 without cycling or bank calls", async () => {
     const before = await prisma!.$queryRaw<
       Array<{ last_value: number }>

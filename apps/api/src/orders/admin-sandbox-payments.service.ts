@@ -38,29 +38,61 @@ export interface AdminSandboxPayment {
   reference: string;
   ameriaOrderId: number;
   createdAt: string;
-  status: CardPaymentTestSession["status"] | "REFUNDED" | "REFUND_UNCONFIRMED";
+  status:
+    | CardPaymentTestSession["status"]
+    | "REFUNDED"
+    | "REFUND_UNCONFIRMED"
+    | "CANCELLATION_UNCONFIRMED";
   canRefund: boolean;
+  canCancel: boolean;
+}
+
+function isReadyPayment(
+  row: SandboxPayment,
+): row is SandboxPayment & { providerPaymentId: string } {
+  return (
+    row.initialization === "READY" &&
+    !!row.providerPaymentId &&
+    /^[a-zA-Z0-9-]{1,100}$/.test(row.providerPaymentId) &&
+    row.ameriaOrderId >= firstSandboxOrderId &&
+    row.ameriaOrderId <= lastSandboxOrderId
+  );
 }
 
 function isCaptured(
   row: SandboxPayment,
 ): row is SandboxPayment & { providerPaymentId: string } {
   return (
-    row.initialization === "READY" &&
+    isReadyPayment(row) &&
     row.status === "SUCCEEDED" &&
-    !!row.providerPaymentId &&
-    /^[a-zA-Z0-9-]{1,100}$/.test(row.providerPaymentId) &&
-    row.ameriaOrderId >= firstSandboxOrderId &&
-    row.ameriaOrderId <= lastSandboxOrderId &&
     !row.cancellationAttemptedAt
+  );
+}
+
+function isCancellationCandidate(
+  row: SandboxPayment,
+): row is SandboxPayment & { providerPaymentId: string } {
+  const age = Date.now() - row.createdAt.getTime();
+  return (
+    isReadyPayment(row) &&
+    (row.status === "PENDING" || row.status === "SUCCEEDED") &&
+    !row.cancellationAttemptedAt &&
+    !row.refundAttemptedAt &&
+    !row.refundedAt &&
+    age >= 0 &&
+    age < 72 * 60 * 60_000
   );
 }
 
 function matchesBankStatus(
   row: SandboxPayment,
   details: Record<string, unknown>,
-  orderStatus: 2 | 4,
-  paymentState: "payment_deposited" | "payment_refunded",
+  orderStatus: 1 | 2 | 3 | 4,
+  paymentState:
+    | "payment_approved"
+    | "payment_deposited"
+    | "payment_void"
+    | "payment_refunded",
 ): boolean {
   return (
     sameBankPayment(row, details) &&
@@ -78,6 +110,32 @@ function isFullBankRefund(
   return (
     matchesBankStatus(row, details, 4, "payment_refunded") &&
     bankAmountIs(details.RefundedAmount, 10)
+  );
+}
+
+function isBankCancellationCandidate(
+  row: SandboxPayment,
+  details: Record<string, unknown>,
+): boolean {
+  if (!bankAmountIs(details.RefundedAmount, 0)) return false;
+  return (
+    (matchesBankStatus(row, details, 1, "payment_approved") &&
+      bankAmountIs(details.ApprovedAmount, 10) &&
+      bankAmountIs(details.DepositedAmount, 0)) ||
+    (matchesBankStatus(row, details, 2, "payment_deposited") &&
+      bankAmountIs(details.DepositedAmount, 10))
+  );
+}
+
+function isBankCancellation(
+  row: SandboxPayment,
+  details: Record<string, unknown>,
+): boolean {
+  return (
+    matchesBankStatus(row, details, 3, "payment_void") &&
+    bankAmountIs(details.RefundedAmount, 0) &&
+    (bankAmountIs(details.DepositedAmount, 0) ||
+      bankAmountIs(details.DepositedAmount, 10))
   );
 }
 
@@ -164,9 +222,63 @@ export class AdminSandboxPaymentsService {
     return this.reconcile(row, row.providerPaymentId, attemptedAt);
   }
 
+  async cancel(reference: string): Promise<AdminSandboxPayment> {
+    this.assertRefundsEnabled();
+    const row = await this.findPayment(reference);
+    if (row.cancellationAttemptedAt) return this.toAdminPayment(row);
+    if (!isCancellationCandidate(row))
+      throw new ConflictException(
+        "Sandbox payment is not eligible for cancellation",
+      );
+    const details = await this.bank.details(row.providerPaymentId);
+    this.assertRefundsEnabled();
+    if (
+      !isCancellationCandidate(row) ||
+      !isBankCancellationCandidate(row, details)
+    )
+      throw new ConflictException(
+        "Sandbox payment is not eligible for cancellation",
+      );
+
+    const attemptedAt = new Date();
+    const claim = await this.prisma.cardPaymentSandboxSession.updateMany({
+      where: {
+        reference,
+        status: row.status,
+        initialization: "READY",
+        providerPaymentId: row.providerPaymentId,
+        cancellationAttemptedAt: null,
+        refundAttemptedAt: null,
+        refundedAt: null,
+      },
+      data: { cancellationAttemptedAt: attemptedAt, nextCheckAt: attemptedAt },
+    });
+    if (!claim.count)
+      return this.toAdminPayment(await this.findPayment(reference));
+
+    try {
+      await this.bank.cancel(row.providerPaymentId);
+    } catch {
+      return this.toAdminPayment(await this.findPayment(reference));
+    }
+    await this.prisma.cardPaymentSandboxSession.updateMany({
+      where: { reference, cancellationAttemptedAt: attemptedAt },
+      data: { cancellationAcknowledgedAt: new Date() },
+    });
+    return this.reconcileCancellation(row, row.providerPaymentId, attemptedAt);
+  }
+
   async recheck(reference: string): Promise<AdminSandboxPayment> {
     this.assertRefundsEnabled();
     const row = await this.findPayment(reference);
+    if (row.cancellationAttemptedAt && isReadyPayment(row)) {
+      if (row.status === "CANCELLED") return this.toAdminPayment(row);
+      return this.reconcileCancellation(
+        row,
+        row.providerPaymentId,
+        row.cancellationAttemptedAt,
+      );
+    }
     if (!row.refundAttemptedAt || !isCaptured(row))
       throw new ConflictException("There is no sandbox refund to recheck");
     if (row.refundedAt) return this.toAdminPayment(row);
@@ -194,6 +306,28 @@ export class AdminSandboxPaymentsService {
     return this.toAdminPayment(await this.findPayment(row.reference));
   }
 
+  private async reconcileCancellation(
+    row: SandboxPayment,
+    paymentId: string,
+    attemptedAt: Date,
+  ): Promise<AdminSandboxPayment> {
+    const details = await this.bank.details(paymentId).catch(() => null);
+    if (details && isBankCancellation(row, details)) {
+      await this.prisma.cardPaymentSandboxSession.updateMany({
+        where: {
+          reference: row.reference,
+          providerPaymentId: paymentId,
+          status: row.status,
+          cancellationAttemptedAt: attemptedAt,
+          refundAttemptedAt: null,
+          refundedAt: null,
+        },
+        data: { status: "CANCELLED" },
+      });
+    }
+    return this.toAdminPayment(await this.findPayment(row.reference));
+  }
+
   private async findPayment(reference: string) {
     const row = await this.prisma.cardPaymentSandboxSession.findUnique({
       where: { reference },
@@ -209,15 +343,18 @@ export class AdminSandboxPaymentsService {
   ): AdminSandboxPayment {
     const status = row.refundedAt
       ? "REFUNDED"
-      : row.refundAttemptedAt
-        ? "REFUND_UNCONFIRMED"
-        : (row.status as CardPaymentTestSession["status"]);
+      : row.cancellationAttemptedAt && row.status !== "CANCELLED"
+        ? "CANCELLATION_UNCONFIRMED"
+        : row.refundAttemptedAt
+          ? "REFUND_UNCONFIRMED"
+          : (row.status as CardPaymentTestSession["status"]);
     return {
       reference: row.reference,
       ameriaOrderId: row.ameriaOrderId,
       createdAt: row.createdAt.toISOString(),
       status,
       canRefund: refundsEnabled && status === "SUCCEEDED" && isCaptured(row),
+      canCancel: refundsEnabled && isCancellationCandidate(row),
     };
   }
 
