@@ -264,6 +264,8 @@ export class CardPaymentSandboxService {
         reference,
         status: "PENDING",
         cancellationAttemptedAt: null,
+        refundAttemptedAt: null,
+        refundedAt: null,
       },
       data: {
         cancellationAttemptedAt: attemptedAt,

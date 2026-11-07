@@ -24,11 +24,12 @@ const refunded = {
 const payment = () => ({
   reference,
   ameriaOrderId: 30543001,
-  createdAt: new Date("2026-11-06T12:00:00Z"),
+  createdAt: new Date(),
   providerPaymentId: "fixture-bank-payment",
   initialization: "READY",
   status: "SUCCEEDED",
-  cancellationAttemptedAt: null,
+  cancellationAttemptedAt: null as Date | null,
+  cancellationAcknowledgedAt: null as Date | null,
   refundAttemptedAt: null as Date | null,
   refundAcknowledgedAt: null as Date | null,
   refundedAt: null as Date | null,
@@ -55,6 +56,7 @@ function setup(row = payment(), settings: Record<string, unknown> = {}) {
   const bank = {
     details: jest.fn().mockResolvedValue(captured),
     refund: jest.fn().mockResolvedValue(undefined),
+    cancel: jest.fn().mockResolvedValue(undefined),
   };
   const service = new AdminSandboxPaymentsService(
     { cardPaymentSandboxSession: model } as unknown as PrismaService,
@@ -93,6 +95,7 @@ describe("AdminSandboxPaymentsService", () => {
       createdAt: row.createdAt.toISOString(),
       status: "SUCCEEDED",
       canRefund: true,
+      canCancel: true,
     });
     expect(bank.details).not.toHaveBeenCalled();
   });
@@ -111,6 +114,9 @@ describe("AdminSandboxPaymentsService", () => {
       status: 403,
     });
     await expect(service.recheck(reference)).rejects.toMatchObject({
+      status: 403,
+    });
+    await expect(service.cancel(reference)).rejects.toMatchObject({
       status: 403,
     });
     expect(model.updateMany).not.toHaveBeenCalled();
@@ -209,5 +215,170 @@ describe("AdminSandboxPaymentsService", () => {
     });
     expect(bank.details).not.toHaveBeenCalled();
     expect(bank.refund).not.toHaveBeenCalled();
+  });
+
+  it.each([0, 10])(
+    "cancels a recent captured payment and verifies the bank void with deposited amount %s",
+    async (depositedAmount) => {
+      const { service, bank, row } = setup();
+      bank.details.mockResolvedValueOnce(captured).mockResolvedValueOnce({
+        ...captured,
+        OrderStatus: 3,
+        PaymentState: "payment_void",
+        DepositedAmount: depositedAmount,
+      });
+      bank.cancel.mockImplementation(() => {
+        expect(row.cancellationAttemptedAt).toBeInstanceOf(Date);
+        expect(row.refundAttemptedAt).toBeNull();
+        return Promise.resolve();
+      });
+
+      expect(await service.cancel(reference)).toMatchObject({
+        status: "CANCELLED",
+        canRefund: false,
+        canCancel: false,
+      });
+      expect(row.cancellationAcknowledgedAt).toBeInstanceOf(Date);
+      expect(bank.cancel).toHaveBeenCalledTimes(1);
+      expect(bank.cancel).toHaveBeenCalledWith(row.providerPaymentId);
+      expect(bank.refund).not.toHaveBeenCalled();
+      expect(await service.cancel(reference)).toMatchObject({
+        status: "CANCELLED",
+      });
+      expect(bank.cancel).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("cancels a verified preauthorization from the admin panel", async () => {
+    const row = { ...payment(), status: "PENDING" };
+    const { service, bank } = setup(row);
+    const approved = {
+      ...captured,
+      OrderStatus: "1",
+      PaymentState: "payment_approved",
+      ApprovedAmount: 10,
+      DepositedAmount: 0,
+    };
+    bank.details.mockResolvedValueOnce(approved).mockResolvedValueOnce({
+      ...approved,
+      OrderStatus: "3",
+      PaymentState: "payment_void",
+    });
+    expect(await service.cancel(reference)).toMatchObject({
+      status: "CANCELLED",
+    });
+    expect(bank.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    { Opaque: "other-reference" },
+    { OrderID: 30543002 },
+    { Amount: 11 },
+    { Currency: "840" },
+    { RefundedAmount: 1 },
+    { DepositedAmount: 9 },
+    {
+      OrderStatus: "1",
+      PaymentState: "payment_approved",
+      ApprovedAmount: 9,
+      DepositedAmount: 0,
+    },
+  ])(
+    "rejects mismatched or ineligible cancellation preflight %j",
+    async (override) => {
+      const { service, bank, row } = setup();
+      bank.details.mockResolvedValue({ ...captured, ...override });
+      await expect(service.cancel(reference)).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(row.cancellationAttemptedAt).toBeNull();
+      expect(bank.cancel).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([-60_000, 72 * 60 * 60 * 1000, 73 * 60 * 60 * 1000])(
+    "blocks cancellation outside the 72-hour window with age %s",
+    async (age) => {
+      const { service, bank } = setup({
+        ...payment(),
+        createdAt: new Date(Date.now() - age),
+      });
+      await expect(service.cancel(reference)).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(bank.details).not.toHaveBeenCalled();
+      expect(bank.cancel).not.toHaveBeenCalled();
+    },
+  );
+
+  it("blocks cancelling a refunded or refund-attempted payment", async () => {
+    for (const override of [
+      { refundedAt: new Date() },
+      { refundAttemptedAt: new Date() },
+    ]) {
+      const { service, bank } = setup({ ...payment(), ...override });
+      await expect(service.cancel(reference)).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(bank.cancel).not.toHaveBeenCalled();
+      expect(bank.details).not.toHaveBeenCalled();
+    }
+  });
+
+  it("rechecks an uncertain captured cancellation without repeating it or accepting a refund as a void", async () => {
+    const { service, bank, row } = setup();
+    bank.cancel.mockRejectedValue(
+      new Error("fixture ambiguous or rejected cancellation"),
+    );
+    expect(await service.cancel(reference)).toMatchObject({
+      status: "CANCELLATION_UNCONFIRMED",
+      canCancel: false,
+      canRefund: false,
+    });
+    expect(row.cancellationAcknowledgedAt).toBeNull();
+    expect(await service.cancel(reference)).toMatchObject({
+      status: "CANCELLATION_UNCONFIRMED",
+    });
+    bank.details.mockResolvedValueOnce(refunded);
+    expect(await service.recheck(reference)).toMatchObject({
+      status: "CANCELLATION_UNCONFIRMED",
+    });
+    bank.details.mockResolvedValueOnce({
+      ...captured,
+      OrderStatus: 3,
+      PaymentState: "payment_void",
+    });
+    expect(await service.recheck(reference)).toMatchObject({
+      status: "CANCELLED",
+    });
+    expect(bank.cancel).toHaveBeenCalledTimes(1);
+    expect(bank.refund).not.toHaveBeenCalled();
+  });
+
+  it("atomically excludes overlapping refund and cancellation attempts", async () => {
+    const { service, bank, row } = setup();
+    let reads = 0;
+    let release!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    bank.details.mockImplementation(async () => {
+      if (++reads <= 2) {
+        if (reads === 2) release();
+        await ready;
+        return captured;
+      }
+      return row.refundAttemptedAt
+        ? refunded
+        : { ...captured, OrderStatus: 3, PaymentState: "payment_void" };
+    });
+    await Promise.allSettled([
+      service.refund(reference),
+      service.cancel(reference),
+    ]);
+    expect(bank.refund.mock.calls.length + bank.cancel.mock.calls.length).toBe(
+      1,
+    );
+    expect(!!row.refundAttemptedAt).not.toBe(!!row.cancellationAttemptedAt);
   });
 });

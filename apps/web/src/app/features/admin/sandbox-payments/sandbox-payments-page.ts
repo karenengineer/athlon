@@ -13,6 +13,7 @@ const statusLabels = {
   EXPIRED: "sandboxPaymentExpired",
   REFUNDED: "sandboxPaymentRefunded",
   REFUND_UNCONFIRMED: "sandboxPaymentRefundUnconfirmed",
+  CANCELLATION_UNCONFIRMED: "sandboxPaymentCancellationUnconfirmed",
 } as const satisfies Record<string, AdminCopyKey>;
 
 interface SandboxPayment {
@@ -21,6 +22,7 @@ interface SandboxPayment {
   createdAt: string;
   status: keyof typeof statusLabels;
   canRefund: boolean;
+  canCancel: boolean;
 }
 
 interface SandboxPaymentList {
@@ -81,8 +83,21 @@ export class SandboxPaymentsPage {
     this.submit(item, "refund");
   }
 
+  cancel(item: SandboxPayment): void {
+    if (!this.canActOn(item) || !item.canCancel) return;
+    const confirmation = this.i18n
+      .translate("sandboxPaymentCancelConfirmation")
+      .replace("{orderId}", String(item.ameriaOrderId));
+    if (!this.document.defaultView?.confirm(confirmation)) return;
+    this.submit(item, "cancel");
+  }
+
   recheck(item: SandboxPayment): void {
-    if (!this.canActOn(item) || item.status !== "REFUND_UNCONFIRMED") return;
+    if (
+      !this.canActOn(item) ||
+      !["REFUND_UNCONFIRMED", "CANCELLATION_UNCONFIRMED"].includes(item.status)
+    )
+      return;
     this.submit(item, "recheck");
   }
 
@@ -91,7 +106,10 @@ export class SandboxPaymentsPage {
     return !this.busy() && !!list?.refundsEnabled && list.items.includes(item);
   }
 
-  private submit(item: SandboxPayment, action: "refund" | "recheck"): void {
+  private submit(
+    item: SandboxPayment,
+    action: "refund" | "cancel" | "recheck",
+  ): void {
     this.busy.set(true);
     this.error.set(null);
     this.http
@@ -114,7 +132,7 @@ export class SandboxPaymentsPage {
           this.busy.set(false);
         },
         error: () => {
-          if (action === "refund") this.list.set(null);
+          if (action !== "recheck") this.list.set(null);
           this.error.set("sandboxPaymentActionError");
           this.busy.set(false);
         },
