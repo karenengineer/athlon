@@ -35,7 +35,7 @@ interface SandboxPaymentList {
   selector: "app-admin-sandbox-payments",
   imports: [DatePipe],
   templateUrl: "./sandbox-payments-page.html",
-  styleUrl: "../shared/catalog.scss",
+  styleUrls: ["../shared/catalog.scss", "./sandbox-payments-page.scss"],
 })
 export class SandboxPaymentsPage {
   private readonly http = inject(HttpClient);

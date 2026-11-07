@@ -61,23 +61,37 @@ describe("HomePage", () => {
     return section;
   }
 
-  for (const [locale, delivery] of [
-    ["hy", "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55"],
-    ["ru", "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55"],
-    ["en", "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55"],
+  for (const [locale, delivery, trust] of [
+    [
+      "hy",
+      "ԱՆՎՃԱՐ ԱՌԱՔՈՒՄ ՈՂՋ ՀԱՅԱՍՏԱՆՈՒՄ · 041 44 88 55",
+      "Օրիգինալ ապրանք միայն արտադրողից",
+    ],
+    [
+      "ru",
+      "БЕСПЛАТНАЯ ДОСТАВКА ПО ВСЕЙ АРМЕНИИ · 041 44 88 55",
+      "Оригинальная продукция напрямую от производителя",
+    ],
+    [
+      "en",
+      "FREE DELIVERY THROUGHOUT ARMENIA · 041 44 88 55",
+      "Original products directly from the manufacturer",
+    ],
   ] as const) {
-    it(`places the localized delivery heading directly after the hero H1 in ${locale}`, () => {
+    it(`places localized delivery and trust headings directly after the hero H1 in ${locale}`, () => {
       const home = renderHome(locale);
       const hero = home.querySelector(".hero")!;
       const heroCopy = hero.querySelector(".hero-copy")!;
-      const [heading, deliveryHeading] = heroCopy.children;
+      const [heading, deliveryHeading, trustHeading] = heroCopy.children;
 
       expect(home.querySelectorAll("h1")).toHaveLength(1);
-      expect(heroCopy.children).toHaveLength(2);
+      expect(heroCopy.children).toHaveLength(3);
       expect(heading?.tagName).toBe("H1");
       expect(deliveryHeading?.tagName).toBe("H2");
       expect(deliveryHeading?.textContent?.trim()).toBe(delivery);
       expect(deliveryHeading?.textContent).toContain("041 44 88 55");
+      expect(trustHeading?.tagName).toBe("H3");
+      expect(trustHeading?.textContent?.trim()).toBe(trust);
       const image = hero.querySelector("img")!;
       expect(image.getAttribute("src")).toBe("/brand/athlon-hero-wide.jpeg");
       expect(image.width).toBe(1280);

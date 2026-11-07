@@ -997,7 +997,18 @@ async function main() {
             heading.nextElementSibling.classList.contains("hero-delivery"),
           );
           assert.equal(text(heading.nextElementSibling), copy.announcement);
-          assert.equal(heading.nextElementSibling.nextElementSibling, null);
+          const trustHeading = heading.nextElementSibling.nextElementSibling;
+          assert.equal(trustHeading?.tagName, "H3");
+          assert.ok(trustHeading.classList.contains("hero-trust"));
+          assert.equal(
+            text(trustHeading),
+            {
+              hy: "Օրիգինալ ապրանք միայն արտադրողից",
+              ru: "Оригинальная продукция напрямую от производителя",
+              en: "Original products directly from the manufacturer",
+            }[locale],
+          );
+          assert.equal(trustHeading.nextElementSibling, null);
           footer(document, locale);
           metadata(
             document,

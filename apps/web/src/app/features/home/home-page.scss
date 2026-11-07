@@ -79,6 +79,15 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.hero-trust {
+  margin: 10px 0 0;
+  color: #e3e3e6;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .primary-button {
   display: inline-flex;
   align-items: center;
@@ -355,6 +364,10 @@ svg {
 
   .hero-delivery {
     font-size: 18px;
+  }
+
+  .hero-trust {
+    font-size: 16px;
   }
 
   .hero-visual {
