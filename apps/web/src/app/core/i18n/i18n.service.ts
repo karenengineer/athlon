@@ -335,7 +335,7 @@ const copy: Record<Locale, Copy> = {
     searchPlaceholder: "Որոնել…",
     search: "Որոնել",
     heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
-    heroTitle: "«Կառուցիր մարմինդ հոգուդ համապատասխան»",
+    heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
     heroTrust: "Օրիգինալ ապրանք միայն արտադրողից",
     heroText: "Սպորտային սնունդ ամենօրյա առաջընթացի համար։",
     communityTitle: "Միացիր ATHLON-ին",
