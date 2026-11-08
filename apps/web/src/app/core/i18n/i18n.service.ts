@@ -336,7 +336,7 @@ const copy: Record<Locale, Copy> = {
     communityWheyAlt: "Շոկոլադե TREC Whey 100 պրոտեին և շեյքեր",
     explore: "Դիտել ապրանքները",
     showcaseEyebrow: "Սպորտային սնունդ",
-    showcaseTitle: "Հայտնի ապրանքներ",
+    showcaseTitle: "Պահանջված ապրանքներ",
     viewAll: "Տեսնել բոլոր ապրանքները",
     details: "Մանրամասն",
     contactPrice: "Ճշտել գինը",
