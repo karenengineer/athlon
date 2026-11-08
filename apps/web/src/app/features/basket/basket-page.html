@@ -44,14 +44,21 @@
     {{ cardPaymentTestResult() }}
   </p>
   @if (sandboxMode() && sandboxStatusPending()) {
-  <button
-    class="sandbox-recheck"
-    type="button"
-    [disabled]="verifyingSandbox()"
-    (click)="recheckSandbox()"
-  >
-    {{ i18n.t("paymentSandboxRecheck") }}
-  </button>
+  <div class="sandbox-status-actions">
+    <button
+      class="sandbox-recheck"
+      type="button"
+      [disabled]="verifyingSandbox()"
+      (click)="recheckSandbox()"
+    >
+      {{ i18n.t("paymentSandboxRecheck") }}
+    </button>
+    @if (canCancelSandbox()) {
+    <button class="sandbox-cancel" type="button" (click)="cancelSandbox()">
+      {{ i18n.t("paymentSandboxCancelAction") }}
+    </button>
+    }
+  </div>
   } } @if (basket.items().length) {
   <div class="basket-layout">
     <div class="basket-list">

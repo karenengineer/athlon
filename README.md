@@ -105,11 +105,11 @@ uses the exact sandbox API at
 `https://servicestest.ameriabank.am/VPOS/api/VPOS/` and redirects only to
 `https://servicestest.ameriabank.am/VPOS/Payments/Pay` for hosted card entry. Enter the
 bank's test card data only on that hosted page. ATHLON never receives, stores, or logs
-PAN/CVV. A return redirect or its query parameters cannot confirm payment: the server
-must authenticate to `GetPaymentDetails` and verify the stored payment ID, merchant
-OrderID, AMD amount/currency, and final bank status. Two-step authorization/capture,
-refund, and cancel bank operations are not implemented; their availability in the
-bank's account does not expose them through this page.
+PAN/CVV. The server confirms payment with authenticated `GetPaymentDetails` and
+checks the stored payment ID, merchant OrderID, AMD amount, currency, and final bank
+status. The test checkout supports one-step payment. The sandbox return page also
+supports bank cancellation when Ameriabank reports an eligible preauthorization.
+Use the private tool below for the certification report.
 
 The test page is separate from ordinary checkout, has no public navigation link, and
 requires no admin login, customer account, or profile. Open one of these routes after
@@ -198,6 +198,121 @@ The production API is reached through one Caddy reverse-proxy hop. Keep
 the customer address forwarded by Caddy. For direct local API access, leave it at `0`;
 only configure trusted proxy hops when the API is not directly reachable by untrusted
 clients around that proxy.
+
+#### Ameriabank REST certification
+
+In ATHLON Admin, open **Sandbox payments** at `/admin/sandbox-payments` and
+find the captured test payment by its Ameriabank order ID or session reference.
+Choose **Refund AMD 10** and confirm. The page shows **Refunded** after the
+server verifies the full refund with Ameriabank. If the result is uncertain,
+use **Recheck bank status** on the payment row. Refunds require the Ameriabank
+sandbox to be enabled. Use the admin panel for the whole refund attempt, including
+any status recheck, so one interface tracks the attempt.
+
+For an unrefunded test payment initialized within the past 72 hours, the admin
+panel also offers **Cancel payment**. Confirm to submit `CancelPayment` to the
+bank. The server checks the payment's identity, amount, currency, and current
+authorization or captured state before submitting. Acceptance depends on the
+test terminal. The panel shows **Cancelled** after the bank confirms
+`OrderStatus=3` and `PaymentState=payment_void`. An uncertain result offers
+**Recheck bank status**. Each payment has one stored cancellation attempt, and
+the server coordinates it with refund attempts.
+
+After returning from Ameriabank, open the payment status in the same unlocked
+browser. If the bank reports an AMD 10 preauthorization within the cancellation
+window, the page offers a cancellation action. Confirm it to send a cancellation
+to Ameriabank's sandbox. The page shows a cancellation once the bank reports the
+authorization voided. If the outcome is uncertain, use **Recheck bank status** to
+reconcile it. The server records each attempt before contacting the bank so that
+a browser retry cannot submit it again. The browser session lasts up to 15
+minutes. After it expires, the operator tool can cancel eligible payments that
+have no recorded browser cancellation attempt.
+
+The current one-step sandbox checkout creates deposits. Ask Ameriabank how to
+obtain eligible preauthorizations on your test terminal. Use one interface per
+payment for cancellation. The browser records attempts in PostgreSQL and the
+local CLI tracks its own attempts in the evidence directory.
+
+Use this read-only DBeaver query for browser cancellations that Ameriabank
+acknowledged and that the application subsequently verified as voided.
+
+```sql
+SELECT "ameriaOrderId", "providerPaymentId", "cancellationAttemptedAt",
+       "cancellationAcknowledgedAt", status
+FROM "CardPaymentSandboxSession"
+WHERE status = 'CANCELLED' AND "cancellationAcknowledgedAt" IS NOT NULL
+ORDER BY "cancellationAcknowledgedAt" DESC;
+```
+
+Run the private operator tool locally with Node 22. It uses only Ameriabank's sandbox
+REST host. Use a private environment file outside the repository containing
+`AMERIA_SANDBOX_USERNAME` and `AMERIA_SANDBOX_PASSWORD`. Set the file's permissions
+to `600`. Keep the evidence directory private, outside the repository, and use the
+same directory from a single operator machine for the whole certification run.
+The directory holds the records that prevent repeat mutations. Retain it until
+the bank has reconciled the tests.
+
+In DBeaver, use a read-only PostgreSQL connection to look up the values for each test.
+
+```sql
+SELECT "providerPaymentId", "ameriaOrderId", "reference",
+       to_char("createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "initializedAt"
+FROM "CardPaymentSandboxSession"
+WHERE "providerPaymentId" IS NOT NULL
+ORDER BY "createdAt" DESC;
+```
+
+From the repository root, substitute the values from one row in this Bash or Zsh
+example. Keep the quotes around the values.
+
+```bash
+sandbox_cli=(node --env-file="/absolute/private/ameria-sandbox.env" scripts/ameria-sandbox-operations.mjs)
+sandbox_evidence=(--evidence-dir "/absolute/private/ameria-certification")
+sandbox_target=(--payment-id "PAYMENT_ID" --order-id "ORDER_ID" --reference "REFERENCE")
+
+"${sandbox_cli[@]}" inspect "${sandbox_evidence[@]}" "${sandbox_target[@]}" --record
+"${sandbox_cli[@]}" refund "${sandbox_evidence[@]}" "${sandbox_target[@]}"
+"${sandbox_cli[@]}" refund "${sandbox_evidence[@]}" "${sandbox_target[@]}" --apply
+```
+
+`inspect --record` saves a bank-verified deposit. Refund preflight checks that the
+bank reports a deposited payment with the full AMD 10 available to refund.
+`--apply` submits the full refund and reads the bank state back to verify it.
+
+For cancellation, use a separate fresh test payment in the bank's preauthorized
+state, and pass the UTC `initializedAt` value from that same row. The bank's manual
+specifies a 72-hour window from initialization. ATHLON's current one-step checkout
+produces deposits. Ask Ameriabank how to obtain eligible test preauthorizations on
+your sandbox terminal before running cancellation tests.
+
+```bash
+"${sandbox_cli[@]}" cancel "${sandbox_evidence[@]}" "${sandbox_target[@]}" \
+  --initialized-at "INITIALIZED_AT"
+"${sandbox_cli[@]}" cancel "${sandbox_evidence[@]}" "${sandbox_target[@]}" \
+  --initialized-at "INITIALIZED_AT" --apply
+```
+
+If a mutation's outcome is uncertain, keep the evidence directory and run `verify`
+with the same identifiers. It reads the bank status and saves the outcome in the
+local evidence directory. DBeaver still shows the original checkout record. Only
+an acknowledged mutation with a matching final bank state counts as `VERIFIED`.
+Reconcile any unresolved attempt with Ameriabank before taking further action.
+Repeat with distinct eligible payments and use the report to check progress against
+the bank's minimum of five successful payments, five refunds, and five cancellations.
+The JSON report contains sanitized references, statuses, and amounts and runs
+without bank credentials. To save a copy for the bank, redirect it to a private file.
+
+```bash
+"${sandbox_cli[@]}" verify "${sandbox_evidence[@]}" "${sandbox_target[@]}"
+node scripts/ameria-sandbox-operations.mjs report "${sandbox_evidence[@]}"
+(umask 077; node scripts/ameria-sandbox-operations.mjs report "${sandbox_evidence[@]}" \
+  > "/absolute/private/ameria-certification-report.json")
+```
+
+See Ameriabank's REST references for
+[`GetPaymentDetails`](https://servicestest.ameriabank.am/VPOS/Help/Api/POST-api-VPOS-GetPaymentDetails),
+[`RefundPayment`](https://servicestest.ameriabank.am/VPOS/Help/Api/POST-api-VPOS-RefundPayment), and
+[`CancelPayment`](https://servicestest.ameriabank.am/VPOS/Help/Api/POST-api-VPOS-CancelPayment).
 
 ## Verification
 

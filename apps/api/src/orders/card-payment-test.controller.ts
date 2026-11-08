@@ -94,4 +94,15 @@ export class CardPaymentTestController {
       request.cardPaymentTestOwner.id,
     );
   }
+
+  @Post("sessions/:reference/cancel")
+  @Header("Cache-Control", "no-store")
+  @UseGuards(CardPaymentTestGuestGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  cancelSession(
+    @Param("reference") reference: string,
+    @Req() request: CardPaymentTestGuestRequest,
+  ) {
+    return this.sessions.cancelSession(reference, request.cardPaymentTestOwner);
+  }
 }

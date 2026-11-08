@@ -27,6 +27,7 @@ type Copy = {
   search: string;
   heroEyebrow: string;
   heroTitle: string;
+  heroTrust: string;
   heroText: string;
   communityTitle: string;
   communityText: string;
@@ -118,6 +119,9 @@ type Copy = {
   paymentSandboxAccessError: string;
   paymentSandboxPending: string;
   paymentSandboxRecheck: string;
+  paymentSandboxCancelAction: string;
+  paymentSandboxCancelConfirm: string;
+  paymentSandboxCancellationUnconfirmed: string;
   paymentSandboxSuccess: string;
   paymentSandboxStorageError: string;
   paymentTestNoCharge: string;
@@ -166,10 +170,11 @@ const copy: Record<Locale, Copy> = {
     home: "Главная",
     catalog: "Каталог",
     nutrition: "Спортивное питание",
-    searchPlaceholder: "Найти протеин, креатин…",
+    searchPlaceholder: "Найти…",
     search: "Найти",
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Создай тело под стать своему духу",
+    heroTrust: "Оригинальная продукция напрямую от производителя",
     heroText: "Спортивное питание для ежедневного прогресса.",
     communityTitle: "Присоединяйся к ATHLON",
     communityText: "Тренировки, новинки и спортивные будни.",
@@ -270,6 +275,10 @@ const copy: Record<Locale, Copy> = {
     paymentSandboxPending:
       "Банк ещё не подтвердил оплату. Проверьте статус повторно; корзина сохранена.",
     paymentSandboxRecheck: "Проверить статус в банке",
+    paymentSandboxCancelAction: "Отменить тестовый платёж",
+    paymentSandboxCancelConfirm: "Отменить этот тестовый платёж в Ameriabank?",
+    paymentSandboxCancellationUnconfirmed:
+      "Отмена ещё не подтверждена. Проверьте статус в банке.",
     paymentSandboxSuccess:
       "Оплата подтверждена Ameriabank в тестовой среде. Реальный заказ не создан, корзина сохранена.",
     paymentTestNoCharge:
@@ -323,10 +332,11 @@ const copy: Record<Locale, Copy> = {
     home: "Գլխավոր",
     catalog: "Կատալոգ",
     nutrition: "Սպորտային սնունդ",
-    searchPlaceholder: "Գտնել պրոտեին, կրեատին…",
-    search: "Գտնել",
+    searchPlaceholder: "Որոնել…",
+    search: "Որոնել",
     heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
-    heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
+    heroTitle: "«Կառուցիր մարմինդ հոգուդ համապատասխան»",
+    heroTrust: "Օրիգինալ ապրանք միայն արտադրողից",
     heroText: "Սպորտային սնունդ ամենօրյա առաջընթացի համար։",
     communityTitle: "Միացիր ATHLON-ին",
     communityText: "Մարզումներ, նորություններ և սպորտային առօրյա։",
@@ -426,6 +436,11 @@ const copy: Record<Locale, Copy> = {
     paymentSandboxPending:
       "Բանկը դեռ չի հաստատել վճարումը։ Կրկին ստուգեք կարգավիճակը․ զամբյուղը պահպանված է։",
     paymentSandboxRecheck: "Ստուգել կարգավիճակը բանկում",
+    paymentSandboxCancelAction: "Չեղարկել թեստային վճարումը",
+    paymentSandboxCancelConfirm:
+      "Չեղարկե՞լ այս թեստային վճարումն Ամերիաբանկում։",
+    paymentSandboxCancellationUnconfirmed:
+      "Չեղարկումը դեռ չի հաստատվել։ Ստուգեք կարգավիճակը բանկում։",
     paymentSandboxSuccess:
       "Ամերիաբանկը հաստատել է վճարումը թեստային միջավայրում։ Իրական պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
     paymentTestNoCharge:
@@ -479,10 +494,11 @@ const copy: Record<Locale, Copy> = {
     home: "Home",
     catalog: "Catalog",
     nutrition: "Sports nutrition",
-    searchPlaceholder: "Find protein, creatine…",
+    searchPlaceholder: "Search…",
     search: "Search",
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Build a body to match your spirit",
+    heroTrust: "Original products directly from the manufacturer",
     heroText: "Sports nutrition for everyday progress.",
     communityTitle: "Join ATHLON",
     communityText: "Training, new arrivals and everyday sport.",
@@ -582,6 +598,10 @@ const copy: Record<Locale, Copy> = {
     paymentSandboxPending:
       "Payment is not confirmed yet by the bank. Check again; the basket is preserved.",
     paymentSandboxRecheck: "Recheck bank status",
+    paymentSandboxCancelAction: "Cancel test payment",
+    paymentSandboxCancelConfirm: "Cancel this test payment at Ameriabank?",
+    paymentSandboxCancellationUnconfirmed:
+      "Cancellation is not confirmed yet. Recheck the bank status.",
     paymentSandboxSuccess:
       "Payment confirmed by Ameriabank in the sandbox. No real order was placed; the basket is preserved.",
     paymentTestNoCharge:

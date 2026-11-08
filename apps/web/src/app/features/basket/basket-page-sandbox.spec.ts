@@ -573,6 +573,9 @@ describe("BasketPage Ameriabank sandbox", () => {
       expect(text).not.toContain("Your order has been registered");
       if (status === "PENDING") {
         expect(
+          fixture.nativeElement.querySelector(".sandbox-cancel"),
+        ).toBeNull();
+        expect(
           fixture.nativeElement.querySelector(".order-button").disabled,
         ).toBe(true);
       }
@@ -583,6 +586,114 @@ describe("BasketPage Ameriabank sandbox", () => {
       expect(navigate).not.toHaveBeenCalled();
     },
   );
+  it("asks for confirmation and submits one bank cancellation for an eligible sandbox session", () => {
+    seedAttempt("owner-ref");
+    const fixture = create(false, true);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    try {
+      http
+        .expectOne(`${endpoint}/sessions/owner-ref`)
+        .flush({ ...session, cancellationStatus: "AVAILABLE" });
+      fixture.detectChanges();
+      const cancel = fixture.nativeElement.querySelector(
+        ".sandbox-cancel",
+      ) as HTMLButtonElement;
+      expect(cancel.textContent).toContain("Cancel test payment");
+      cancel.click();
+      expect(confirm).toHaveBeenCalledWith(
+        "Cancel this test payment at Ameriabank?",
+      );
+      const cancelUrl = `${endpoint}/sessions/owner-ref/cancel`;
+      http.expectNone(cancelUrl);
+      confirm.mockReturnValue(true);
+      cancel.click();
+      cancel.click();
+      const request = http.expectOne(cancelUrl);
+      expect(request.request.method).toBe("POST");
+      expect(request.request.body).toEqual({});
+      expect(request.request.withCredentials).toBe(true);
+      expect(request.request.headers.get("x-card-payment-test-csrf")).toBe(
+        "sandbox-csrf",
+      );
+      request.flush({ ...session, status: "CANCELLED" });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain(
+        "Payment was cancelled",
+      );
+      expect(fixture.nativeElement.querySelector(".sandbox-cancel")).toBeNull();
+      expect(sessionStorage.getItem("athlon_sandbox_request_v1")).toBeNull();
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+  it("offers a status check while cancellation is unconfirmed", () => {
+    const fixture = create(false, true);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    try {
+      const sessionUrl = `${endpoint}/sessions/owner-ref`;
+      http
+        .expectOne(sessionUrl)
+        .flush({ ...session, cancellationStatus: "AVAILABLE" });
+      fixture.detectChanges();
+      fixture.nativeElement.querySelector(".sandbox-cancel").click();
+      http
+        .expectOne(`${sessionUrl}/cancel`)
+        .flush({ ...session, cancellationStatus: "UNCONFIRMED" });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain(
+        "Cancellation is not confirmed yet",
+      );
+      expect(fixture.nativeElement.querySelector(".sandbox-cancel")).toBeNull();
+      fixture.nativeElement.querySelector(".sandbox-recheck").click();
+      const check = http.expectOne(sessionUrl);
+      expect(check.request.method).toBe("GET");
+      check.flush({ ...session, status: "CANCELLED" });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain(
+        "Payment was cancelled",
+      );
+      expect(TestBed.inject(BasketService).totalQuantity()).toBe(1);
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+  it("drops cancellation availability if rechecking the bank status fails", () => {
+    const fixture = create(false, true);
+    const sessionUrl = `${endpoint}/sessions/owner-ref`;
+    http
+      .expectOne(sessionUrl)
+      .flush({ ...session, cancellationStatus: "AVAILABLE" });
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector(".sandbox-cancel"),
+    ).not.toBeNull();
+    fixture.nativeElement.querySelector(".sandbox-recheck").click();
+    http
+      .expectOne(sessionUrl)
+      .flush({}, { status: 503, statusText: "Unavailable" });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".sandbox-cancel")).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(".sandbox-recheck"),
+    ).not.toBeNull();
+  });
+  it("ignores cancellation availability returned for a previous route reference", () => {
+    const fixture = create(false, true);
+    const previous = http.expectOne(`${endpoint}/sessions/owner-ref`);
+    (route["snapshot"] as { queryParamMap: unknown }).queryParamMap =
+      convertToParamMap({ session: "next-ref" });
+    fixture.componentInstance.recheckSandbox();
+    http.expectNone(`${endpoint}/sessions/next-ref`);
+    previous.flush({ ...session, cancellationStatus: "AVAILABLE" });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".sandbox-cancel")).toBeNull();
+    fixture.componentInstance.recheckSandbox();
+    http.expectOne(`${endpoint}/sessions/next-ref`).flush({
+      ...session,
+      reference: "next-ref",
+    });
+  });
   it.each(["return", "replay"])(
     "opens verified sandbox success after %s without settling on the basket page",
     (source) => {

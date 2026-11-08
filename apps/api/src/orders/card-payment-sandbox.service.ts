@@ -24,6 +24,64 @@ type Basket = {
 };
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
+const CANCELLATION_WINDOW_MS = 72 * 60 * 60_000;
+
+export function bankAmountIs(value: unknown, amount: 0 | 10): boolean {
+  return (
+    value === amount ||
+    value === String(amount) ||
+    value === `${amount}.0` ||
+    value === `${amount}.00`
+  );
+}
+
+export function sameBankPayment(
+  row: Pick<CardPaymentSandboxSession, "reference" | "ameriaOrderId">,
+  details: Record<string, unknown>,
+): boolean {
+  return (
+    bankAmountIs(details.Amount, 10) &&
+    details.Currency === "051" &&
+    (details.OrderID === row.ameriaOrderId ||
+      details.OrderID === String(row.ameriaOrderId)) &&
+    details.Opaque === row.reference
+  );
+}
+
+function withinCancellationWindow(row: CardPaymentSandboxSession): boolean {
+  const age = Date.now() - row.createdAt.getTime();
+  return age >= 0 && age < CANCELLATION_WINDOW_MS;
+}
+
+function canCancel(
+  row: CardPaymentSandboxSession,
+  details: Record<string, unknown>,
+): boolean {
+  return (
+    withinCancellationWindow(row) &&
+    sameBankPayment(row, details) &&
+    details.ResponseCode === "00" &&
+    (details.OrderStatus === 1 || details.OrderStatus === "1") &&
+    details.PaymentState === "payment_approved" &&
+    bankAmountIs(details.ApprovedAmount, 10) &&
+    bankAmountIs(details.DepositedAmount, 0) &&
+    bankAmountIs(details.RefundedAmount, 0)
+  );
+}
+
+function confirmsCancellation(
+  row: CardPaymentSandboxSession,
+  details: Record<string, unknown>,
+): boolean {
+  return (
+    sameBankPayment(row, details) &&
+    details.ResponseCode === "00" &&
+    (details.OrderStatus === 3 || details.OrderStatus === "3") &&
+    details.PaymentState === "payment_void" &&
+    bankAmountIs(details.DepositedAmount, 0) &&
+    bankAmountIs(details.RefundedAmount, 0)
+  );
+}
 
 @Injectable()
 export class CardPaymentSandboxService {
@@ -36,8 +94,7 @@ export class CardPaymentSandboxService {
     input: Basket,
     owner: CardPaymentTestOwner,
   ): Promise<CardPaymentTestSession> {
-    if (!owner.sandboxAccess || owner.expiresAtMs <= Date.now())
-      throw new ForbiddenException("Sandbox access required");
+    this.assertSandboxAccess(owner);
     if (
       !input.idempotencyKey ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -137,13 +194,131 @@ export class CardPaymentSandboxService {
     reference: string,
     ownerId: string,
   ): Promise<CardPaymentTestSession> {
+    const row = await this.ownedReadySession(reference, ownerId);
+    if (row.status !== "PENDING" || row.nextCheckAt.getTime() > Date.now())
+      return this.publicSession(row);
+    const claimUntil = new Date(Date.now() + 15_000);
+    const claim = await this.prisma.cardPaymentSandboxSession.updateMany({
+      where: {
+        reference,
+        status: "PENDING",
+        nextCheckAt: { lte: new Date() },
+        cancellationAttemptedAt: row.cancellationAttemptedAt,
+      },
+      data: { nextCheckAt: claimUntil },
+    });
+    if (!claim.count)
+      return this.publicSession(
+        await this.ownedReadySession(reference, ownerId),
+      );
+
+    const details = await this.bank.details(row.providerPaymentId);
+    const status = row.cancellationAttemptedAt
+      ? confirmsCancellation(row, details)
+        ? "CANCELLED"
+        : "PENDING"
+      : this.checkoutStatus(row, details);
+    if (status !== "PENDING") {
+      await this.prisma.cardPaymentSandboxSession.updateMany({
+        where: {
+          reference,
+          status: "PENDING",
+          nextCheckAt: claimUntil,
+          cancellationAttemptedAt: row.cancellationAttemptedAt,
+        },
+        data: { status },
+      });
+    }
+    const latest = await this.ownedReadySession(reference, ownerId);
+    return this.publicSession(
+      latest,
+      latest.nextCheckAt.getTime() === claimUntil.getTime() &&
+        latest.status === "PENDING" &&
+        !latest.cancellationAttemptedAt &&
+        canCancel(latest, details),
+    );
+  }
+
+  async cancel(
+    reference: string,
+    owner: CardPaymentTestOwner,
+  ): Promise<CardPaymentTestSession> {
+    this.assertSandboxAccess(owner);
+    const row = await this.ownedReadySession(reference, owner.id);
+    if (row.cancellationAttemptedAt) return this.publicSession(row);
+    if (row.status !== "PENDING" || !withinCancellationWindow(row))
+      throw new ConflictException(
+        "Sandbox payment is not eligible for cancellation",
+      );
+    const details = await this.bank.details(row.providerPaymentId);
+    if (!canCancel(row, details))
+      throw new ConflictException(
+        "Sandbox payment is not eligible for cancellation",
+      );
+    this.assertSandboxAccess(owner);
+
+    // Claim durably before the bank call. A timeout can mean the bank accepted it.
+    const attemptedAt = new Date();
+    const claim = await this.prisma.cardPaymentSandboxSession.updateMany({
+      where: {
+        reference,
+        status: "PENDING",
+        cancellationAttemptedAt: null,
+        refundAttemptedAt: null,
+        refundedAt: null,
+      },
+      data: {
+        cancellationAttemptedAt: attemptedAt,
+        nextCheckAt: attemptedAt,
+      },
+    });
+    if (!claim.count)
+      return this.publicSession(
+        await this.ownedReadySession(reference, owner.id),
+      );
+
+    try {
+      await this.bank.cancel(row.providerPaymentId);
+    } catch {
+      return this.publicSession(
+        await this.ownedReadySession(reference, owner.id),
+      );
+    }
+    await this.prisma.cardPaymentSandboxSession.updateMany({
+      where: { reference, cancellationAttemptedAt: attemptedAt },
+      data: { cancellationAcknowledgedAt: new Date() },
+    });
+    const readBack = await this.bank
+      .details(row.providerPaymentId)
+      .catch(() => null);
+    if (readBack && confirmsCancellation(row, readBack)) {
+      await this.prisma.cardPaymentSandboxSession.updateMany({
+        where: {
+          reference,
+          status: "PENDING",
+          cancellationAttemptedAt: attemptedAt,
+        },
+        data: { status: "CANCELLED" },
+      });
+    }
+    return this.publicSession(
+      await this.ownedReadySession(reference, owner.id),
+    );
+  }
+
+  private assertSandboxAccess(owner: CardPaymentTestOwner): void {
+    if (!owner.sandboxAccess || owner.expiresAtMs <= Date.now())
+      throw new ForbiddenException("Sandbox access required");
+  }
+
+  private async ownedReadySession(reference: string, ownerId: string) {
     if (
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
         reference,
       )
     )
       throw new NotFoundException("Sandbox session not found");
-    let row = await this.prisma.cardPaymentSandboxSession.findUnique({
+    const row = await this.prisma.cardPaymentSandboxSession.findUnique({
       where: { reference },
     });
     if (!row || row.ownerHash !== hash(ownerId))
@@ -152,65 +327,41 @@ export class CardPaymentSandboxService {
       throw new ServiceUnavailableException(
         "Sandbox initialization is unconfirmed",
       );
-    if (row.status !== "PENDING" || row.nextCheckAt.getTime() > Date.now())
-      return this.publicSession(row);
-    const claimUntil = new Date(Date.now() + 15_000);
-    const claim = await this.prisma.cardPaymentSandboxSession.updateMany({
-      where: { reference, status: "PENDING", nextCheckAt: { lte: new Date() } },
-      data: { nextCheckAt: claimUntil },
-    });
-    if (!claim.count) {
-      row = (await this.prisma.cardPaymentSandboxSession.findUnique({
-        where: { reference },
-      }))!;
-      return this.publicSession(row);
-    }
-    const details = await this.bank.details(row.providerPaymentId);
-    const moneyEqualsTen = (value: unknown) =>
-      (typeof value === "number" || typeof value === "string") &&
-      /^10(?:\.0{1,2})?$/.test(String(value));
+    return { ...row, providerPaymentId: row.providerPaymentId };
+  }
+
+  private checkoutStatus(
+    row: CardPaymentSandboxSession,
+    details: Record<string, unknown>,
+  ): CardPaymentTestSession["status"] {
     // The bank can report no attempt / ACS pending with a non-success response
     // code. Such responses never prove payment or modify a terminal status.
     const orderStatus = /^[0-6]$/.test(String(details.OrderStatus))
       ? Number(details.OrderStatus)
       : -1;
     if ([0, 1, 5].includes(orderStatus) && details.ResponseCode !== "00")
-      return this.publicSession(row);
+      return "PENDING";
     if (details.ResponseCode !== "00" && orderStatus !== 6)
       throw new ServiceUnavailableException(
         "Sandbox payment details could not be verified",
       );
     if (
-      !moneyEqualsTen(details.Amount) ||
-      details.Currency !== "051" ||
-      String(details.OrderID) !== String(row.ameriaOrderId) ||
-      details.Opaque !== row.reference ||
+      !sameBankPayment(row, details) ||
       (orderStatus === 2 &&
         details.DepositedAmount !== undefined &&
-        !moneyEqualsTen(details.DepositedAmount))
+        !bankAmountIs(details.DepositedAmount, 10))
     )
       throw new ServiceUnavailableException(
         "Sandbox payment details could not be verified",
       );
-    let status = "PENDING";
     if (orderStatus === 2 && details.PaymentState === "payment_deposited")
-      status = "SUCCEEDED";
-    else if (orderStatus === 6) status = "FAILED";
-    else if (orderStatus === 3 || orderStatus === 4) status = "CANCELLED";
-    else if (![0, 1, 5].includes(orderStatus))
-      throw new ServiceUnavailableException(
-        "Sandbox payment state could not be verified",
-      );
-    if (status !== "PENDING") {
-      await this.prisma.cardPaymentSandboxSession.updateMany({
-        where: { reference, status: "PENDING", nextCheckAt: claimUntil },
-        data: { status },
-      });
-    }
-    row = (await this.prisma.cardPaymentSandboxSession.findUnique({
-      where: { reference },
-    }))!;
-    return this.publicSession(row);
+      return "SUCCEEDED";
+    if (orderStatus === 6) return "FAILED";
+    if (orderStatus === 3 || orderStatus === 4) return "CANCELLED";
+    if ([0, 1, 5].includes(orderStatus)) return "PENDING";
+    throw new ServiceUnavailableException(
+      "Sandbox payment state could not be verified",
+    );
   }
 
   private replay(
@@ -229,6 +380,7 @@ export class CardPaymentSandboxService {
   }
   private publicSession(
     row: CardPaymentSandboxSession,
+    cancellationAvailable = false,
   ): CardPaymentTestSession {
     const lang = row.locale === "HY" ? "am" : row.locale.toLowerCase();
     return {
@@ -241,8 +393,14 @@ export class CardPaymentSandboxService {
       basketTotal: row.basketTotal.toString(),
       items: row.items as unknown as CardPaymentTestSession["items"],
       expiresAt: row.expiresAt.toISOString(),
+      ...(row.status === "PENDING" && row.cancellationAttemptedAt
+        ? { cancellationStatus: "UNCONFIRMED" }
+        : cancellationAvailable
+          ? { cancellationStatus: "AVAILABLE" }
+          : {}),
       ...(row.providerPaymentId &&
       row.status === "PENDING" &&
+      !row.cancellationAttemptedAt &&
       row.expiresAt.getTime() > Date.now()
         ? {
             checkoutUrl: `https://servicestest.ameriabank.am/VPOS/Payments/Pay?id=${encodeURIComponent(row.providerPaymentId)}&lang=${lang}`,

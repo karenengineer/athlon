@@ -106,6 +106,8 @@ export const catalogContentCopy: Record<
     guidanceHeading: string;
     guidance: string;
     related: string;
+    showMore: string;
+    showLess: string;
     description: string;
     searchDescription: string;
     genericIntroduction: (name: string) => string;
@@ -117,6 +119,8 @@ export const catalogContentCopy: Record<
     guidance:
       "Համեմատեք նշված գինն ու փաթեթի տեղեկությունները։ Ուշադրություն դարձրեք փաթեթի չափին, համին և ձևաչափին, եթե դրանք նշված են ապրանքի էջում։",
     related: "Այլ բաժիններ",
+    showMore: "Կարդալ ավելին",
+    showLess: "Թաքցնել",
     description:
       "Դիտեք ATHLON-ի սպորտային սննդի և աքսեսուարների առցանց կատալոգը Հայաստանում։",
     searchDescription:
@@ -130,6 +134,8 @@ export const catalogContentCopy: Record<
     guidance:
       "Сравните указанную цену и сведения на упаковке. Обратите внимание на размер упаковки, вкус и формат, если они указаны на странице товара.",
     related: "Другие разделы",
+    showMore: "Читать далее",
+    showLess: "Свернуть",
     description:
       "Посмотрите онлайн-каталог спортивного питания и аксессуаров ATHLON в Армении.",
     searchDescription:
@@ -143,6 +149,8 @@ export const catalogContentCopy: Record<
     guidance:
       "Compare the listed price and package information. Check package size, flavor and format where these are shown on the product page.",
     related: "Other categories",
+    showMore: "Read more",
+    showLess: "Show less",
     description:
       "Browse ATHLON's online sports nutrition and accessories catalog in Armenia.",
     searchDescription:

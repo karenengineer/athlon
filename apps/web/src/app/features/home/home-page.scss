@@ -30,6 +30,9 @@
   position: relative;
   z-index: 2;
   padding: 15px 0 18px;
+  h1 {
+    font-family: inherit !important;
+  }
 }
 
 .eyebrow {
@@ -75,6 +78,15 @@ h1 {
   line-height: 1.2;
   overflow-wrap: anywhere;
   color: #ea3d49;
+}
+
+.hero-trust {
+  margin: 10px 0 0;
+  color: #e3e3e6;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .primary-button {
@@ -353,6 +365,10 @@ svg {
 
   .hero-delivery {
     font-size: 18px;
+  }
+
+  .hero-trust {
+    font-size: 16px;
   }
 
   .hero-visual {

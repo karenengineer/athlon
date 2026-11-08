@@ -25,6 +25,7 @@ export interface MockPaymentSession {
   total: string;
   basketTotal?: string;
   checkoutUrl?: string;
+  cancellationStatus?: "AVAILABLE" | "UNCONFIRMED";
   items: Array<{
     productId: string;
     sku: string;
@@ -126,6 +127,19 @@ export class CardPaymentTestApiService {
       this.http.post<MockPaymentSession>(
         `${this.endpoint}/sessions/${encodeURIComponent(reference)}/outcome`,
         { outcome },
+        {
+          withCredentials: true,
+          headers: { "x-card-payment-test-csrf": token },
+        },
+      ),
+    );
+  }
+
+  cancelSandboxSession(reference: string): Observable<MockPaymentSession> {
+    return this.withGuestSession((token) =>
+      this.http.post<MockPaymentSession>(
+        `${this.endpoint}/sessions/${encodeURIComponent(reference)}/cancel`,
+        {},
         {
           withCredentials: true,
           headers: { "x-card-payment-test-csrf": token },

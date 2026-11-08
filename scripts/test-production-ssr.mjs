@@ -991,15 +991,24 @@ async function main() {
           );
           assert.equal(document.querySelectorAll("app-home-page h1").length, 1);
           const heading = document.querySelector(".hero-copy h1");
+          assert.equal(heading?.previousElementSibling, null);
           assert.equal(heading?.nextElementSibling?.tagName, "H2");
           assert.ok(
             heading.nextElementSibling.classList.contains("hero-delivery"),
           );
           assert.equal(text(heading.nextElementSibling), copy.announcement);
+          const trustHeading = heading.nextElementSibling.nextElementSibling;
+          assert.equal(trustHeading?.tagName, "H3");
+          assert.ok(trustHeading.classList.contains("hero-trust"));
           assert.equal(
-            heading.nextElementSibling.nextElementSibling?.tagName,
-            "P",
+            text(trustHeading),
+            {
+              hy: "Օրիգինալ ապրանք միայն արտադրողից",
+              ru: "Оригинальная продукция напрямую от производителя",
+              en: "Original products directly from the manufacturer",
+            }[locale],
           );
+          assert.equal(trustHeading.nextElementSibling, null);
           footer(document, locale);
           metadata(
             document,

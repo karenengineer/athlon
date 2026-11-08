@@ -51,6 +51,39 @@ describe("AmeriaSandboxClient", () => {
     ).rejects.toThrow("Sandbox bank request failed");
   });
 
+  it("sends CancelPayment only to the sandbox with the stored payment identifier", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify({ ResponseCode: "00" })));
+    await new AmeriaSandboxClient(config).cancel("fixture-payment");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://servicestest.ameriabank.am/VPOS/api/VPOS/CancelPayment",
+      expect.objectContaining({ method: "POST", redirect: "error" }),
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({
+      PaymentID: "fixture-payment",
+      Username: "fixture-user",
+      Password: "fixture-password",
+    });
+  });
+
+  it("sends the stored payment identifier and fixed AMD 10 to sandbox RefundPayment", async () => {
+    const fetchMock = jest
+      .spyOn(global, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify({ ResponseCode: "00" })));
+    await new AmeriaSandboxClient(config).refund("fixture-payment");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://servicestest.ameriabank.am/VPOS/api/VPOS/RefundPayment",
+      expect.objectContaining({ method: "POST", redirect: "error" }),
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({
+      PaymentID: "fixture-payment",
+      Username: "fixture-user",
+      Password: "fixture-password",
+      Amount: 10,
+    });
+  });
+
   it.each([
     () => new Response("not-json"),
     () => new Response("[]"),

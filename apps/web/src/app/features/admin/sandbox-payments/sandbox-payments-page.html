@@ -1,0 +1,105 @@
+<section aria-labelledby="sandbox-payments-heading">
+  <h1 id="sandbox-payments-heading">{{ i18n.translate("sandboxPayments") }}</h1>
+  <p>{{ i18n.translate("sandboxPaymentsDescription") }}</p>
+
+  @if (loading()) {
+  <p role="status">{{ i18n.translate("loading") }}</p>
+  } @if (busy()) {
+  <p role="status">{{ i18n.translate("sandboxPaymentChecking") }}</p>
+  } @if (error(); as errorKey) {
+  <p role="alert">{{ i18n.translate(errorKey) }}</p>
+  @if (!list()) {
+  <button type="button" (click)="load()">
+    {{ i18n.translate("sandboxPaymentsReload") }}
+  </button>
+  } } @if (list(); as result) { @if (!result.refundsEnabled) {
+  <p>{{ i18n.translate("sandboxPaymentRefundsDisabled") }}</p>
+  } @if (result.items.length) {
+  <div
+    class="table-scroll"
+    role="region"
+    [attr.aria-label]="i18n.translate('sandboxPayments')"
+    tabindex="0"
+  >
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">{{ i18n.translate("sandboxPaymentDate") }}</th>
+          <th scope="col">{{ i18n.translate("sandboxPaymentOrderId") }}</th>
+          <th scope="col">{{ i18n.translate("sandboxPaymentAmount") }}</th>
+          <th scope="col">{{ i18n.translate("sandboxPaymentStatus") }}</th>
+          <th scope="col">{{ i18n.translate("sandboxPaymentActions") }}</th>
+          <th scope="col">{{ i18n.translate("sandboxPaymentReference") }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of result.items; track item.reference) {
+        <tr>
+          <td>
+            <time [attr.datetime]="item.createdAt">
+              {{ item.createdAt | date: "yyyy-MM-dd HH:mm" : "UTC" }}
+            </time>
+          </td>
+          <td>{{ item.ameriaOrderId }}</td>
+          <td>AMD 10</td>
+          <td>
+            <span role="status" [attr.data-payment-status]="item.status">
+              {{ i18n.translate(statusLabels[item.status]) }}
+            </span>
+          </td>
+          <td class="actions">
+            @if (result.refundsEnabled && item.canRefund) {
+            <button
+              type="button"
+              class="payment-action"
+              [disabled]="busy()"
+              (click)="refund(item)"
+            >
+              {{ i18n.translate("sandboxPaymentRefund") }}
+            </button>
+            } @if (result.refundsEnabled && item.canCancel) {
+            <button
+              type="button"
+              class="payment-action"
+              [disabled]="busy()"
+              (click)="cancel(item)"
+            >
+              {{ i18n.translate("sandboxPaymentCancel") }}
+            </button>
+            } @if ( result.refundsEnabled && ( item.status ===
+            "REFUND_UNCONFIRMED" || item.status === "CANCELLATION_UNCONFIRMED"
+            )) {
+            <button type="button" [disabled]="busy()" (click)="recheck(item)">
+              {{ i18n.translate("sandboxPaymentRecheck") }}
+            </button>
+            } @else if (!result.refundsEnabled || (!item.canRefund &&
+            !item.canCancel)) { — }
+          </td>
+          <td><code>{{ item.reference }}</code></td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  } @else {
+  <p>{{ i18n.translate("sandboxPaymentsEmpty") }}</p>
+  }
+  <nav class="pagination" [attr.aria-label]="i18n.translate('page')">
+    <button
+      type="button"
+      [disabled]="busy() || page() <= 1"
+      (click)="load(page() - 1)"
+    >
+      {{ i18n.translate("previous") }}
+    </button>
+    <span>{{ i18n.translate("page") }} {{ page() }}</span>
+    <button
+      type="button"
+      [disabled]="busy() || !result.hasNext"
+      (click)="load(page() + 1)"
+    >
+      {{ i18n.translate("next") }}
+    </button>
+  </nav>
+  }
+</section>

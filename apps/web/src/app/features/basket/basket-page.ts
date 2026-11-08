@@ -4,7 +4,7 @@ import { Component, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { createPageMetadata } from "../../core/seo/page-metadata";
-import { catchError, of } from "rxjs";
+import { catchError, Observable, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
@@ -51,6 +51,7 @@ export class BasketPage {
   readonly verifyingSandbox = signal(false);
   readonly sandboxStorageBlocked = signal(false);
   readonly sandboxAttemptComplete = signal(false);
+  private readonly cancellableSandboxReference = signal<string | null>(null);
   sandboxAccess = "";
   readonly paymentMethod = signal<"CARD" | "CASH_ON_DELIVERY">(
     this.cardPaymentTestMode ? "CARD" : loadPaymentMethod(),
@@ -118,7 +119,41 @@ export class BasketPage {
   }
 
   recheckSandbox(): void {
-    if (!this.verifyingSandbox()) this.verifyCardPaymentTestReturn();
+    const reference = this.route.snapshot.queryParamMap.get("session");
+    if (!reference || this.verifyingSandbox()) return;
+    this.checkCardPaymentTestReturn(
+      reference,
+      this.cardPaymentTestApi.getSession(reference),
+      "check",
+    );
+  }
+
+  canCancelSandbox(): boolean {
+    const reference = this.cancellableSandboxReference();
+    return (
+      reference !== null &&
+      reference === this.route.snapshot.queryParamMap.get("session") &&
+      this.sandboxMode() &&
+      this.testReady() &&
+      !this.sandboxAccessRequired() &&
+      !this.verifyingSandbox()
+    );
+  }
+
+  cancelSandbox(): void {
+    const reference = this.route.snapshot.queryParamMap.get("session");
+    if (
+      !reference ||
+      !this.canCancelSandbox() ||
+      typeof window === "undefined" ||
+      !window.confirm(this.i18n.t("paymentSandboxCancelConfirm"))
+    )
+      return;
+    this.checkCardPaymentTestReturn(
+      reference,
+      this.cardPaymentTestApi.cancelSandboxSession(reference),
+      "cancel",
+    );
   }
 
   private loadTestConfig(): void {
@@ -142,8 +177,7 @@ export class BasketPage {
     this.sandboxAccessRequired.set(
       config.mode === "AMERIA_SANDBOX" && config.accessRequired !== false,
     );
-    if (config.enabled && !this.sandboxAccessRequired())
-      this.verifyCardPaymentTestReturn();
+    if (config.enabled && !this.sandboxAccessRequired()) this.recheckSandbox();
   }
 
   update(id: string, value: string): void {
@@ -450,56 +484,81 @@ export class BasketPage {
       });
   }
 
-  private verifyCardPaymentTestReturn(): void {
-    const reference = this.route.snapshot.queryParamMap.get("session");
-    if (!reference) return;
+  private checkCardPaymentTestReturn(
+    reference: string,
+    request: Observable<MockPaymentSession>,
+    action: "check" | "cancel",
+  ): void {
+    this.cancellableSandboxReference.set(null);
     this.verifyingSandbox.set(true);
-    this.cardPaymentTestApi
-      .getSession(reference)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (session) => {
-          this.verifyingSandbox.set(false);
-          if (this.openVerifiedSuccess(session, reference)) return;
-          if (session.status === "SUCCEEDED") {
-            this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
-            if (this.sandboxMode()) this.sandboxStatusPending.set(true);
-            return;
-          }
+    const isCurrent = () =>
+      this.route.snapshot.queryParamMap.get("session") === reference;
+    const showError = () => {
+      this.cardPaymentTestResult.set(
+        this.i18n.t(
+          action === "cancel"
+            ? "paymentSandboxCancellationUnconfirmed"
+            : "paymentTestError",
+        ),
+      );
+      if (this.sandboxMode()) this.sandboxStatusPending.set(true);
+    };
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (session) => {
+        this.verifyingSandbox.set(false);
+        if (!isCurrent() || (action === "cancel" && !this.sandboxMode()))
+          return;
+        if (
+          action === "cancel" &&
+          session?.status !== "CANCELLED" &&
+          (session?.status !== "PENDING" ||
+            session.cancellationStatus !== "UNCONFIRMED")
+        ) {
+          showError();
+          return;
+        }
+        if (this.openVerifiedSuccess(session, reference)) return;
+        if (
+          !session ||
+          session.status === "SUCCEEDED" ||
+          session.reference !== reference ||
+          session.mode !== (this.sandboxMode() ? "AMERIA_SANDBOX" : "MOCK") ||
+          (this.sandboxMode() &&
+            (session.total !== "10" || session.currency !== "AMD"))
+        ) {
+          showError();
+          return;
+        }
+        this.cardPaymentTestResult.set(this.returnMessage(session));
+        if (this.sandboxMode()) {
+          this.sandboxStatusPending.set(session.status === "PENDING");
+          this.sandboxAttemptComplete.set(false);
           if (
-            session.reference !== reference ||
-            session.mode !== (this.sandboxMode() ? "AMERIA_SANDBOX" : "MOCK") ||
-            (this.sandboxMode() &&
-              (session.total !== "10" || session.currency !== "AMD"))
+            session.status === "PENDING" &&
+            session.cancellationStatus === "AVAILABLE"
           ) {
-            this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
-            return;
+            this.cancellableSandboxReference.set(reference);
           }
-          this.cardPaymentTestResult.set(this.returnMessage(session));
-          if (this.sandboxMode()) {
-            this.sandboxStatusPending.set(session.status === "PENDING");
-            this.sandboxAttemptComplete.set(false);
-            if (["FAILED", "CANCELLED", "EXPIRED"].includes(session.status)) {
-              this.sandboxStorageBlocked.set(
-                retireSandboxRequest(reference) === false,
-              );
-              this.clearIdempotencyKey();
-            }
-            return;
+          if (["FAILED", "CANCELLED", "EXPIRED"].includes(session.status)) {
+            this.sandboxStorageBlocked.set(
+              retireSandboxRequest(reference) === false,
+            );
+            this.clearIdempotencyKey();
           }
-          void this.router.navigate([], {
-            relativeTo: this.route,
-            queryParams: { session: null },
-            queryParamsHandling: "merge",
-            replaceUrl: true,
-          });
-        },
-        error: () => {
-          this.verifyingSandbox.set(false);
-          this.cardPaymentTestResult.set(this.i18n.t("paymentTestError"));
-          if (this.sandboxMode()) this.sandboxStatusPending.set(true);
-        },
-      });
+          return;
+        }
+        void this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { session: null },
+          queryParamsHandling: "merge",
+          replaceUrl: true,
+        });
+      },
+      error: () => {
+        this.verifyingSandbox.set(false);
+        if (isCurrent()) showError();
+      },
+    });
   }
 
   private returnMessage(session: MockPaymentSession): string {
@@ -514,7 +573,11 @@ export class BasketPage {
         case "EXPIRED":
           return this.i18n.t("orderPaymentExpired");
         default:
-          return this.i18n.t("paymentSandboxPending");
+          return this.i18n.t(
+            session.cancellationStatus === "UNCONFIRMED"
+              ? "paymentSandboxCancellationUnconfirmed"
+              : "paymentSandboxPending",
+          );
       }
     }
     switch (session.status) {

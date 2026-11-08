@@ -150,7 +150,7 @@ describe("ATHLON public application", () => {
   }
 
   for (const [locale, title, communityTitle] of [
-    ["hy", "Կառուցիր մարմինդ հոգուդ համապատասխան", "Միացիր ATHLON-ին"],
+    ["hy", "«Կառուցիր մարմինդ հոգուդ համապատասխան»", "Միացիր ATHLON-ին"],
     ["ru", "Создай тело под стать своему духу", "Присоединяйся к ATHLON"],
     ["en", "Build a body to match your spirit", "Join ATHLON"],
   ]) {
