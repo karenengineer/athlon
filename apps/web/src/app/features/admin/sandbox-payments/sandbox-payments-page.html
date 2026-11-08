@@ -43,7 +43,7 @@
           <td>{{ item.ameriaOrderId }}</td>
           <td>AMD 10</td>
           <td>
-            <span role="status">
+            <span role="status" [attr.data-payment-status]="item.status">
               {{ i18n.translate(statusLabels[item.status]) }}
             </span>
           </td>
@@ -51,7 +51,7 @@
             @if (result.refundsEnabled && item.canRefund) {
             <button
               type="button"
-              class="danger"
+              class="payment-action"
               [disabled]="busy()"
               (click)="refund(item)"
             >
@@ -60,7 +60,7 @@
             } @if (result.refundsEnabled && item.canCancel) {
             <button
               type="button"
-              class="danger"
+              class="payment-action"
               [disabled]="busy()"
               (click)="cancel(item)"
             >

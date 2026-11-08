@@ -27,6 +27,7 @@ type Copy = {
   search: string;
   heroEyebrow: string;
   heroTitle: string;
+  heroTrust: string;
   heroText: string;
   communityTitle: string;
   communityText: string;
@@ -173,6 +174,7 @@ const copy: Record<Locale, Copy> = {
     search: "Найти",
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Создай тело под стать своему духу",
+    heroTrust: "Оригинальная продукция напрямую от производителя",
     heroText: "Спортивное питание для ежедневного прогресса.",
     communityTitle: "Присоединяйся к ATHLON",
     communityText: "Тренировки, новинки и спортивные будни.",
@@ -334,6 +336,7 @@ const copy: Record<Locale, Copy> = {
     search: "Որոնել",
     heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
     heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
+    heroTrust: "Օրիգինալ ապրանք միայն արտադրողից",
     heroText: "Սպորտային սնունդ ամենօրյա առաջընթացի համար։",
     communityTitle: "Միացիր ATHLON-ին",
     communityText: "Մարզումներ, նորություններ և սպորտային առօրյա։",
@@ -495,6 +498,7 @@ const copy: Record<Locale, Copy> = {
     search: "Search",
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Build a body to match your spirit",
+    heroTrust: "Original products directly from the manufacturer",
     heroText: "Sports nutrition for everyday progress.",
     communityTitle: "Join ATHLON",
     communityText: "Training, new arrivals and everyday sport.",
