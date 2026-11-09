@@ -171,15 +171,15 @@ h1 {
 }
 
 .order-form .field-error {
-  color: #9e2020;
+  color: #b0124f;
   font-size: 0.74rem;
   font-weight: 700;
   line-height: 1.4;
 }
 
 .order-form [aria-invalid="true"] {
-  border-color: #a52121;
-  box-shadow: 0 0 0 1px #a52121;
+  border-color: #b0124f;
+  box-shadow: 0 0 0 1px #b0124f;
 }
 
 .order-form input,
@@ -224,6 +224,51 @@ h1 {
   height: 18px;
   margin: 2px 0 0;
   accent-color: #171719;
+}
+
+.privacy-consent {
+  display: grid;
+  gap: 6px;
+}
+
+.order-form .privacy-consent label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #2c2c31;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.order-form .privacy-consent input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 20px;
+  min-height: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  padding: 0;
+  accent-color: #171719;
+  cursor: pointer;
+}
+
+.order-form .privacy-consent input[aria-invalid="true"] {
+  outline: 2px solid #b0124f;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.privacy-consent a {
+  color: #b0124f;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.privacy-consent a:hover,
+.privacy-consent a:focus-visible {
+  color: #8a0d3d;
 }
 
 .order-form textarea {

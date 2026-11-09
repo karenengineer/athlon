@@ -110,6 +110,10 @@ type Copy = {
   emailInvalid: string;
   phoneRequired: string;
   addressRequired: string;
+  privacyConsentBefore: string;
+  privacyConsentLink: string;
+  privacyConsentAfter: string;
+  privacyConsentRequired: string;
   basketTotal: string;
   paymentTestMockLabel: string;
   paymentSandboxLabel: string;
@@ -261,6 +265,11 @@ const copy: Record<Locale, Copy> = {
     emailInvalid: "Укажите корректный адрес электронной почты.",
     phoneRequired: "Укажите номер телефона.",
     addressRequired: "Укажите адрес доставки.",
+    privacyConsentBefore: "Я прочитал(а) и принимаю ",
+    privacyConsentLink: "политику конфиденциальности",
+    privacyConsentAfter: ".",
+    privacyConsentRequired:
+      "Чтобы продолжить, примите политику конфиденциальности.",
     basketTotal: "Итого",
     paymentTestMockLabel: "ТЕСТ / МАКЕТ",
     paymentSandboxLabel: "ТЕСТ AMERIABANK",
@@ -423,6 +432,11 @@ const copy: Record<Locale, Copy> = {
     emailInvalid: "Մուտքագրեք ճիշտ էլ. փոստի հասցե։",
     phoneRequired: "Մուտքագրեք հեռախոսահամարը։",
     addressRequired: "Մուտքագրեք առաքման հասցեն։",
+    privacyConsentBefore: "Կարդացել և ընդունում եմ ",
+    privacyConsentLink: "գաղտնիության քաղաքականությունը",
+    privacyConsentAfter: "։",
+    privacyConsentRequired:
+      "Շարունակելու համար ընդունեք գաղտնիության քաղաքականությունը։",
     basketTotal: "Ընդամենը",
     paymentTestMockLabel: "ԹԵՍՏ / ՄԱԿԵՏ",
     paymentSandboxLabel: "ԱՄԵՐԻԱԲԱՆԿԻ ԹԵՍՏ",
@@ -584,6 +598,10 @@ const copy: Record<Locale, Copy> = {
     emailInvalid: "Enter a valid email address.",
     phoneRequired: "Enter your phone number.",
     addressRequired: "Enter your delivery address.",
+    privacyConsentBefore: "I have read and agree to the ",
+    privacyConsentLink: "Privacy Policy",
+    privacyConsentAfter: ".",
+    privacyConsentRequired: "Please accept the Privacy Policy to continue.",
     basketTotal: "Total",
     paymentTestMockLabel: "TEST / MOCK",
     paymentSandboxLabel: "AMERIABANK SANDBOX",
