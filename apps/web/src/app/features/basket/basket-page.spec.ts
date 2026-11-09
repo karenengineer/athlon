@@ -100,6 +100,13 @@ function fillOrderForm(
     input.value = value;
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
+  acceptPrivacy(form);
+}
+
+function acceptPrivacy(form: HTMLFormElement, accepted = true): void {
+  const consent = form.querySelector<HTMLInputElement>("#order-privacy")!;
+  consent.checked = accepted;
+  consent.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 describe("BasketPage", () => {
@@ -523,6 +530,82 @@ describe("BasketPage", () => {
     expect(document.activeElement).toBe(form.querySelector("#order-name"));
   });
 
+  it("shows an unchecked privacy consent that links to the policy in a new tab", () => {
+    const { fixture } = createBasketFixture();
+    const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
+    const consent = form.querySelector<HTMLInputElement>("#order-privacy")!;
+    const link = form.querySelector<HTMLAnchorElement>(".privacy-consent a")!;
+
+    expect(consent.type).toBe("checkbox");
+    expect(consent.checked).toBe(false);
+    expect(consent.required).toBe(true);
+    expect(link.getAttribute("href")).toBe("/hy/privacy");
+    expect(link.target).toBe("_blank");
+    expect(link.rel).toContain("noopener");
+  });
+
+  it("blocks card payment until the privacy policy is accepted", () => {
+    const { fixture } = createBasketFixture(true);
+    const component = fixture.componentInstance;
+    component.i18n.setLocale("en");
+    const redirect = vi.spyOn(component, "redirectToCheckout");
+    const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
+    const cardRadio = form.querySelector<HTMLInputElement>(
+      'input[value="CARD"]',
+    )!;
+    cardRadio.checked = true;
+    cardRadio.dispatchEvent(new Event("change", { bubbles: true }));
+    fillOrderForm(form, {
+      customerName: "Ani",
+      customerEmail: "ani@example.com",
+      customerPhone: "+374 91 123456",
+      deliveryAddress: "Yerevan",
+    });
+    acceptPrivacy(form, false);
+
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+    fixture.detectChanges();
+
+    expect(
+      http.match((request) => request.url.endsWith("/public/orders")),
+    ).toHaveLength(0);
+    expect(redirect).not.toHaveBeenCalled();
+    const consent = form.querySelector<HTMLInputElement>("#order-privacy")!;
+    expect(consent.getAttribute("aria-invalid")).toBe("true");
+    expect(consent.getAttribute("aria-describedby")).toBe(
+      "order-privacy-error",
+    );
+    expect(form.querySelector("#order-privacy-error")?.textContent).toContain(
+      "Please accept the Privacy Policy",
+    );
+    expect(document.activeElement).toBe(consent);
+
+    acceptPrivacy(form);
+    fixture.detectChanges();
+    expect(form.querySelector("#order-privacy-error")).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+    const req = http.expectOne((request) =>
+      request.url.endsWith("/public/orders"),
+    );
+    expect(req.request.body.paymentMethod).toBe("CARD");
+    req.flush({
+      kind: "CARD_PAYMENT_PENDING",
+      accepted: true,
+      orderReference: "ATH-1234ABCD1234ABCD1234ABCD1234ABCD",
+      paymentStatus: "PENDING",
+      checkoutUrl: "https://bank.example.test/checkout/1",
+    });
+    expect(redirect).toHaveBeenCalledWith(
+      "https://bank.example.test/checkout/1",
+    );
+  });
+
   it("sends the basket and customer details, then clears the basket on acceptance", () => {
     const { fixture, basket } = createBasketFixture();
     const component = fixture.componentInstance;
@@ -684,6 +767,7 @@ describe("BasketPage", () => {
     const recreatedForm = recreated.nativeElement.querySelector(
       "form",
     ) as HTMLFormElement;
+    acceptPrivacy(recreatedForm);
     recreatedForm.dispatchEvent(
       new Event("submit", { bubbles: true, cancelable: true }),
     );
@@ -730,6 +814,7 @@ describe("BasketPage", () => {
       recreatedForm.querySelector<HTMLInputElement>('input[value="CARD"]')
         ?.checked,
     ).toBe(true);
+    acceptPrivacy(recreatedForm);
     recreatedForm.dispatchEvent(
       new Event("submit", { bubbles: true, cancelable: true }),
     );

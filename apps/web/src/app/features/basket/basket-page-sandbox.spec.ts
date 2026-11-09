@@ -115,6 +115,7 @@ describe("BasketPage Ameriabank sandbox", () => {
     fixture.componentInstance.customer.email = "test@example.test";
     fixture.componentInstance.customer.phone = "123";
     fixture.componentInstance.customer.address = "Test";
+    fixture.componentInstance.privacyAccepted.set(true);
     fixture.nativeElement
       .querySelector(".order-form")
       .dispatchEvent(new Event("submit", { cancelable: true }));
@@ -464,6 +465,7 @@ describe("BasketPage Ameriabank sandbox", () => {
         fixture.componentInstance.customer.email = "test@example.test";
         fixture.componentInstance.customer.phone = "123";
         fixture.componentInstance.customer.address = "Test";
+        fixture.componentInstance.privacyAccepted.set(true);
         fixture.nativeElement
           .querySelector(".order-form")
           .dispatchEvent(new Event("submit", { cancelable: true }));

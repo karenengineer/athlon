@@ -252,6 +252,34 @@
           {{ i18n.t("orderPaymentPending") }}
         </p>
         }
+        <div class="privacy-consent">
+          <label for="order-privacy">
+            <input
+              id="order-privacy"
+              name="privacyConsent"
+              type="checkbox"
+              required
+              [disabled]="submitting()"
+              [checked]="privacyAccepted()"
+              [attr.aria-invalid]="privacyHasError() ? 'true' : null"
+              [attr.aria-describedby]="privacyHasError() ? 'order-privacy-error' : null"
+              (change)="setPrivacyAccepted($any($event.target).checked)"
+            />
+            <span
+              >{{ i18n.t("privacyConsentBefore") }}<a
+                [routerLink]="['/', i18n.locale(), 'privacy']"
+                target="_blank"
+                rel="noopener"
+                >{{ i18n.t("privacyConsentLink") }}</a
+              >{{ i18n.t("privacyConsentAfter") }}</span
+            >
+          </label>
+          @if (privacyHasError()) {
+          <small id="order-privacy-error" class="field-error"
+            >{{ i18n.t("privacyConsentRequired") }}</small
+          >
+          }
+        </div>
         <button
           type="submit"
           class="order-button"

@@ -37,6 +37,7 @@ export class BasketPage {
   readonly paymentPending = signal(false);
   readonly orderError = signal("");
   readonly validationAttempted = signal(false);
+  readonly privacyAccepted = signal(false);
   readonly cardPaymentsEnabled = signal(false);
   private readonly route = inject(ActivatedRoute);
   readonly cardPaymentTestMode =
@@ -219,20 +220,24 @@ export class BasketPage {
     const email = this.customer.email.trim();
     const phone = this.customer.phone.trim();
     const address = this.customer.address.trim();
-    if (
-      !name ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-      !phone ||
-      !address
-    ) {
-      this.orderError.set(this.i18n.t("orderRequired"));
+    const fieldsValid =
+      !!name &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
+      !!phone &&
+      !!address;
+    if (!fieldsValid || !this.privacyAccepted()) {
+      this.orderError.set(
+        this.i18n.t(fieldsValid ? "privacyConsentRequired" : "orderRequired"),
+      );
       const invalidId = !name
         ? "order-name"
         : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
           ? "order-email"
           : !phone
             ? "order-phone"
-            : "order-address";
+            : !address
+              ? "order-address"
+              : "order-privacy";
       (event.currentTarget as HTMLFormElement | null)
         ?.querySelector<HTMLElement>(`#${invalidId}`)
         ?.focus();
@@ -305,6 +310,8 @@ export class BasketPage {
           this.customer.email = "";
           this.customer.phone = "";
           this.customer.address = "";
+          this.privacyAccepted.set(false);
+          this.validationAttempted.set(false);
           this.orderSuccess.set(true);
           this.submitting.set(false);
           if (typeof window !== "undefined") {
@@ -334,6 +341,16 @@ export class BasketPage {
     }
     this.paymentMethod.set("CASH_ON_DELIVERY");
     savePaymentMethod("CASH_ON_DELIVERY");
+  }
+
+  setPrivacyAccepted(accepted: boolean): void {
+    this.privacyAccepted.set(accepted);
+    if (accepted && this.orderError() === this.i18n.t("privacyConsentRequired"))
+      this.orderError.set("");
+  }
+
+  privacyHasError(): boolean {
+    return this.validationAttempted() && !this.privacyAccepted();
   }
 
   fieldHasError(field: "name" | "email" | "phone" | "address"): boolean {
