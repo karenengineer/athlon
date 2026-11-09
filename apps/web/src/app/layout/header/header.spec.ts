@@ -135,3 +135,46 @@ describe("Header logo presentation", () => {
     ).toBeNull();
   });
 });
+
+describe("Header information navigation", () => {
+  it.each([
+    ["hy", "Մեր մասին", "Կապ"],
+    ["ru", "О нас", "Контакты"],
+    ["en", "About Us", "Contact"],
+  ])(
+    "links to About Us and Contact after Catalog in both %s layouts",
+    async (locale, aboutLabel, contactLabel) => {
+      await TestBed.configureTestingModule({
+        imports: [Header],
+        providers: [provideRouter([])],
+      }).compileComponents();
+      TestBed.inject(I18nService).setLocale(locale);
+      const fixture = TestBed.createComponent(Header);
+      fixture.detectChanges();
+      const header: HTMLElement = fixture.nativeElement;
+      const aboutLinks = Array.from(
+        header.querySelectorAll(`a[href="/${locale}/catalog"] + a`),
+      );
+      const contactLinks = Array.from(
+        header.querySelectorAll(`a[href="/${locale}/about"] + a`),
+      );
+
+      expect(aboutLinks.map((link) => link.getAttribute("href"))).toEqual([
+        `/${locale}/about`,
+        `/${locale}/about`,
+      ]);
+      expect(aboutLinks.map((link) => link.textContent?.trim())).toEqual([
+        aboutLabel,
+        aboutLabel,
+      ]);
+      expect(contactLinks.map((link) => link.getAttribute("href"))).toEqual([
+        `/${locale}/contact`,
+        `/${locale}/contact`,
+      ]);
+      expect(contactLinks.map((link) => link.textContent?.trim())).toEqual([
+        contactLabel,
+        contactLabel,
+      ]);
+    },
+  );
+});

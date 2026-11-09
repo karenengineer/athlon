@@ -102,6 +102,12 @@ const categoryCopy = {
   },
 };
 
+const aboutNavigationLabel = {
+  hy: "Մեր մասին",
+  ru: "О нас",
+  en: "About Us",
+};
+
 // Expectations are literal, reviewed business copy, independent of app helpers.
 const informationCopy = {
   hy: {
@@ -431,7 +437,7 @@ async function main() {
         ),
         Object.entries(informationCopy[locale]).map(([page, [heading]]) => [
           `/${locale}/${page}`,
-          heading,
+          page === "about" ? aboutNavigationLabel[locale] : heading,
         ]),
         `localized footer links: ${locale}`,
       );

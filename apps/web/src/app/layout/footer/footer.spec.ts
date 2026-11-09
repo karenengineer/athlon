@@ -41,7 +41,7 @@ describe("Footer information navigation", () => {
     [
       "hy",
       [
-        "ATHLON-ի մասին",
+        "Մեր մասին",
         "Կապ",
         "Առաքում և վճարում",
         "Վերադարձ և փոխանակում",
@@ -52,7 +52,7 @@ describe("Footer information navigation", () => {
     [
       "ru",
       [
-        "Об ATHLON",
+        "О нас",
         "Контакты",
         "Доставка и оплата",
         "Возврат и обмен",
@@ -63,7 +63,7 @@ describe("Footer information navigation", () => {
     [
       "en",
       [
-        "About ATHLON",
+        "About Us",
         "Contact",
         "Delivery and payment",
         "Returns and exchanges",

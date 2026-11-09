@@ -18,7 +18,7 @@ export const informationNavigation: Record<
   hy: {
     label: "Խանութի մասին տեղեկություններ",
     pages: {
-      about: "ATHLON-ի մասին",
+      about: "Մեր մասին",
       contact: "Կապ",
       delivery: "Առաքում և վճարում",
       returns: "Վերադարձ և փոխանակում",
@@ -29,7 +29,7 @@ export const informationNavigation: Record<
   ru: {
     label: "Информация о магазине",
     pages: {
-      about: "Об ATHLON",
+      about: "О нас",
       contact: "Контакты",
       delivery: "Доставка и оплата",
       returns: "Возврат и обмен",
@@ -40,7 +40,7 @@ export const informationNavigation: Record<
   en: {
     label: "Store information",
     pages: {
-      about: "About ATHLON",
+      about: "About Us",
       contact: "Contact",
       delivery: "Delivery and payment",
       returns: "Returns and exchanges",

@@ -5,6 +5,7 @@ import {
   Locale,
   supportedLocales,
 } from "../../core/i18n/i18n.service";
+import { informationNavigation } from "../../core/i18n/information-navigation";
 
 @Component({
   selector: "app-header",
@@ -15,6 +16,7 @@ import {
 export class Header {
   readonly i18n = inject(I18nService);
   readonly locales = supportedLocales;
+  readonly information = informationNavigation;
   private readonly router = inject(Router);
 
   localeHref(locale: Locale): string {

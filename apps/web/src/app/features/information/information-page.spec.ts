@@ -131,6 +131,21 @@ describe("Localized information pages", () => {
     },
   );
 
+  it("marks the About Us header links as current only on the About page", async () => {
+    const storefront: HTMLElement = fixture.nativeElement;
+    await visit("/en/about?source=header");
+    expect(
+      storefront.querySelectorAll(
+        'header a[href="/en/about"][aria-current="page"]',
+      ),
+    ).toHaveLength(2);
+
+    await visit("/en/about/missing");
+    expect(
+      storefront.querySelectorAll('header a[href="/en/about"][aria-current]'),
+    ).toHaveLength(0);
+  });
+
   for (const locale of ["hy", "ru", "en"]) {
     it(`provides policy links and a contact-only business address in ${locale}`, async () => {
       await visit(`/${locale}/contact`);
