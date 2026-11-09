@@ -26,12 +26,28 @@
       />
     </a>
     <a
-      class="mobile-catalog-link"
+      class="mobile-nav-link"
       data-testid="mobile-catalog-link"
       [routerLink]="['/', i18n.locale(), 'catalog']"
       routerLinkActive="active"
       ariaCurrentWhenActive="page"
       >{{ i18n.t("catalog") }}</a
+    >
+    <a
+      class="mobile-nav-link"
+      [routerLink]="['/', i18n.locale(), 'about']"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ paths: 'exact' }"
+      ariaCurrentWhenActive="page"
+      >{{ information[i18n.locale()].pages.about }}</a
+    >
+    <a
+      class="mobile-nav-link"
+      [routerLink]="['/', i18n.locale(), 'contact']"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ paths: 'exact' }"
+      ariaCurrentWhenActive="page"
+      >{{ information[i18n.locale()].pages.contact }}</a
     >
 
     <nav aria-label="Primary navigation">
@@ -46,6 +62,20 @@
         routerLinkActive="active"
         ariaCurrentWhenActive="page"
         >{{ i18n.t("catalog") }}</a
+      >
+      <a
+        [routerLink]="['/', i18n.locale(), 'about']"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ paths: 'exact' }"
+        ariaCurrentWhenActive="page"
+        >{{ information[i18n.locale()].pages.about }}</a
+      >
+      <a
+        [routerLink]="['/', i18n.locale(), 'contact']"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ paths: 'exact' }"
+        ariaCurrentWhenActive="page"
+        >{{ information[i18n.locale()].pages.contact }}</a
       >
     </nav>
 
