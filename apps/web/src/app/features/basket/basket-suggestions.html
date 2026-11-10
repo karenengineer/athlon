@@ -1,7 +1,11 @@
 @if (products().length) {
-<section class="basket-suggestions" aria-labelledby="basket-suggestions-title">
+<section
+  class="basket-suggestions"
+  aria-labelledby="basket-suggestions-title"
+  [attr.aria-busy]="refreshing()"
+>
   <h2 id="basket-suggestions-title">{{ i18n.t("basketSuggestions") }}</h2>
-  <ul>
+  <ul [attr.inert]="refreshing() ? '' : null">
     @for (product of products(); track product.id) {
     <li>
       <a [routerLink]="['/', i18n.locale(), 'product', product.slug]">
@@ -24,7 +28,7 @@
       </a>
       <button
         type="button"
-        [disabled]="disabled()"
+        [disabled]="disabled() || refreshing()"
         [attr.aria-label]="i18n.t('addToBasket') + ': ' + product.name"
         (click)="addProduct.emit(product)"
       >

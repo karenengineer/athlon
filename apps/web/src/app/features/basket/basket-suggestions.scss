@@ -81,3 +81,14 @@ button:disabled {
   color: #55555c;
   cursor: not-allowed;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  ul {
+    transition: opacity 320ms ease-out;
+  }
+
+  ul[inert] {
+    opacity: 0;
+    transition-duration: 320ms;
+  }
+}

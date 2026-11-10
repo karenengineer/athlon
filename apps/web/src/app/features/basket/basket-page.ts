@@ -193,7 +193,7 @@ export class BasketPage {
     }
     this.clearIdempotencyKey();
     this.basket.add(product);
-    heading.focus();
+    heading.focus({ preventScroll: true });
   }
 
   update(id: string, value: string): void {

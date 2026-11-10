@@ -5,6 +5,7 @@ import {
 } from "@angular/common/http/testing";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
+import { vi } from "vitest";
 import { Category, Product } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
@@ -65,6 +66,8 @@ describe("Basket product suggestions", () => {
       http.verify();
     } finally {
       TestBed.resetTestingModule();
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
       localStorage.clear();
       sessionStorage.clear();
     }
@@ -222,21 +225,52 @@ describe("Basket product suggestions", () => {
     );
   });
 
-  it("hides old suggestions immediately when a recommended type enters the basket", () => {
+  it("fades the whole list before showing refreshed suggestions", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
     TestBed.inject(BasketService).add(product("current-creatine", "creatine"));
     render();
     detail(product("current-creatine", "creatine"));
-    types().flush([category("protein"), category("creatine")]);
-    suggestions("protein").flush({ items: [product("whey", "protein")] });
-    expect(section()).not.toBeNull();
+    const categories = ["protein", "creatine", "vitamins"].map(category);
+    const whey = product("whey", "protein");
+    const vitamin = product("vitamin", "vitamins");
+    types().flush(categories);
+    suggestions("protein").flush({ items: [whey] });
+    suggestions("vitamins").flush({ items: [vitamin] });
+    const original = section();
+    const list = original?.querySelector("ul");
+    const wheyCard = list?.querySelector("li:first-child");
+    const vitaminCard = original?.querySelector("li:last-child");
+    expect(vitaminCard?.textContent).toContain("vitamin");
 
-    basket.add(product("other-whey", "protein"));
+    original?.querySelector<HTMLButtonElement>("button")?.click();
 
-    expect(section()).toBeNull();
+    expect(section()).toBe(original);
+    expect(original?.getAttribute("aria-busy")).toBe("true");
+    expect(original?.querySelector("ul[inert]")).toBe(list);
+    expect(list?.querySelector("li:first-child")).toBe(wheyCard);
+    const vitaminButton = vitaminCard?.querySelector("button");
+    expect(vitaminButton?.disabled).toBe(true);
+    vitaminButton?.click();
+    expect(basket.totalQuantity()).toBe(2);
     detail(product("current-creatine", "creatine"));
-    detail(product("other-whey", "protein"));
-    types().flush([category("protein"), category("creatine")]);
-    http.expectNone((request) => request.url === "/api/v1/products");
+    detail(whey);
+    types().flush(categories);
+    http.expectNone((request) => request.params.get("category") === "protein");
+    suggestions("vitamins").flush({ items: [vitamin] });
+
+    expect(section()).toBe(original);
+    expect(list?.hasAttribute("inert")).toBe(true);
+    expect(list?.querySelector("li:first-child")).toBe(wheyCard);
+
+    vi.advanceTimersByTime(200);
+
+    expect(section()).toBe(original);
+    expect(original?.getAttribute("aria-busy")).toBe("false");
+    expect(list?.hasAttribute("inert")).toBe(false);
+    expect(original?.querySelector("li")).toBe(vitaminCard);
+    expect(original?.textContent).not.toContain("whey");
+    expect(vitaminButton?.disabled).toBe(false);
   });
 
   it("adds one suggested product to the basket from its card", () => {
@@ -275,7 +309,7 @@ describe("Basket product suggestions", () => {
     expect(basket.totalQuantity()).toBe(2);
     expect(basket.total()).toBe(9000);
     expect(sessionStorage.getItem(key)).toBeNull();
-    expect(section()).toBeNull();
+    expect(section()).not.toBeNull();
     expect(document.activeElement).toBe(
       fixture.nativeElement.querySelector("h1"),
     );
@@ -283,5 +317,6 @@ describe("Basket product suggestions", () => {
     detail(whey);
     types().flush([category("protein"), category("creatine")]);
     http.expectNone((request) => request.url === "/api/v1/products");
+    expect(section()).toBeNull();
   });
 });
