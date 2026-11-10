@@ -1,0 +1,55 @@
+.basket-suggestions {
+  margin-top: 40px;
+  border-top: 1px solid #d7d7db;
+  padding-top: 24px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
+}
+
+ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  border: 1px solid #dddde1;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  color: #151517;
+  text-decoration: none;
+}
+
+a:hover strong,
+a:focus-visible strong {
+  text-decoration: underline;
+}
+
+img {
+  display: block;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f3f3f4;
+}
+
+a > span {
+  display: grid;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+
+small {
+  color: #55555b;
+}
