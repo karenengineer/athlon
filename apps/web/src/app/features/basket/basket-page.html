@@ -4,7 +4,7 @@
 >
   <header>
     <p>ATHLON ORDER</p>
-    <h1>{{ i18n.t("basket") }}</h1>
+    <h1 #basketHeading tabindex="-1">{{ i18n.t("basket") }}</h1>
   </header>
 
   @if (cardPaymentTestMode) {
@@ -299,7 +299,10 @@
     </aside>
   </div>
   @if (!cardPaymentTestMode) {
-  <app-basket-suggestions />
+  <app-basket-suggestions
+    [disabled]="submitting()"
+    (addProduct)="addSuggestion($event, basketHeading)"
+  />
   } } @else {
   <div class="empty-basket">
     <h2>{{ i18n.t("emptyBasket") }}</h2>

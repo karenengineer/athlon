@@ -1,5 +1,5 @@
 import { CurrencyPipe } from "@angular/common";
-import { Component, computed, inject } from "@angular/core";
+import { Component, computed, inject, input, output } from "@angular/core";
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
 import { RouterLink } from "@angular/router";
 import {
@@ -35,6 +35,8 @@ function isCatalogSlug(value: unknown): value is string {
 })
 export class BasketSuggestions {
   readonly i18n = inject(I18nService);
+  readonly disabled = input(false);
+  readonly addProduct = output<Product>();
   private readonly basket = inject(BasketService);
   private readonly api = inject(CatalogApiService);
   private readonly members = computed(

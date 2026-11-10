@@ -3,7 +3,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
-import { Component } from "@angular/core";
+import { Component, input, output } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import {
   ActivatedRoute,
@@ -13,12 +13,16 @@ import {
 } from "@angular/router";
 import { vi } from "vitest";
 import { BehaviorSubject } from "rxjs";
+import { Product } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
 import { BasketPage } from "./basket-page";
 import { BasketSuggestions } from "./basket-suggestions";
 
 @Component({ selector: "app-basket-suggestions", template: "" })
-class BasketSuggestionsStub {}
+class BasketSuggestionsStub {
+  readonly disabled = input(false);
+  readonly addProduct = output<Product>();
+}
 
 function addBasketProduct(basket: BasketService): void {
   basket.add({
