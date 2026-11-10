@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { createPageMetadata } from "../../core/seo/page-metadata";
 import { catchError, Observable, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
+import { Product } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import {
@@ -180,6 +181,19 @@ export class BasketPage {
       config.mode === "AMERIA_SANDBOX" && config.accessRequired !== false,
     );
     if (config.enabled && !this.sandboxAccessRequired()) this.recheckSandbox();
+  }
+
+  addSuggestion(product: Product, heading: HTMLHeadingElement): void {
+    if (
+      this.submitting() ||
+      product.availability !== "IN_STOCK" ||
+      this.basket.items().some((item) => item.id === product.id)
+    ) {
+      return;
+    }
+    this.clearIdempotencyKey();
+    this.basket.add(product);
+    heading.focus();
   }
 
   update(id: string, value: string): void {

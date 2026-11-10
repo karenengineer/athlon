@@ -18,16 +18,22 @@ ul {
   list-style: none;
 }
 
-a {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  align-items: center;
+li {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  height: 100%;
   border: 1px solid #dddde1;
   border-radius: 14px;
   padding: 12px;
   background: #fff;
+}
+
+a {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
   color: #151517;
   text-decoration: none;
 }
@@ -52,4 +58,26 @@ a > span {
 
 small {
   color: #55555b;
+}
+
+button {
+  min-height: 44px;
+  border: 1px solid #171719;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #171719;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:enabled:hover {
+  background: #36363a;
+}
+
+button:disabled {
+  border-color: #77777d;
+  background: #e8e8eb;
+  color: #55555c;
+  cursor: not-allowed;
 }

@@ -22,6 +22,14 @@
           </span>
         </span>
       </a>
+      <button
+        type="button"
+        [disabled]="disabled()"
+        [attr.aria-label]="i18n.t('addToBasket') + ': ' + product.name"
+        (click)="addProduct.emit(product)"
+      >
+        {{ i18n.t("addToBasket") }}
+      </button>
     </li>
     }
   </ul>

@@ -238,4 +238,50 @@ describe("Basket product suggestions", () => {
     types().flush([category("protein"), category("creatine")]);
     http.expectNone((request) => request.url === "/api/v1/products");
   });
+
+  it("adds one suggested product to the basket from its card", () => {
+    const creatine = product("current-creatine", "creatine");
+    const whey = product("whey", "protein", "Whey Protein");
+    const key = "athlon_checkout_idempotency_v1";
+    sessionStorage.setItem(key, "previous-checkout-key");
+    TestBed.inject(BasketService).add(creatine);
+    render();
+    detail(creatine);
+    types().flush([category("protein"), category("creatine")]);
+    suggestions("protein").flush({ items: [whey] });
+
+    const button = section()?.querySelector<HTMLButtonElement>("li > button");
+    expect(button).toBeInstanceOf(HTMLButtonElement);
+    expect(button?.getAttribute("aria-label")).toBe(
+      "Add to basket: Whey Protein",
+    );
+    fixture.componentInstance.submitting.set(true);
+    fixture.detectChanges();
+    expect(button?.disabled).toBe(true);
+    button?.click();
+    expect(basket.totalQuantity()).toBe(1);
+    expect(sessionStorage.getItem(key)).toBe("previous-checkout-key");
+
+    fixture.componentInstance.submitting.set(false);
+    fixture.detectChanges();
+    expect(button?.disabled).toBe(false);
+    button?.focus();
+    button?.click();
+    button?.click();
+
+    expect(basket.items().find((item) => item.id === whey.id)?.quantity).toBe(
+      1,
+    );
+    expect(basket.totalQuantity()).toBe(2);
+    expect(basket.total()).toBe(9000);
+    expect(sessionStorage.getItem(key)).toBeNull();
+    expect(section()).toBeNull();
+    expect(document.activeElement).toBe(
+      fixture.nativeElement.querySelector("h1"),
+    );
+    detail(creatine);
+    detail(whey);
+    types().flush([category("protein"), category("creatine")]);
+    http.expectNone((request) => request.url === "/api/v1/products");
+  });
 });
