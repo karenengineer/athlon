@@ -22,10 +22,11 @@ import {
   retainSandboxRequestKey,
   retireSandboxRequest,
 } from "../admin/card-payment-test/sandbox-payment-request";
+import { BasketSuggestions } from "./basket-suggestions";
 
 @Component({
   selector: "app-basket-page",
-  imports: [CurrencyPipe, RouterLink],
+  imports: [BasketSuggestions, CurrencyPipe, RouterLink],
   templateUrl: "./basket-page.html",
   styleUrl: "./basket-page.scss",
 })

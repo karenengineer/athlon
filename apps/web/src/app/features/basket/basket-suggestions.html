@@ -1,0 +1,29 @@
+@if (products().length) {
+<section class="basket-suggestions" aria-labelledby="basket-suggestions-title">
+  <h2 id="basket-suggestions-title">{{ i18n.t("basketSuggestions") }}</h2>
+  <ul>
+    @for (product of products(); track product.id) {
+    <li>
+      <a [routerLink]="['/', i18n.locale(), 'product', product.slug]">
+        <img
+          [src]="product.imageUrl"
+          alt=""
+          width="68"
+          height="68"
+          loading="lazy"
+        />
+        <span>
+          <small>{{ product.category.name }}</small>
+          <strong>{{ product.name }}</strong>
+          <span>
+            @if (product.price !== null) { {{ +product.price | currency:
+            product.currency : "symbol-narrow" : "1.0-0" }} } @else { {{
+            i18n.t("contactPrice") }} }
+          </span>
+        </span>
+      </a>
+    </li>
+    }
+  </ul>
+</section>
+}

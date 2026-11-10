@@ -3,6 +3,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
+import { Component } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import {
   ActivatedRoute,
@@ -14,6 +15,10 @@ import { vi } from "vitest";
 import { BehaviorSubject } from "rxjs";
 import { BasketService } from "../../core/basket/basket.service";
 import { BasketPage } from "./basket-page";
+import { BasketSuggestions } from "./basket-suggestions";
+
+@Component({ selector: "app-basket-suggestions", template: "" })
+class BasketSuggestionsStub {}
 
 function addBasketProduct(basket: BasketService): void {
   basket.add({
@@ -122,6 +127,10 @@ describe("BasketPage", () => {
       locale: "hy",
     });
     basketRouteStub.parent.paramMap.next(convertToParamMap({ locale: "hy" }));
+    TestBed.overrideComponent(BasketPage, {
+      remove: { imports: [BasketSuggestions] },
+      add: { imports: [BasketSuggestionsStub] },
+    });
     await TestBed.configureTestingModule({
       imports: [BasketPage],
       providers: [
@@ -139,6 +148,8 @@ describe("BasketPage", () => {
       http.verify();
     } finally {
       TestBed.resetTestingModule();
+      localStorage.clear();
+      sessionStorage.clear();
     }
   });
 

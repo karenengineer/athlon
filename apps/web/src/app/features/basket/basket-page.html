@@ -298,7 +298,9 @@
       </button>
     </aside>
   </div>
-  } @else {
+  @if (!cardPaymentTestMode) {
+  <app-basket-suggestions />
+  } } @else {
   <div class="empty-basket">
     <h2>{{ i18n.t("emptyBasket") }}</h2>
     <a class="continue-shopping" [routerLink]="['/', i18n.locale(), 'catalog']"

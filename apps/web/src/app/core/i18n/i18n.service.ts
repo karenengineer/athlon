@@ -79,6 +79,7 @@ type Copy = {
   notFoundText: string;
   footerText: string;
   basket: string;
+  basketSuggestions: string;
   addToBasket: string;
   inBasket: string;
   quantity: string;
@@ -230,6 +231,7 @@ const copy: Record<Locale, Copy> = {
     notFoundText: "Возможно, ссылка устарела или страница была перемещена.",
     footerText: "Спортивное питание в Армении.",
     basket: "Корзина",
+    basketSuggestions: "Вам также может понравиться",
     addToBasket: "В корзину",
     inBasket: "В корзине",
     quantity: "Количество",
@@ -397,6 +399,7 @@ const copy: Record<Locale, Copy> = {
     notFoundText: "Հնարավոր է՝ հղումը հին է, կամ էջը տեղափոխվել է։",
     footerText: "Սպորտային սնունդ Հայաստանում։",
     basket: "Զամբյուղ",
+    basketSuggestions: "Ձեզ կարող է հետաքրքրել",
     addToBasket: "Ավելացնել",
     inBasket: "Զամբյուղում",
     quantity: "Քանակ",
@@ -564,6 +567,7 @@ const copy: Record<Locale, Copy> = {
     notFoundText: "The link may be outdated or the page may have moved.",
     footerText: "Sports nutrition in Armenia.",
     basket: "Basket",
+    basketSuggestions: "You may also like",
     addToBasket: "Add to basket",
     inBasket: "In basket",
     quantity: "Quantity",

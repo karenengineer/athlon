@@ -10,6 +10,7 @@ import { BasketService } from "../../core/basket/basket.service";
 
 describe("PublicShell floating basket", () => {
   beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
 
   it("keeps a fixed basket action visible with the current item count", async () => {
     await TestBed.configureTestingModule({

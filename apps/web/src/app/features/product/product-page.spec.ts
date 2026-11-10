@@ -37,6 +37,7 @@ describe("ProductPage basket availability", () => {
       ],
     }).compileComponents();
   });
+  afterEach(() => localStorage.clear());
 
   for (const [locale, unavailable, preorder, onRequest, contact] of [
     ["hy", "Առկա չէ", "Նախնական պատվեր", "Պատվերով", "Ճշտել առկայությունը"],
