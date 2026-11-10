@@ -22,6 +22,7 @@ const product: Product = {
 
 describe("ProductCard basket controls", () => {
   beforeEach(() => localStorage.clear());
+  afterEach(() => localStorage.clear());
 
   it("shows a compact cart button before adding and quantity controls after adding", async () => {
     await TestBed.configureTestingModule({

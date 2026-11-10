@@ -104,6 +104,8 @@ describe("PaymentSuccessPage", () => {
     } finally {
       vi.restoreAllMocks();
       TestBed.resetTestingModule();
+      localStorage.clear();
+      sessionStorage.clear();
     }
   });
   function create(mode = "AMERIA_SANDBOX") {

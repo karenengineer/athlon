@@ -148,6 +148,8 @@ describe("BasketPage", () => {
       http.verify();
     } finally {
       TestBed.resetTestingModule();
+      localStorage.clear();
+      sessionStorage.clear();
     }
   });
 

@@ -88,6 +88,8 @@ describe("BasketPage Ameriabank sandbox", () => {
       http.verify();
     } finally {
       TestBed.resetTestingModule();
+      localStorage.clear();
+      sessionStorage.clear();
     }
   });
   function create(accessRequired = false, callback = false) {

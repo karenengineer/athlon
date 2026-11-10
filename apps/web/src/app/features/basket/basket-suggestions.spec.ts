@@ -65,6 +65,8 @@ describe("Basket product suggestions", () => {
       http.verify();
     } finally {
       TestBed.resetTestingModule();
+      localStorage.clear();
+      sessionStorage.clear();
     }
   });
 

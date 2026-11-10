@@ -27,6 +27,7 @@ describe("BasketService", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    localStorage.clear();
   });
 
   it.each([
