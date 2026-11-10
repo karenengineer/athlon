@@ -1,4 +1,4 @@
-import { CurrencyPipe } from "@angular/common";
+import { CurrencyPipe, DOCUMENT } from "@angular/common";
 import { Component, computed, inject, input, output } from "@angular/core";
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
 import { RouterLink } from "@angular/router";
@@ -11,6 +11,7 @@ import {
   Observable,
   of,
   switchMap,
+  timer,
   toArray,
 } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
@@ -22,6 +23,8 @@ type BasketMember = Pick<BasketItem, "id" | "slug">;
 const preferredTypes = ["protein", "creatine", "pre-workout"];
 const maxCategoryQueries = 8;
 const maxSuggestions = 4;
+// Allow the 160 ms CSS fade-out to finish before replacing the cards.
+const refreshFadeMs = 180;
 
 function isCatalogSlug(value: unknown): value is string {
   return typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
@@ -39,6 +42,7 @@ export class BasketSuggestions {
   readonly addProduct = output<Product>();
   private readonly basket = inject(BasketService);
   private readonly api = inject(CatalogApiService);
+  private readonly document = inject(DOCUMENT);
   private readonly members = computed(
     () => this.basket.items().map(({ id, slug }) => ({ id, slug })),
     {
@@ -57,15 +61,22 @@ export class BasketSuggestions {
   private readonly result = toSignal(
     toObservable(this.request).pipe(
       switchMap((request) =>
-        this.loadSuggestions(request.items, request.locale).pipe(
-          map((products) => ({ request, products })),
-        ),
+        forkJoin({
+          products: this.loadSuggestions(request.items, request.locale),
+          fade: this.waitForFade(request.items, request.locale),
+        }).pipe(map(({ products }) => ({ request, products }))),
       ),
     ),
   );
+  readonly refreshing = computed(
+    () => this.result()?.request !== this.request(),
+  );
   readonly products = computed(() => {
     const result = this.result();
-    if (result?.request !== this.request()) return [];
+    const request = this.request();
+    if (!request.items.length || result?.request.locale !== request.locale) {
+      return [];
+    }
     return result.products.map((product) => ({
       ...product,
       imageUrl:
@@ -74,6 +85,25 @@ export class BasketSuggestions {
         "/placeholders/product-placeholder.svg",
     }));
   });
+
+  private waitForFade(
+    items: BasketMember[],
+    locale: Locale,
+  ): Observable<number> {
+    const previous = this.result();
+    const motionAllowed = this.document.defaultView?.matchMedia?.(
+      "(prefers-reduced-motion: no-preference)",
+    ).matches;
+    if (
+      !items.length ||
+      previous?.request.locale !== locale ||
+      !previous.products.length ||
+      !motionAllowed
+    ) {
+      return of(0);
+    }
+    return timer(refreshFadeMs);
+  }
 
   private loadSuggestions(items: BasketMember[], locale: Locale) {
     if (!items.length) return of([]);
