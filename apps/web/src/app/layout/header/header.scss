@@ -252,11 +252,7 @@ nav a:hover {
   }
 }
 
-@media (max-width: 360px) {
-  .header {
-    padding-inline: 12px;
-  }
-
+@media (max-width: 420px) {
   .header-content {
     gap: 4px;
   }
@@ -264,5 +260,11 @@ nav a:hover {
   .mobile-nav-link,
   .mobile-language select {
     padding-inline: 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .header {
+    padding-inline: 12px;
   }
 }
