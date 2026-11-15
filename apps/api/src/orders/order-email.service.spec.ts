@@ -79,6 +79,46 @@ describe("OrderEmailService", () => {
     expect(email.subject).toContain("Your ATHLON order was received");
   });
 
+  it.each([
+    [
+      "hy",
+      "Առաքիչը հնարավորինս շուտ կկապվի ձեզ հետ՝ առաքումը կազմակերպելու համար։",
+    ],
+    [
+      "ru",
+      "Курьер свяжется с вами как можно скорее, чтобы согласовать доставку.",
+    ],
+    [
+      "en",
+      "The courier will contact you as soon as possible to arrange delivery.",
+    ],
+  ] as const)(
+    "adds the localized post-payment note only to the %s customer confirmation",
+    async (locale, postPayment) => {
+      const localizedMessage = { ...message, locale };
+
+      await service.sendCustomer(
+        localizedMessage,
+        `order-notification/customer-${locale}`,
+      );
+      await service.send(
+        localizedMessage,
+        `order-notification/owner-${locale}`,
+      );
+
+      const customerEmail = JSON.parse(
+        (fetchSpy.mock.calls[0]?.[1]?.body ?? "") as string,
+      ) as { text: string; html: string };
+      const ownerEmail = JSON.parse(
+        (fetchSpy.mock.calls[1]?.[1]?.body ?? "") as string,
+      ) as { text: string; html: string };
+      expect(customerEmail.text).toContain(postPayment);
+      expect(customerEmail.html).toContain(postPayment);
+      expect(ownerEmail.text).not.toContain(postPayment);
+      expect(ownerEmail.html).not.toContain(postPayment);
+    },
+  );
+
   it("hides provider error details when sending is rejected", async () => {
     fetchSpy.mockResolvedValueOnce(
       new Response(JSON.stringify({ message: "provider secret detail" }), {
