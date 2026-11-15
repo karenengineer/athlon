@@ -15,6 +15,8 @@ const emailCopy = {
     products: "Ապրանքներ",
     total: "Ընդամենը",
     payment: "Վճարումը՝ պատվերը ստանալիս․ կանխիկ կամ քարտով։",
+    postPayment:
+      "Առաքիչը հնարավորինս շուտ կկապվի ձեզ հետ՝ առաքումը կազմակերպելու համար։",
     askPrice: "Ճշտել գինը",
   },
   ru: {
@@ -27,6 +29,8 @@ const emailCopy = {
     products: "Товары",
     total: "Итого",
     payment: "Оплата при получении заказа — наличными или картой.",
+    postPayment:
+      "Курьер свяжется с вами как можно скорее, чтобы согласовать доставку.",
     askPrice: "Уточнить цену",
   },
   en: {
@@ -39,6 +43,8 @@ const emailCopy = {
     products: "Products",
     total: "Total",
     payment: "Pay the courier on delivery by cash or card.",
+    postPayment:
+      "The courier will contact you as soon as possible to arrange delivery.",
     askPrice: "Ask for price",
   },
 } as const;
@@ -106,6 +112,7 @@ export class OrderEmailService {
       ...productLines,
       `${copy.total}: ${total}`,
       copy.payment,
+      ...(customerConfirmation ? [copy.postPayment] : []),
     ].join("\n");
     const html = [
       `<h2>${escapeHtml(copy.subject)}</h2>`,
@@ -122,6 +129,9 @@ export class OrderEmailService {
         .join("")}</ul>`,
       `<p><strong>${escapeHtml(copy.total)}:</strong> ${escapeHtml(total)}</p>`,
       `<p>${escapeHtml(copy.payment)}</p>`,
+      ...(customerConfirmation
+        ? [`<p>${escapeHtml(copy.postPayment)}</p>`]
+        : []),
     ].join("");
 
     try {
