@@ -271,11 +271,8 @@ describe("Localized information pages", () => {
     expect(page()).not.toBeNull();
     await visit("/en");
     http
-      .expectOne((request) => request.url.endsWith("/products"))
-      .flush({
-        items: [],
-        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-      });
+      .match((request) => request.url.endsWith("/products"))
+      .forEach((request) => request.flush({ items: [] }));
     expect(meta.getTag('name="description"')?.content).toBe(
       "Online sports-nutrition shop in Armenia: original protein, creatine and amino acids. Free delivery throughout Armenia.",
     );

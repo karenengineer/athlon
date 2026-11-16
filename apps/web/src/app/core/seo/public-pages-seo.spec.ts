@@ -341,7 +341,16 @@ describe("Public page SEO navigation", () => {
   it("returns 503 without public metadata after homepage inventory failure and recovers on retry", async () => {
     await visit("/en");
     http
-      .expectOne((request) => request.url.endsWith("/products"))
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products") && request.params.has("brand"),
+      )
+      .flush({ items: [] });
+    http
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products") && !request.params.has("brand"),
+      )
       .flush({}, { status: 500, statusText: "Unavailable" });
     expect(response.status).toBe(503);
     expect(noindex()).toBe("noindex, follow");

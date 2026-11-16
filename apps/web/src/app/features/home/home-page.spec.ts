@@ -3,6 +3,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
+import { REQUEST, RESPONSE_INIT } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import {
   ActivatedRoute,
@@ -10,20 +11,45 @@ import {
   provideRouter,
 } from "@angular/router";
 import { BehaviorSubject } from "rxjs";
+import { Product } from "../../core/api/catalog.models";
 import { HomePage } from "./home-page";
+
+function product(id: string, brand: string): Product {
+  return {
+    id,
+    sku: id,
+    slug: id,
+    name: id,
+    shortDescription: null,
+    price: null,
+    currency: "AMD",
+    availability: "IN_STOCK",
+    featured: false,
+    isNew: false,
+    category: { slug: "protein", name: "Protein" },
+    brand: { slug: brand, name: brand },
+    images: [],
+  };
+}
 
 describe("HomePage", () => {
   let http: HttpTestingController;
   let localeParams: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
+  let request: Request | null;
+  let response: ResponseInit;
 
   beforeEach(async () => {
     localeParams = new BehaviorSubject(convertToParamMap({ locale: "en" }));
+    request = null;
+    response = { headers: new Headers({ "X-Test": "preserved" }) };
     await TestBed.configureTestingModule({
       imports: [HomePage],
       providers: [
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: REQUEST, useFactory: () => request },
+        { provide: RESPONSE_INIT, useFactory: () => response },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -38,21 +64,141 @@ describe("HomePage", () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    document.cookie = "athlon_home_brand=; Path=/; Max-Age=0";
+    http.verify();
+  });
+
+  function canonicalProducts() {
+    return http.expectOne(
+      (request) =>
+        request.url.endsWith("/products") &&
+        request.params.get("category") === "sports-nutrition" &&
+        request.params.get("sort") === "displayOrder" &&
+        request.params.get("pageSize") === "8" &&
+        !request.params.has("brand"),
+    );
+  }
+
+  function preferredProducts(brand: string, locale = "en") {
+    return http.expectOne(
+      (request) =>
+        request.url.endsWith("/products") &&
+        request.params.get("brand") === brand &&
+        request.params.get("locale") === locale &&
+        request.params.get("category") === "sports-nutrition" &&
+        request.params.get("sort") === "displayOrder" &&
+        request.params.get("availability") === "IN_STOCK" &&
+        request.params.get("pageSize") === "4",
+    );
+  }
 
   function renderHome(locale = "en"): HTMLElement {
     localeParams.next(convertToParamMap({ locale }));
     const fixture = TestBed.createComponent(HomePage);
     fixture.detectChanges();
+    canonicalProducts().flush({ items: [] });
     http
-      .expectOne((request) => request.url.endsWith("/products"))
-      .flush({
-        items: [],
-        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-      });
+      .match(
+        (request) =>
+          request.url.endsWith("/products") && request.params.has("brand"),
+      )
+      .forEach((request) => request.flush({ items: [] }));
     fixture.detectChanges();
     return fixture.nativeElement;
   }
+
+  it.each(["trec", "optimum-nutrition"])(
+    "leads the showcase with in-stock %s products and fills eight distinct slots",
+    (brand) => {
+      request = new Request("https://athlon.am/en", {
+        headers: { Cookie: `athlon_home_brand=${brand}` },
+      });
+      const fixture = TestBed.createComponent(HomePage);
+      const first = product("preferred-first", brand);
+      const next = product("preferred-next", brand);
+      const otherProducts = Array.from({ length: 7 }, (_, index) =>
+        product(`other-${index}`, "other-brand"),
+      );
+
+      const preferred = preferredProducts(brand);
+      canonicalProducts().flush({
+        items: [otherProducts[0], first, ...otherProducts.slice(1)],
+      });
+      preferred.flush({
+        items: [
+          first,
+          next,
+          { ...product("unavailable", brand), availability: "OUT_OF_STOCK" },
+          otherProducts[6],
+        ],
+      });
+      fixture.detectChanges();
+
+      const links = (fixture.nativeElement as HTMLElement).querySelectorAll(
+        ".showcase app-product-card h3 a",
+      );
+      expect(Array.from(links, (link) => link.textContent?.trim())).toEqual([
+        "preferred-first",
+        "preferred-next",
+        "other-0",
+        "other-1",
+        "other-2",
+        "other-3",
+        "other-4",
+        "other-5",
+      ]);
+      const headers = new Headers(response.headers);
+      expect(headers.get("Cache-Control")).toBe("private, no-store");
+      expect(headers.has("Set-Cookie")).toBe(false);
+      expect(headers.get("X-Test")).toBe("preserved");
+
+      localeParams.next(convertToParamMap({ locale: "ru" }));
+      canonicalProducts().flush({ items: [] });
+      preferredProducts(brand, "ru").flush({ items: [] });
+    },
+  );
+
+  it.each([
+    [0.49, "trec"],
+    [0.5, "optimum-nutrition"],
+  ])("assigns and persists the brand at random draw %s", (draw, brand) => {
+    request = new Request("https://athlon.am/en", {
+      headers: { Cookie: "athlon_home_brand=unsupported" },
+    });
+    const random = vi.spyOn(Math, "random").mockReturnValue(draw);
+    try {
+      TestBed.createComponent(HomePage);
+    } finally {
+      random.mockRestore();
+    }
+    canonicalProducts().flush({ items: [] });
+    preferredProducts(brand).flush({ items: [] });
+
+    expect(new Headers(response.headers).get("Set-Cookie")).toBe(
+      `athlon_home_brand=${brand}; Path=/; Max-Age=2592000; SameSite=Lax; Secure`,
+    );
+  });
+
+  it("uses canonical showcase products when the preferred brand request fails", () => {
+    document.cookie = "athlon_home_brand=trec; Path=/";
+    const fixture = TestBed.createComponent(HomePage);
+    canonicalProducts().flush({ items: [product("fallback", "other-brand")] });
+    preferredProducts("trec").flush(
+      {},
+      { status: 503, statusText: "Unavailable" },
+    );
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement
+        .querySelector(".showcase app-product-card h3 a")
+        ?.textContent?.trim(),
+    ).toBe("fallback");
+    expect(
+      fixture.nativeElement.querySelector("[data-testid=home-error]"),
+    ).toBeNull();
+  });
 
   function renderCommunity(locale = "en"): HTMLElement {
     const section =

@@ -66,8 +66,8 @@ export const policyContent: Record<
           text: "Երբ հասանելի է բանկի միջոցով առցանց քարտային վճարումը, քարտի տվյալները մուտքագրվում են բանկի հյուրընկալած էջում։ ATHLON-ը չի ստանում և չի պահպանում քարտի ամբողջական համարը կամ CVV կոդը։ Մեր համակարգում կարող են պահպանվել գործարքի հղումը, գումարը, արժույթը և վճարման կարգավիճակը։",
         },
         {
-          heading: "Դիտարկչի պահոց և անհրաժեշտ cookie-ներ",
-          text: "Զամբյուղի տվյալներն ու ավարտված վճարման որոշ հղումներ պահվում են դիտարկչի տեղային պահոցում (localStorage)։ Հաճախորդի ձևի սևագիրը, վճարման ընտրությունը և կրկնվող հարցումները կանխող նույնացուցիչները պահվում են ընթացիկ ներդիրի նստաշրջանի պահոցում (sessionStorage)։ Անվտանգության cookie-ները կիրառվում են սահմանափակ հասանելիությամբ վճարման թեստի և կառավարման մուտքի համար։ Դիտարկչի կայքի տվյալները մաքրելով կարող եք հեռացնել տեղային տվյալները․ դա չի ջնջում արդեն ուղարկված պատվերը։",
+          heading: "Դիտարկչի պահոց և cookie-ներ",
+          text: "Զամբյուղի տվյալներն ու ավարտված վճարման որոշ հղումներ պահվում են դիտարկչի տեղային պահոցում (localStorage)։ Հաճախորդի ձևի սևագիրը, վճարման ընտրությունը և կրկնվող հարցումները կանխող նույնացուցիչները պահվում են ընթացիկ ներդիրի նստաշրջանի պահոցում (sessionStorage)։ Անվտանգության cookie-ները կիրառվում են սահմանափակ հասանելիությամբ վճարման թեստի և կառավարման մուտքի համար։ Կայքը մինչև 30 օր cookie-ում պահում է, թե որ ապրանքանիշն է առաջինը ցուցադրվել գլխավոր էջում։ Դիտարկչի կայքի տվյալները մաքրելով կարող եք հեռացնել տեղային տվյալները․ դա չի ջնջում արդեն ուղարկված պատվերը։",
         },
         {
           heading: "Պահպանում և ձեր հարցումները",
@@ -138,8 +138,8 @@ export const policyContent: Record<
           text: "Когда доступна онлайн-оплата через банк, реквизиты карты вводятся на странице, размещенной банком. ATHLON не получает и не хранит полный номер карты или код CVV. В нашей системе могут сохраняться идентификатор операции, сумма, валюта и статус платежа.",
         },
         {
-          heading: "Хранилище браузера и необходимые cookie",
-          text: "Данные корзины и некоторые ссылки на завершенные платежи сохраняются в локальном хранилище браузера (localStorage). Черновик контактной формы, способ оплаты и идентификаторы для предотвращения повторных запросов сохраняются в хранилище сеанса вкладки (sessionStorage). Cookie безопасности используются для тестирования оплаты с ограниченным доступом и входа в панель управления. Очистка данных сайта в браузере удаляет локальные сведения, но не удаляет уже отправленный заказ.",
+          heading: "Хранилище браузера и cookie",
+          text: "Данные корзины и некоторые ссылки на завершенные платежи сохраняются в локальном хранилище браузера (localStorage). Черновик контактной формы, способ оплаты и идентификаторы для предотвращения повторных запросов сохраняются в хранилище сеанса вкладки (sessionStorage). Cookie безопасности используются для тестирования оплаты с ограниченным доступом и входа в панель управления. Сайт до 30 дней хранит в cookie информацию о том, какой бренд был показан первым на главной странице. Очистка данных сайта в браузере удаляет локальные сведения, но не удаляет уже отправленный заказ.",
         },
         {
           heading: "Хранение и ваши обращения",
@@ -210,8 +210,8 @@ export const policyContent: Record<
           text: "When online card payment through the bank is available, card details are entered on a page hosted by the bank. ATHLON does not receive or store full card numbers or CVV codes. Our system may retain the transaction reference, amount, currency and payment status.",
         },
         {
-          heading: "Browser storage and necessary cookies",
-          text: "Basket data and some references to completed payments are saved in the browser's local storage (localStorage). The customer form draft, payment choice and identifiers used to prevent repeat requests are saved in the tab's session storage (sessionStorage). Security cookies are used for the restricted payment test and administration sign-in. Clearing the browser's site data removes local records; it does not delete an order already submitted.",
+          heading: "Browser storage and cookies",
+          text: "Basket data and some references to completed payments are saved in the browser's local storage (localStorage). The customer form draft, payment choice and identifiers used to prevent repeat requests are saved in the tab's session storage (sessionStorage). Security cookies are used for the restricted payment test and administration sign-in. The site stores which brand was shown first on the homepage in a cookie for up to 30 days. Clearing the browser's site data removes local records; it does not delete an order already submitted.",
         },
         {
           heading: "Retention and your requests",
