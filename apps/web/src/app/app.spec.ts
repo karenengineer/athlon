@@ -62,6 +62,24 @@ describe("ATHLON public application", () => {
 
   afterEach(() => http.verify());
 
+  function homeProducts(locale: string) {
+    http
+      .expectOne(
+        (request) =>
+          request.url.endsWith("/products") &&
+          request.params.get("locale") === locale &&
+          request.params.has("brand"),
+      )
+      .flush({ items: [] });
+    return http.expectOne(
+      (request) =>
+        request.url.endsWith("/products") &&
+        request.params.get("locale") === locale &&
+        request.params.get("category") === "sports-nutrition" &&
+        !request.params.has("brand"),
+    );
+  }
+
   it("shows sports nutrition products on home without category tabs", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
@@ -71,16 +89,10 @@ describe("ATHLON public application", () => {
       fixture.nativeElement.querySelector("[data-testid=home-loading]"),
     ).toBeTruthy();
 
-    http
-      .expectOne(
-        (request) =>
-          request.url.endsWith("/products") &&
-          request.params.get("category") === "sports-nutrition",
-      )
-      .flush({
-        items: [product],
-        meta: { page: 1, pageSize: 8, total: 1, totalPages: 1 },
-      });
+    homeProducts("ru").flush({
+      items: [product],
+      meta: { page: 1, pageSize: 8, total: 1, totalPages: 1 },
+    });
     fixture.detectChanges();
 
     const categoryControls = fixture.nativeElement.querySelectorAll(
@@ -99,12 +111,10 @@ describe("ATHLON public application", () => {
     await router.navigateByUrl("/en");
     fixture.detectChanges();
 
-    http
-      .expectOne((request) => request.url.endsWith("/products"))
-      .flush({
-        items: [product],
-        meta: { page: 1, pageSize: 8, total: 1, totalPages: 1 },
-      });
+    homeProducts("en").flush({
+      items: [product],
+      meta: { page: 1, pageSize: 8, total: 1, totalPages: 1 },
+    });
     fixture.detectChanges();
 
     const links = [
@@ -134,12 +144,10 @@ describe("ATHLON public application", () => {
       await router.navigateByUrl(`/${locale}`);
       fixture.detectChanges();
 
-      http
-        .expectOne((request) => request.url.endsWith("/products"))
-        .flush({
-          items: [],
-          meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-        });
+      homeProducts(locale).flush({
+        items: [],
+        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+      });
       fixture.detectChanges();
 
       expect(
@@ -159,12 +167,10 @@ describe("ATHLON public application", () => {
       await router.navigateByUrl(`/${locale}`);
       fixture.detectChanges();
 
-      http
-        .expectOne((request) => request.url.endsWith("/products"))
-        .flush({
-          items: [],
-          meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-        });
+      homeProducts(locale).flush({
+        items: [],
+        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+      });
       fixture.detectChanges();
 
       expect(
@@ -180,12 +186,10 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
-    http
-      .expectOne((request) => request.url.endsWith("/products"))
-      .flush({
-        items: [],
-        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-      });
+    homeProducts("ru").flush({
+      items: [],
+      meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+    });
     fixture.detectChanges();
 
     expect(
@@ -197,12 +201,10 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
-    http
-      .expectOne((request) => request.url.endsWith("/products"))
-      .flush(
-        { message: "Unavailable" },
-        { status: 503, statusText: "Unavailable" },
-      );
+    homeProducts("ru").flush(
+      { message: "Unavailable" },
+      { status: 503, statusText: "Unavailable" },
+    );
     fixture.detectChanges();
 
     expect(
@@ -217,12 +219,10 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
-    http
-      .expectOne((request) => request.url.endsWith("/products"))
-      .flush({
-        items: [product],
-        meta: { page: 1, pageSize: 8, total: 1, totalPages: 1 },
-      });
+    homeProducts("ru").flush({
+      items: [product],
+      meta: { page: 1, pageSize: 8, total: 1, totalPages: 1 },
+    });
     fixture.detectChanges();
 
     const languages = Array.from(
@@ -258,28 +258,20 @@ describe("ATHLON public application", () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/en");
     fixture.detectChanges();
-    http
-      .expectOne((request) => request.url.endsWith("/products"))
-      .flush({
-        items: [],
-        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-      });
+    homeProducts("en").flush({
+      items: [],
+      meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+    });
     fixture.detectChanges();
     expect(document.title).toBe("Sports nutrition in Armenia | ATHLON");
 
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
     expect(document.title).toBe("Спортивное питание в Армении | ATHLON");
-    http
-      .expectOne(
-        (request) =>
-          request.url.endsWith("/products") &&
-          request.params.get("locale") === "ru",
-      )
-      .flush({
-        items: [],
-        meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
-      });
+    homeProducts("ru").flush({
+      items: [],
+      meta: { page: 1, pageSize: 8, total: 0, totalPages: 0 },
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain("Главная");
   });

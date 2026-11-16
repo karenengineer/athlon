@@ -2,7 +2,6 @@ import { Component, computed, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { distinctUntilChanged, Subscription } from "rxjs";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { Product } from "../../core/api/catalog.models";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { INSTAGRAM_PROFILE_URL } from "../../core/social-links";
@@ -13,6 +12,7 @@ import {
   createPageResponseStatus,
 } from "../../core/seo/page-metadata";
 import { homeContent } from "./home-content";
+import { HomeShowcase } from "./home-showcase";
 import {
   seoCopy,
   storeSchema,
@@ -53,7 +53,7 @@ export class HomePage {
   ] as const;
   readonly state = signal<HomeState>("loading");
   readonly products = signal<Product[]>([]);
-  private readonly api = inject(CatalogApiService);
+  private readonly showcase = inject(HomeShowcase);
   private readonly route = inject(ActivatedRoute);
   private readonly metadata = createPageMetadata();
   private readonly responseStatus = createPageResponseStatus();
@@ -81,19 +81,13 @@ export class HomePage {
       jsonLd: [storeSchema(currentLocale), websiteSchema(currentLocale)],
     });
     this.state.set("loading");
-    this.loadSubscription = this.api
-      .products({
-        locale,
-        category: "sports-nutrition",
-        sort: "displayOrder",
-        page: 1,
-        pageSize: 8,
-      })
+    this.loadSubscription = this.showcase
+      .products(locale)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (products) => {
-          this.products.set(products.items);
-          this.state.set(products.items.length ? "ready" : "empty");
+          this.products.set(products);
+          this.state.set(products.length ? "ready" : "empty");
         },
         error: () => {
           this.responseStatus(503);
