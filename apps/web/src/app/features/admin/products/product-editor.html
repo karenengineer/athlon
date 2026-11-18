@@ -158,7 +158,14 @@
 <app-admin-product-images
   [productId]="id"
   [images]="images()"
-  [disabled]="saving()"
+  [disabled]="saving() || videoManagerBusy()"
   (imagesChange)="images.set($event)"
+/>
+<app-admin-product-video
+  [productId]="id"
+  [video]="video()"
+  [coverUrl]="coverUrl()"
+  [disabled]="saving() || imageManagerBusy()"
+  (videoChange)="video.set($event)"
 />
 }

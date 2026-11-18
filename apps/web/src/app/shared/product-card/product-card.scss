@@ -278,3 +278,24 @@ p {
     flex-direction: column;
   }
 }
+
+.product-preview-video {
+  position: absolute;
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.product-preview-video.preview-playing {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-preview-video {
+    display: none;
+    transition: none;
+  }
+}

@@ -3,10 +3,11 @@ import { ProductsService } from "./products.service";
 import { PublicProductsController } from "./public-products.controller";
 import { AdminProductsController } from "./admin-products.controller";
 import { AdminProductsService } from "./admin-products.service";
+import { StorageModule } from "../storage/storage.module";
 import { AuthModule } from "../auth/auth.module";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, StorageModule],
   controllers: [PublicProductsController, AdminProductsController],
   providers: [ProductsService, AdminProductsService],
   exports: [ProductsService],

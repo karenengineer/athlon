@@ -7,6 +7,20 @@ import {
 
 const copy = {
   hy: {
+    videoHeading: "Ապրանքի նախադիտման տեսանյութ",
+    videoFile: "Տեսանյութ (ոչ պարտադիր)",
+    videoValidation: "MP4 կամ WebM՝ առավելագույնը 15 վայրկյան և 20 ՄԲ։",
+    videoSaveFirst:
+      "Պահեք ապրանքը, ավելացրեք հիմնական պատկերը, ապա վերբեռնեք ընտրված տեսանյութը։",
+    videoCoverRequired:
+      "Տեսանյութը վերբեռնելու համար նախ ավելացրեք հիմնական պատկերը։",
+    videoReplace: "Փոխարինել տեսանյութը",
+    videoCurrent: "Պահված տեսանյութ",
+    videoRemove: "Հեռացնել տեսանյութը",
+    videoProcessing: "Տեսանյութը մշակվում է…",
+    videoUploadError:
+      "Չհաջողվեց վերբեռնել տեսանյութը։ Ընտրված ֆայլը պահպանված է․ փորձեք կրկին։",
+    videoRemoveError: "Չհաջողվեց հեռացնել տեսանյութը։ Փորձեք կրկին։",
     yes: "Այո",
     no: "Ոչ",
     sku: "SKU",
@@ -172,6 +186,19 @@ const copy = {
     discard: "Չպահված փոփոխությունները կկորչեն։ Շարունակե՞լ։",
   },
   ru: {
+    videoHeading: "Видео предпросмотра товара",
+    videoFile: "Видео (необязательно)",
+    videoValidation: "MP4 или WebM, не более 15 секунд и 20 МБ.",
+    videoSaveFirst:
+      "Сохраните товар, добавьте обложку, затем загрузите выбранное видео.",
+    videoCoverRequired: "Перед загрузкой видео добавьте обложку товара.",
+    videoReplace: "Заменить видео",
+    videoCurrent: "Сохранённое видео",
+    videoRemove: "Удалить видео",
+    videoProcessing: "Обработка видео…",
+    videoUploadError:
+      "Не удалось загрузить видео. Выбранный файл сохранён — попробуйте снова.",
+    videoRemoveError: "Не удалось удалить видео. Попробуйте снова.",
     yes: "Да",
     no: "Нет",
     sku: "SKU",
@@ -337,6 +364,19 @@ const copy = {
     discard: "Несохранённые изменения будут потеряны. Продолжить?",
   },
   en: {
+    videoHeading: "Product preview video",
+    videoFile: "Video (optional)",
+    videoValidation: "MP4 or WebM, up to 15 seconds and 20 MB.",
+    videoSaveFirst:
+      "Save the product, add its cover image, then upload the selected video.",
+    videoCoverRequired: "Add a product cover image before uploading the video.",
+    videoReplace: "Replace video",
+    videoCurrent: "Saved video",
+    videoRemove: "Remove video",
+    videoProcessing: "Processing video…",
+    videoUploadError:
+      "The video could not be uploaded. Your selected file is kept — try again.",
+    videoRemoveError: "The video could not be removed. Try again.",
     yes: "Yes",
     no: "No",
     sku: "SKU",

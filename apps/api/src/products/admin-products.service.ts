@@ -1,8 +1,15 @@
 import {
   ConflictException,
+  Inject,
+  Optional,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import {
+  productVideoMetadata,
+  StoredProductVideo,
+} from "../media/product-video";
+import { STORAGE_ADAPTER, StorageAdapter } from "../storage/storage-adapter";
 import { PrismaService } from "../database/prisma.service";
 import { Prisma } from "../generated/prisma/client";
 import { CreateProductDto } from "./dto/create-product.dto";
@@ -18,7 +25,12 @@ import {
 
 @Injectable()
 export class AdminProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(STORAGE_ADAPTER)
+    private readonly storage?: StorageAdapter,
+  ) {}
 
   async list(query: AdminProductQueryDto): Promise<unknown> {
     const skip = adminListOffset(query);
@@ -48,6 +60,7 @@ export class AdminProductsService {
       category: true,
       brand: true,
       images: true,
+      video: true,
     } as const;
     if (query.sort === "name") {
       const [total, keys] = await Promise.all([
@@ -67,7 +80,12 @@ export class AdminProductsService {
             include,
           })
         : [];
-      return adminOrderedListEnvelope(ids, items, total, query);
+      return adminOrderedListEnvelope(
+        ids,
+        items.map(adminProduct),
+        total,
+        query,
+      );
     }
     const orderBy: Prisma.ProductOrderByWithRelationInput[] =
       query.sort === "priceAsc"
@@ -87,7 +105,7 @@ export class AdminProductsService {
         include,
       }),
     ]);
-    return adminListEnvelope(items, total, query);
+    return adminListEnvelope(items.map(adminProduct), total, query);
   }
 
   async get(id: string): Promise<unknown> {
@@ -95,33 +113,36 @@ export class AdminProductsService {
       where: { id },
       include: {
         translations: true,
+        video: true,
         images: { include: { translations: true } },
       },
     });
     if (!product) throw new NotFoundException("Product not found");
-    return product;
+    return adminProduct(product);
   }
 
   async create(input: CreateProductDto): Promise<unknown> {
     try {
-      return await this.prisma.product.create({
-        data: {
-          sku: input.sku,
-          slug: input.slug,
-          categoryId: input.categoryId,
-          ...(input.brandId !== undefined ? { brandId: input.brandId } : {}),
-          price: input.price ?? null,
-          currency: "AMD",
-          availability: input.availability,
-          characteristics: input.characteristics as Prisma.InputJsonValue,
-          featured: input.featured,
-          isNew: input.isNew,
-          published: input.published,
-          displayOrder: input.displayOrder,
-          translations: { create: input.translations },
-        },
-        include: { translations: true },
-      });
+      return adminProduct(
+        await this.prisma.product.create({
+          data: {
+            sku: input.sku,
+            slug: input.slug,
+            categoryId: input.categoryId,
+            ...(input.brandId !== undefined ? { brandId: input.brandId } : {}),
+            price: input.price ?? null,
+            currency: "AMD",
+            availability: input.availability,
+            characteristics: input.characteristics as Prisma.InputJsonValue,
+            featured: input.featured,
+            isNew: input.isNew,
+            published: input.published,
+            displayOrder: input.displayOrder,
+            translations: { create: input.translations },
+          },
+          include: { translations: true, video: true },
+        }),
+      );
     } catch (error) {
       rethrowProductWriteConflict(error);
     }
@@ -172,11 +193,13 @@ export class AdminProductsService {
         : {}),
     };
     try {
-      return await this.prisma.product.update({
-        where: { id },
-        data,
-        include: { translations: true },
-      });
+      return adminProduct(
+        await this.prisma.product.update({
+          where: { id },
+          data,
+          include: { translations: true, video: true },
+        }),
+      );
     } catch (error) {
       rethrowProductWriteConflict(error);
     }
@@ -190,7 +213,21 @@ export class AdminProductsService {
   async delete(id: string): Promise<void> {
     await this.ensureExists(id);
     try {
-      await this.prisma.product.delete({ where: { id } });
+      const previous = await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${id}::uuid FOR UPDATE`;
+        const product = await tx.product.findUnique({
+          where: { id },
+          include: { video: true },
+        });
+        if (!product) throw new NotFoundException("Product not found");
+        await tx.product.delete({ where: { id } });
+        return product.video;
+      });
+      if (previous && this.storage)
+        await Promise.allSettled([
+          this.storage.delete(previous.desktopKey),
+          this.storage.delete(previous.mobileKey),
+        ]);
     } catch (error) {
       rethrowCatalogConflict(error);
     }
@@ -226,4 +263,11 @@ function rethrowProductWriteConflict(error: unknown): never {
       "Product or category/brand link changed; reload before saving",
     );
   rethrowCatalogConflict(error);
+}
+
+function adminProduct<T extends { video?: StoredProductVideo | null }>(
+  product: T,
+) {
+  const { video, ...fields } = product;
+  return { ...fields, previewVideo: productVideoMetadata(video) };
 }

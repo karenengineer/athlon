@@ -1,3 +1,4 @@
+import { ProductPreviewVideo } from "../../../core/api/catalog.models";
 export interface AdminUser {
   id: string;
   email: string;
@@ -99,6 +100,7 @@ export interface AdminProduct extends Omit<AdminProductInput, "price"> {
   price: string | null;
   currency: string;
   images: AdminImage[];
+  previewVideo?: ProductPreviewVideo | null;
   createdAt: string;
   updatedAt: string;
 }

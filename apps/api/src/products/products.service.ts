@@ -3,6 +3,7 @@ import { Prisma } from "../generated/prisma/client";
 import { Locale } from "../generated/prisma/enums";
 import { parseLocale, selectTranslation } from "../common/localization/locale";
 import { PrismaService } from "../database/prisma.service";
+import { productVideoMetadata } from "../media/product-video";
 import { ProductQueryDto } from "./dto/product-query.dto";
 
 @Injectable()
@@ -116,6 +117,7 @@ export class ProductsService {
 
   private publicInclude(): Prisma.ProductInclude {
     return {
+      video: true,
       translations: true,
       category: { include: { translations: true } },
       brand: { include: { translations: true } },
@@ -177,6 +179,7 @@ export class ProductsService {
             name: brandTranslation?.name ?? product.brand.name,
           }
         : null,
+      previewVideo: productVideoMetadata(product.video),
       images: images.map((image) => ({
         id: image.id,
         thumbnailUrl: `/api/v1/media/${image.thumbnailKey}`,

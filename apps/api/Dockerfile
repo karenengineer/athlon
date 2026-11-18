@@ -31,7 +31,7 @@ ENV NODE_ENV=production \
   COREPACK_HOME=/usr/local/share/corepack
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl \
+  && apt-get install -y --no-install-recommends openssl ffmpeg \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable \
   && corepack prepare pnpm@11.19.0 --activate \

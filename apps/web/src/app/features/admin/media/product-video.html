@@ -1,0 +1,74 @@
+<section aria-labelledby="product-video-heading">
+  <h2 id="product-video-heading">{{ i18n.translate('videoHeading') }}</h2>
+  <p id="product-video-help">{{ i18n.translate('videoValidation') }}</p>
+  <label for="product-video-file">{{ i18n.translate('videoFile') }}</label>
+  <input
+    id="product-video-file"
+    type="file"
+    accept="video/mp4,video/webm"
+    [disabled]="busy() || disabled"
+    aria-describedby="product-video-help"
+    (change)="chooseFile($event)"
+  />
+  @if (!productId) {
+  <p>{{ i18n.translate('videoSaveFirst') }}</p>
+  } @else if (!coverUrl) {
+  <p>{{ i18n.translate('videoCoverRequired') }}</p>
+  } @if (localUrl(); as url) {
+  <p>{{ file()?.name }}</p>
+  <video
+    class="admin-video-preview"
+    [src]="url"
+    [poster]="coverUrl || ''"
+    controls
+    muted
+    playsinline
+    preload="metadata"
+    (loadedmetadata)="metadata($event)"
+    (error)="previewError()"
+  ></video>
+  <div class="form-actions">
+    <button
+      type="button"
+      (click)="upload()"
+      [disabled]="!productId || !coverUrl || !durationValid() || busy() || disabled"
+    >
+      {{ i18n.translate(video ? 'videoReplace' : 'upload') }}
+    </button>
+    <button
+      type="button"
+      (click)="clearSelection()"
+      [disabled]="busy() || disabled"
+    >
+      {{ i18n.translate('cancel') }}
+    </button>
+  </div>
+  } @if (video; as savedVideo) {
+  <p>{{ i18n.translate('videoCurrent') }}</p>
+  <video
+    class="admin-video-preview"
+    [src]="savedVideo.url"
+    [poster]="coverUrl || ''"
+    controls
+    muted
+    playsinline
+    preload="none"
+  ></video>
+  <button
+    type="button"
+    (click)="confirmingDelete.set(true)"
+    [disabled]="busy() || disabled"
+  >
+    {{ i18n.translate('videoRemove') }}
+  </button>
+  } @if (busy()) {
+  <p role="status">{{ i18n.translate('videoProcessing') }}</p>
+  } @if (error(); as key) {
+  <p role="alert">{{ i18n.translate(key) }}</p>
+  } @if (confirmingDelete()) {
+  <app-admin-delete-confirmation
+    [name]="i18n.translate('videoHeading')"
+    (decision)="remove($event)"
+  />
+  }
+</section>

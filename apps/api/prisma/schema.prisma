@@ -165,6 +165,7 @@ model Product {
   lowStockThreshold Int                  @default(2)
   translations      ProductTranslation[]
   images            ProductImage[]
+  video             ProductVideo?
   purchaseItems     PurchaseItem[]
   saleItems         SaleItem[]
   orderItems        OrderItem[]
@@ -521,4 +522,16 @@ model CardPaymentTestOrderId {
   orderId   Int      @id
   reference String   @unique @db.Uuid
   createdAt DateTime @default(now())
+}
+
+model ProductVideo {
+  productId       String   @id @db.Uuid
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  desktopKey      String   @db.VarChar(500)
+  mobileKey       String   @db.VarChar(500)
+  durationSeconds Float
+  sizeBytes       Int
+  mobileSizeBytes Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

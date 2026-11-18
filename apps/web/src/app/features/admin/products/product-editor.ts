@@ -10,6 +10,9 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ReactiveFormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { forkJoin, Subscription } from "rxjs";
+import { ProductVideo } from "../media/product-video";
+import { ProductPreviewVideo } from "../../../core/api/catalog.models";
+import { productImageUrl } from "./product-preview";
 import { ProductImages } from "../media/product-images";
 import {
   AdminBrand,
@@ -33,6 +36,7 @@ import { ProductPreview } from "./product-preview";
     TranslationTabs,
     ProductPreview,
     ProductImages,
+    ProductVideo,
   ],
   templateUrl: "./product-editor.html",
   styleUrl: "../shared/catalog.scss",
@@ -44,6 +48,8 @@ export class ProductEditor implements AdminDirtyForm {
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   @ViewChild(ProductImages) private imageManager?: ProductImages;
+  @ViewChild(ProductVideo) private videoManager?: ProductVideo;
+  readonly video = signal<ProductPreviewVideo | null>(null);
   readonly form = productForm();
   readonly availabilities = availabilities;
   readonly loading = signal(false);
@@ -70,6 +76,7 @@ export class ProductEditor implements AdminDirtyForm {
         this.id = params.get("id");
         this.persisted.set(null);
         this.images.set([]);
+        this.video.set(null);
         this.baseline = "";
         this.saving.set(false);
         this.preview.set(false);
@@ -97,6 +104,7 @@ export class ProductEditor implements AdminDirtyForm {
         next: (product) => {
           if (generation !== this.generation) return;
           this.accept(product);
+          this.video.set(product.previewVideo ?? null);
           this.images.set(
             [...product.images].sort(
               (a, b) => a.position - b.position || a.id.localeCompare(b.id),
@@ -148,8 +156,14 @@ export class ProductEditor implements AdminDirtyForm {
   draft() {
     return productPayload(this.form, this.persisted()?.translations);
   }
-  mediaBusy(): boolean {
+  videoManagerBusy(): boolean {
+    return this.videoManager?.busy() ?? false;
+  }
+  imageManagerBusy(): boolean {
     return this.imageManager?.busy() ?? false;
+  }
+  mediaBusy(): boolean {
+    return !!this.imageManager?.busy() || !!this.videoManager?.busy();
   }
   submit(): void {
     this.form.markAllAsTouched();
@@ -160,7 +174,7 @@ export class ProductEditor implements AdminDirtyForm {
       this.optionsLoading() ||
       this.optionsError() ||
       this.error() === "error" ||
-      this.imageManager?.busy()
+      this.mediaBusy()
     )
       return;
     const input = this.draft();
@@ -178,11 +192,13 @@ export class ProductEditor implements AdminDirtyForm {
         this.accept(product);
         this.saving.set(false);
         this.saved.set(true);
-        if (!editingId)
+        if (!editingId) {
+          this.videoManager?.preserveForCreatedProduct(product.id);
           void this.router.navigate(["/admin/products", product.id, "edit"], {
             replaceUrl: true,
             queryParamsHandling: "preserve",
           });
+        }
       },
       error: (error) => {
         if (generation !== this.generation) return;
@@ -219,11 +235,17 @@ export class ProductEditor implements AdminDirtyForm {
     this.form.markAsPristine();
     this.baseline = JSON.stringify(this.form.getRawValue());
   }
+  coverUrl(): string | null {
+    const image =
+      this.images().find((image) => image.primary) ?? this.images()[0];
+    return image ? productImageUrl(image.cardKey) : null;
+  }
   hasUnsavedChanges(): boolean {
     return (
       (this.baseline !== "" &&
         JSON.stringify(this.form.getRawValue()) !== this.baseline) ||
-      !!this.imageManager?.hasUnsavedChanges()
+      !!this.imageManager?.hasUnsavedChanges() ||
+      !!this.videoManager?.hasUnsavedChanges()
     );
   }
   confirmDiscard(): boolean {

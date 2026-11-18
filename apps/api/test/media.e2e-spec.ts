@@ -47,6 +47,7 @@ describe("Secure product media HTTP", () => {
     read: (key: string) => Promise.resolve(files.get(key)),
   };
   const prisma = {
+    $queryRaw: jest.fn(() => Promise.resolve([{ id: productId }])),
     product: { findUnique: jest.fn(() => Promise.resolve({ id: productId })) },
     productImage: {
       findUnique: jest.fn(({ where }) =>

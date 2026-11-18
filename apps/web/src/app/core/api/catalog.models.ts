@@ -23,6 +23,15 @@ export interface ProductImage {
   primary: boolean;
 }
 
+export interface ProductPreviewVideo {
+  url: string;
+  mobileUrl: string;
+  mimeType: "video/mp4";
+  durationSeconds: number;
+  sizeBytes: number;
+  mobileSizeBytes: number;
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -39,6 +48,7 @@ export interface Product {
   category: { slug: string; name: string };
   brand: { slug: string; name: string } | null;
   images: ProductImage[];
+  previewVideo?: ProductPreviewVideo | null;
 }
 
 export interface Brand {
