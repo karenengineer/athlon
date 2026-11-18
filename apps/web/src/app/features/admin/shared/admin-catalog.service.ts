@@ -1,3 +1,4 @@
+import { ProductPreviewVideo } from "../../../core/api/catalog.models";
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { map, Observable, of, switchMap } from "rxjs";
@@ -122,6 +123,17 @@ export class AdminCatalogService {
     return this.http.delete<void>(
       `${this.base}/products/${productId}/images/${imageId}`,
     );
+  }
+  uploadVideo(productId: string, file: File): Observable<ProductPreviewVideo> {
+    const body = new FormData();
+    body.append("file", file);
+    return this.http.put<ProductPreviewVideo>(
+      `${this.base}/products/${productId}/video`,
+      body,
+    );
+  }
+  deleteVideo(productId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/products/${productId}/video`);
   }
   allBrands(page = 1): Observable<AdminBrand[]> {
     return this.listBrands({ page, pageSize: 100, sort: "order" }).pipe(

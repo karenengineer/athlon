@@ -274,12 +274,27 @@ export class MediaService {
   }
 
   async delete(productId: string, imageId: string): Promise<void> {
-    const image = await this.prisma.productImage.findUnique({
-      where: { id: imageId },
+    const image = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Product" WHERE id = ${productId}::uuid FOR UPDATE`;
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+        include: { video: true },
+      });
+      const image = await tx.productImage.findUnique({
+        where: { id: imageId },
+      });
+      if (!image || image.productId !== productId)
+        throw new NotFoundException("Image not found");
+      if (
+        product?.video &&
+        (await tx.productImage.count({ where: { productId } })) <= 1
+      )
+        throw new BadRequestException(
+          "Remove the preview video before deleting the last cover image",
+        );
+      await tx.productImage.delete({ where: { id: imageId } });
+      return image;
     });
-    if (!image || image.productId !== productId)
-      throw new NotFoundException("Image not found");
-    await this.prisma.productImage.delete({ where: { id: imageId } });
     await Promise.allSettled(
       [
         image.originalKey,

@@ -24,6 +24,7 @@ describe("Admin catalog", () => {
   let accessToken: string;
   const csrf = "known-csrf-token";
   const prisma = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     $transaction: jest
       .fn()
       .mockImplementation((callback: (tx: unknown) => Promise<unknown>) =>
@@ -789,6 +790,12 @@ describe("Admin catalog", () => {
   );
 
   it("preserves nullable product update fields", async () => {
+    prisma.product.update.mockResolvedValueOnce({
+      ...fixtures.products.find((product) => product.id === "p1"),
+      price: null,
+      brandId: null,
+      video: null,
+    });
     await request(app.getHttpServer())
       .patch("/api/v1/admin/products/p1")
       .set("Cookie", cookies())

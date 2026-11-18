@@ -4,7 +4,8 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile, stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import { isAbsolute, resolve, sep } from "node:path";
 import { StorageAdapter } from "./storage-adapter";
 
@@ -33,6 +34,21 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  async stat(key: string): Promise<{ size: number }> {
+    const path = this.safePath(key);
+    try {
+      const file = await stat(path);
+      if (!file.isFile()) throw new Error("Not a file");
+      return { size: file.size };
+    } catch {
+      throw new NotFoundException("Media not found");
+    }
+  }
+
+  stream(key: string, range?: { start: number; end: number }) {
+    return createReadStream(this.safePath(key), range);
+  }
+
   async delete(key: string): Promise<void> {
     await rm(this.safePath(key), { force: true });
   }
@@ -43,7 +59,10 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   private safePath(key: string): string {
-    if (!/^[0-9a-f-]+-(original|thumbnail|card|detail)\.webp$/.test(key)) {
+    if (
+      !/^[0-9a-f-]+-(original|thumbnail|card|detail)\.webp$/.test(key) &&
+      !/^[0-9a-f-]+-preview-(desktop|mobile)\.mp4$/.test(key)
+    ) {
       throw new BadRequestException("Invalid storage key");
     }
     const path = resolve(this.root, key);

@@ -1,5 +1,6 @@
 import { CurrencyPipe } from "@angular/common";
 import { Component, computed, inject, input } from "@angular/core";
+import { ProductVideoPreview } from "./product-video-preview";
 import { RouterLink } from "@angular/router";
 import { Product } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
@@ -7,7 +8,7 @@ import { I18nService } from "../../core/i18n/i18n.service";
 
 @Component({
   selector: "app-product-card",
-  imports: [CurrencyPipe, RouterLink],
+  imports: [CurrencyPipe, RouterLink, ProductVideoPreview],
   templateUrl: "./product-card.html",
   styleUrl: "./product-card.scss",
 })

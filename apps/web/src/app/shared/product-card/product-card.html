@@ -15,6 +15,19 @@
       height="560"
       [attr.loading]="eager() ? 'eager' : 'lazy'"
     />
+    @if (product().previewVideo; as video) {
+    <video
+      class="product-preview-video"
+      [appProductVideoPreview]="video"
+      [poster]="imageUrl()"
+      preload="none"
+      muted
+      loop
+      playsinline
+      aria-hidden="true"
+      tabindex="-1"
+    ></video>
+    }
   </a>
   <div class="card-copy">
     <div class="meta-row">
