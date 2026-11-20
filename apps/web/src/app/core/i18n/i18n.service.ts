@@ -61,6 +61,7 @@ type Copy = {
   onRequest: string;
   unavailable: string;
   recommended: string;
+  athlonChoice: string;
   newest: string;
   priceAsc: string;
   priceDesc: string;
@@ -213,6 +214,7 @@ const copy: Record<Locale, Copy> = {
     onRequest: "Под заказ",
     unavailable: "Нет в наличии",
     recommended: "Рекомендуемые",
+    athlonChoice: "Выбор ATHLON",
     newest: "Новинки",
     priceAsc: "Сначала дешевле",
     priceDesc: "Сначала дороже",
@@ -381,6 +383,7 @@ const copy: Record<Locale, Copy> = {
     onRequest: "Պատվերով",
     unavailable: "Առկա չէ",
     recommended: "Առաջարկվող",
+    athlonChoice: "ATHLON-ի ընտրություն",
     newest: "Նորույթներ",
     priceAsc: "Գինը՝ ցածրից",
     priceDesc: "Գինը՝ բարձրից",
@@ -549,6 +552,7 @@ const copy: Record<Locale, Copy> = {
     onRequest: "On request",
     unavailable: "Out of stock",
     recommended: "Recommended",
+    athlonChoice: "ATHLON’s choice",
     newest: "Newest",
     priceAsc: "Lowest price",
     priceDesc: "Highest price",

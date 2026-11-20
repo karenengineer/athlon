@@ -1,34 +1,48 @@
 <article class="product-card">
-  <a
-    class="image-well"
-    [routerLink]="['/', i18n.locale(), 'product', product().slug]"
-    tabindex="-1"
-    aria-hidden="true"
+  <div
+    class="image-region"
+    [class.image-region--recommended]="product().featured"
+    [class.image-region--two-badges]="product().featured && product().isNew"
   >
-    @if (product().isNew) {
-    <span class="badge">NEW</span>
-    }
-    <img
-      [src]="imageUrl()"
-      [alt]="product().images[0]?.alt || product().name"
-      width="560"
-      height="560"
-      [attr.loading]="eager() ? 'eager' : 'lazy'"
-    />
-    @if (product().previewVideo; as video) {
-    <video
-      class="product-preview-video"
-      [appProductVideoPreview]="video"
-      [poster]="imageUrl()"
-      preload="none"
-      muted
-      loop
-      playsinline
-      aria-hidden="true"
+    <a
+      class="image-well"
+      [routerLink]="['/', i18n.locale(), 'product', product().slug]"
       tabindex="-1"
-    ></video>
+      aria-hidden="true"
+    >
+      <img
+        [src]="imageUrl()"
+        [alt]="product().images[0]?.alt || product().name"
+        width="560"
+        height="560"
+        [attr.loading]="eager() ? 'eager' : 'lazy'"
+      />
+      @if (product().previewVideo; as video) {
+      <video
+        class="product-preview-video"
+        [appProductVideoPreview]="video"
+        [poster]="imageUrl()"
+        preload="none"
+        muted
+        loop
+        playsinline
+        aria-hidden="true"
+        tabindex="-1"
+      ></video>
+      }
+    </a>
+    @if (product().featured || product().isNew) {
+    <div class="badge-stack">
+      @if (product().featured) {
+      <span class="badge badge--choice"
+        ><span aria-hidden="true">★</span>{{ i18n.t("athlonChoice") }}</span
+      >
+      } @if (product().isNew) {
+      <span class="badge badge--new">NEW</span>
+      }
+    </div>
     }
-  </a>
+  </div>
   <div class="card-copy">
     <div class="meta-row">
       <span>{{ product().brand?.name || product().category.name }}</span>

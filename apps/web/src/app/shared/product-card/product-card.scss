@@ -17,6 +17,18 @@
   box-shadow: 0 14px 34px rgb(16 16 18 / 12%);
 }
 
+.image-region {
+  position: relative;
+}
+
+.image-region--recommended {
+  --badge-space: 32px;
+}
+
+.image-region--two-badges {
+  --badge-space: 64px;
+}
+
 .image-well {
   position: relative;
   display: grid;
@@ -38,10 +50,17 @@
   transform: rotate(28deg);
 }
 
-img {
+img,
+.product-preview-video {
+  position: absolute;
+  top: calc(7% + var(--badge-space, 0px));
+  left: 7%;
   width: 86%;
-  height: 86%;
+  height: calc(86% - var(--badge-space, 0px));
   object-fit: contain;
+}
+
+img {
   transition: transform 220ms ease;
 }
 
@@ -49,11 +68,18 @@ img {
   transform: scale(1.035);
 }
 
-.badge {
+.badge-stack {
   position: absolute;
   z-index: 2;
-  top: 13px;
-  left: 13px;
+  inset: 13px 13px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.badge {
   padding: 5px 8px;
   border-radius: 3px;
   color: #fff;
@@ -61,6 +87,21 @@ img {
   font-size: 0.65rem;
   font-weight: 900;
   letter-spacing: 0.09em;
+}
+
+.badge--choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  border-radius: 6px;
+  letter-spacing: 0;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.badge--choice > span {
+  flex-shrink: 0;
 }
 
 .card-copy {
@@ -227,6 +268,16 @@ p {
 }
 
 @media (max-width: 600px) {
+  .badge-stack {
+    inset: 8px 8px auto;
+    gap: 4px;
+  }
+
+  .badge--choice {
+    padding: 5px 6px;
+    font-size: 0.6rem;
+  }
+
   .card-copy {
     padding: 13px;
   }
@@ -280,10 +331,6 @@ p {
 }
 
 .product-preview-video {
-  position: absolute;
-  width: 86%;
-  height: 86%;
-  object-fit: contain;
   pointer-events: none;
   opacity: 0;
   transition: opacity 220ms ease;
