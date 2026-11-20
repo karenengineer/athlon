@@ -102,6 +102,106 @@ describe("Catalog category content and metadata", () => {
     fixture.detectChanges();
   }
 
+  function categoriesWithAccessories(): Category[] {
+    return [
+      ...structuredClone(publishedCategories),
+      {
+        id: "accessories",
+        code: "accessories",
+        slug: "accessories",
+        name: "Accessories",
+        description: null,
+        displayOrder: 10,
+        children: [
+          {
+            id: "training",
+            code: "training-accessories",
+            slug: "training-accessories",
+            name: "Training accessories",
+            description: null,
+            displayOrder: 11,
+          },
+          {
+            id: "bands",
+            code: "resistance-bands",
+            slug: "resistance-bands",
+            name: "Resistance bands",
+            description: null,
+            displayOrder: 12,
+          },
+        ],
+      },
+    ];
+  }
+
+  it("includes published accessory types alongside nutrition types", async () => {
+    await visit("/en/catalog");
+    flushCatalog(categoriesWithAccessories());
+    const select = fixture.nativeElement.querySelector(
+      'select[name="category"]',
+    ) as HTMLSelectElement;
+    expect(Array.from(select.options).map((option) => option.value)).toEqual([
+      "",
+      "protein",
+      "new-category",
+      "accessories",
+      "training-accessories",
+      "resistance-bands",
+    ]);
+    expect(select.textContent).toContain("Training accessories");
+  });
+
+  it("selects a directly visited training accessories category", async () => {
+    await visit("/ru/catalog/training-accessories");
+    const categories = categoriesWithAccessories();
+    categories[1].children[0].name = "Тренировочные аксессуары";
+    flushCatalog(categories);
+    await fixture.whenStable();
+    const select = fixture.nativeElement.querySelector(
+      'select[name="category"]',
+    ) as HTMLSelectElement;
+    expect(select.value).toBe("training-accessories");
+    expect(select.selectedOptions[0].textContent).toBe(
+      "Тренировочные аксессуары",
+    );
+  });
+
+  it("applies training accessories while preserving locale and other filters", async () => {
+    await visit(
+      "/en/catalog/protein?q=band&brand=trec&availability=IN_STOCK&minPrice=1000&maxPrice=3000&sort=priceAsc",
+    );
+    flushCatalog(categoriesWithAccessories());
+    await fixture.whenStable();
+    const select = fixture.nativeElement.querySelector(
+      'select[name="category"]',
+    ) as HTMLSelectElement;
+    select.value = "training-accessories";
+    select.dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.nativeElement
+      .querySelector("#catalog-filters")
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(router.url).toBe(
+      "/en/catalog/training-accessories?q=band&brand=trec&availability=IN_STOCK&minPrice=1000&maxPrice=3000&sort=priceAsc",
+    );
+    const products = http.expectOne((request) =>
+      request.url.endsWith("/products"),
+    );
+    expect(products.request.params.get("category")).toBe(
+      "training-accessories",
+    );
+    expect(products.request.params.get("availability")).toBe("IN_STOCK");
+    expect(products.request.params.get("brand")).toBe("trec");
+    products.flush({
+      items: [],
+      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+    });
+    flushCatalog(categoriesWithAccessories());
+  });
+
   function description(): string {
     return meta.getTag('name="description"')?.content ?? "";
   }
