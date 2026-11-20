@@ -133,6 +133,40 @@ h1 {
   margin-bottom: 16px;
 }
 
+.showcase-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 4px;
+  border: 1px solid #d9d9dd;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.showcase-tabs button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #171719;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.showcase-tabs button[aria-pressed="true"] {
+  background: #171719;
+  color: #fff;
+}
+
+.showcase-tabs button:focus-visible {
+  outline: 2px solid #b32230;
+  outline-offset: 2px;
+}
+
 .section-heading h2 {
   margin: 0;
   color: #171719;

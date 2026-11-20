@@ -1,4 +1,4 @@
-import { provideHttpClient } from "@angular/common/http";
+import { HttpRequest, provideHttpClient } from "@angular/common/http";
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -86,7 +86,7 @@ describe("ATHLON public application", () => {
     );
   }
 
-  it("shows sports nutrition products on home without category tabs", async () => {
+  it("switches the home showcase between nutrition and accessories", async () => {
     const fixture = TestBed.createComponent(App);
     await router.navigateByUrl("/ru");
     fixture.detectChanges();
@@ -104,12 +104,44 @@ describe("ATHLON public application", () => {
     const categoryControls = fixture.nativeElement.querySelectorAll(
       "[data-testid=category-control]",
     );
-    expect(categoryControls).toHaveLength(0);
-    expect(
-      fixture.nativeElement.querySelector(".showcase").textContent,
-    ).not.toContain("Аксессуары");
+    expect(categoryControls).toHaveLength(2);
+    expect(categoryControls[0].textContent).toContain("Спортивное питание");
+    expect(categoryControls[1].textContent).toContain("Аксессуары");
+    expect(categoryControls[0].getAttribute("aria-pressed")).toBe("true");
     expect(fixture.nativeElement.textContent).toContain("Демо протеин");
     expect(fixture.nativeElement.textContent).toContain("Уточнить цену");
+
+    const isAccessories = (request: HttpRequest<unknown>) =>
+      request.url.endsWith("/products") &&
+      request.params.get("category") === "accessories";
+    http.expectNone(isAccessories);
+    categoryControls[1].click();
+    fixture.detectChanges();
+    const accessories = http.expectOne(isAccessories);
+    expect(accessories.request.params.get("locale")).toBe("ru");
+    accessories.flush(null, { status: 503, statusText: "Unavailable" });
+    fixture.detectChanges();
+    fixture.nativeElement.querySelector('[data-testid="retry-home"]').click();
+    http
+      .expectOne(isAccessories)
+      .flush({ items: [{ ...product, name: "Демо эспандер" }] });
+    fixture.detectChanges();
+    expect(categoryControls[1].getAttribute("aria-pressed")).toBe("true");
+    expect(fixture.nativeElement.textContent).toContain("Демо эспандер");
+    expect(fixture.nativeElement.textContent).not.toContain("Демо протеин");
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-testid="see-all-products"]')
+        .getAttribute("href"),
+    ).toBe("/ru/catalog/accessories");
+
+    categoryControls[0].click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain("Демо протеин");
+    categoryControls[1].click();
+    fixture.detectChanges();
+    http.expectNone(isAccessories);
+    expect(fixture.nativeElement.textContent).toContain("Демо эспандер");
   });
 
   it("uses see all products CTAs above and below the home showcase", async () => {

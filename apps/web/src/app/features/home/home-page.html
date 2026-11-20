@@ -19,39 +19,60 @@
 <section class="showcase">
   <div
     class="page-width showcase-layout"
-    [class.has-bands]="state() === 'ready' && bands().length > 0"
+    [class.has-bands]="showcaseState() === 'ready' && showcaseBands().length > 0"
   >
     <div class="showcase-main">
       <header class="section-heading">
         <div>
-          <p class="eyebrow red">{{ i18n.t("showcaseEyebrow") }}</p>
-          <h2>{{ i18n.t("showcaseTitle") }}</h2>
+          <div
+            class="showcase-tabs"
+            role="group"
+            [attr.aria-label]="i18n.t('showcaseCategoryLabel')"
+          >
+            <button
+              type="button"
+              data-testid="category-control"
+              [attr.aria-pressed]="!showingAccessories()"
+              (click)="selectCategory('sports-nutrition')"
+            >
+              {{ i18n.t("showcaseEyebrow") }}
+            </button>
+            <button
+              type="button"
+              data-testid="category-control"
+              [attr.aria-pressed]="showingAccessories()"
+              (click)="selectCategory('accessories')"
+            >
+              {{ i18n.t("showcaseAccessories") }}
+            </button>
+          </div>
+          <h2>
+            {{ i18n.t(showingAccessories() ? "showcaseAccessories" :
+            "showcaseTitle") }}
+          </h2>
         </div>
-        <a
-          data-testid="see-all-products"
-          [routerLink]="['/', i18n.locale(), 'catalog']"
-        >
+        <a data-testid="see-all-products" [routerLink]="showcaseCatalogLink()">
           {{ i18n.t("viewAll") }} <span aria-hidden="true">→</span>
         </a>
       </header>
 
-      @switch (state()) { @case ("loading") {
+      @switch (showcaseState()) { @case ("idle") {} @case ("loading") {
       <app-status-panel kind="loading" />
       } @case ("error") {
-      <app-status-panel kind="error" (retry)="load()" />
+      <app-status-panel kind="error" (retry)="retryShowcase()" />
       } @case ("empty") {
       <app-status-panel kind="empty" />
       } @default {
       <app-product-grid
-        [products]="products()"
+        [products]="showcaseProducts()"
         [eagerFirstRow]="true"
-        [insertAfterFirstRow]="bands().length > 0"
+        [insertAfterFirstRow]="showcaseBands().length > 0"
       >
-        @if (bands().length) {
+        @if (showcaseBands().length) {
         <app-home-band-suggestions
           class="bands-inline"
           layout="inline"
-          [products]="bands()"
+          [products]="showcaseBands()"
         />
         }
       </app-product-grid>
@@ -59,16 +80,19 @@
         <a
           class="primary-button"
           data-testid="see-all-products"
-          [routerLink]="['/', i18n.locale(), 'catalog']"
+          [routerLink]="showcaseCatalogLink()"
         >
           {{ i18n.t("viewAll") }} <span aria-hidden="true">→</span>
         </a>
       </div>
       } }
     </div>
-    @if (state() === "ready" && bands().length) {
+    @if (showcaseState() === "ready" && showcaseBands().length) {
     <aside class="bands-aside">
-      <app-home-band-suggestions layout="sidebar" [products]="bands()" />
+      <app-home-band-suggestions
+        layout="sidebar"
+        [products]="showcaseBands()"
+      />
     </aside>
     }
   </div>
