@@ -16,8 +16,14 @@
   </nav>
   <div class="product-layout">
     <div class="gallery">
-      <div class="main-image">
+      <div
+        class="main-image"
+        (pointerdown)="onSwipeStart($event)"
+        (pointerup)="onSwipeEnd($event)"
+        (pointercancel)="onSwipeCancel()"
+      >
         <img
+          draggable="false"
           [src]="image()"
           [alt]="item.images[selectedImage()]?.alt || item.name"
           width="900"
