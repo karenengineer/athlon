@@ -37,6 +37,8 @@ type Copy = {
   communityWheyAlt: string;
   explore: string;
   showcaseEyebrow: string;
+  showcaseAccessories: string;
+  showcaseCategoryLabel: string;
   showcaseTitle: string;
   viewAll: string;
   details: string;
@@ -196,6 +198,8 @@ const copy: Record<Locale, Copy> = {
     communityWheyAlt: "Шоколадный протеин TREC Whey 100 и шейкер",
     explore: "Смотреть товары",
     showcaseEyebrow: "Спортивное питание",
+    showcaseAccessories: "Аксессуары",
+    showcaseCategoryLabel: "Категории товаров",
     showcaseTitle: "Популярное сейчас",
     viewAll: "Все товары",
     details: "Подробнее",
@@ -371,6 +375,8 @@ const copy: Record<Locale, Copy> = {
     communityWheyAlt: "Շոկոլադե TREC Whey 100 պրոտեին և շեյքեր",
     explore: "Դիտել ապրանքները",
     showcaseEyebrow: "Սպորտային սնունդ",
+    showcaseAccessories: "Աքսեսուարներ",
+    showcaseCategoryLabel: "Ապրանքների բաժիններ",
     showcaseTitle: "Պահանջված ապրանքներ",
     viewAll: "Տեսնել բոլոր ապրանքները",
     details: "Մանրամասն",
@@ -546,6 +552,8 @@ const copy: Record<Locale, Copy> = {
     communityWheyAlt: "Chocolate TREC Whey 100 protein and shaker",
     explore: "Explore products",
     showcaseEyebrow: "Sports nutrition",
+    showcaseAccessories: "Accessories",
+    showcaseCategoryLabel: "Product categories",
     showcaseTitle: "Popular right now",
     viewAll: "See all products",
     details: "Details",

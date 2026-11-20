@@ -33,6 +33,7 @@ import {
 } from "../../core/seo/seo-content";
 
 type HomeState = "loading" | "ready" | "empty" | "error";
+type ShowcaseCategory = "sports-nutrition" | "accessories";
 
 @Component({
   selector: "app-home-page",
@@ -67,6 +68,25 @@ export class HomePage {
   readonly state = signal<HomeState>("loading");
   readonly products = signal<Product[]>([]);
   readonly bands = signal<Product[]>([]);
+  readonly selectedCategory = signal<ShowcaseCategory>("sports-nutrition");
+  readonly showingAccessories = computed(
+    () => this.selectedCategory() === "accessories",
+  );
+  private readonly accessoryState = signal<HomeState | "idle">("idle");
+  private readonly accessories = signal<Product[]>([]);
+  readonly showcaseState = computed(() =>
+    this.showingAccessories() ? this.accessoryState() : this.state(),
+  );
+  readonly showcaseProducts = computed(() =>
+    this.showingAccessories() ? this.accessories() : this.products(),
+  );
+  readonly showcaseBands = computed(() =>
+    this.showingAccessories() ? [] : this.bands(),
+  );
+  readonly showcaseCatalogLink = computed(() => {
+    const catalog = ["/", this.i18n.locale(), "catalog"];
+    return this.showingAccessories() ? [...catalog, "accessories"] : catalog;
+  });
   private readonly showcase = inject(HomeShowcase);
   private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
@@ -75,6 +95,7 @@ export class HomePage {
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
   private bandsSubscription?: Subscription;
+  private accessoriesSubscription?: Subscription;
 
   constructor() {
     this.route.parent?.paramMap
@@ -86,8 +107,12 @@ export class HomePage {
     locale = this.route.parent?.snapshot.paramMap.get("locale") ?? "hy",
   ): void {
     this.loadSubscription?.unsubscribe();
+    this.accessoriesSubscription?.unsubscribe();
+    this.accessories.set([]);
+    this.accessoryState.set("idle");
     this.i18n.setLocale(locale);
     const currentLocale = this.i18n.locale();
+    if (this.showingAccessories()) this.loadAccessories();
     this.responseStatus(200);
     this.metadata.set({
       title: seoCopy[currentLocale].homeTitle,
@@ -115,6 +140,39 @@ export class HomePage {
           });
           this.state.set("error");
         },
+      });
+  }
+
+  selectCategory(category: ShowcaseCategory): void {
+    this.selectedCategory.set(category);
+    if (category === "accessories" && this.accessoryState() === "idle") {
+      this.loadAccessories();
+    }
+  }
+
+  retryShowcase(): void {
+    if (this.showingAccessories()) this.loadAccessories();
+    else this.load();
+  }
+
+  private loadAccessories(): void {
+    this.accessoriesSubscription?.unsubscribe();
+    this.accessoryState.set("loading");
+    this.accessoriesSubscription = this.api
+      .products({
+        locale: this.i18n.locale(),
+        category: "accessories",
+        sort: "displayOrder",
+        page: 1,
+        pageSize: 8,
+      })
+      .pipe(timeout({ first: 5000 }), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ items }) => {
+          this.accessories.set(items);
+          this.accessoryState.set(items.length ? "ready" : "empty");
+        },
+        error: () => this.accessoryState.set("error"),
       });
   }
 
