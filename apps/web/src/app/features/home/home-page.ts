@@ -1,7 +1,15 @@
 import { Component, computed, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { distinctUntilChanged, Subscription } from "rxjs";
+import {
+  catchError,
+  distinctUntilChanged,
+  map,
+  of,
+  Subscription,
+  timeout,
+} from "rxjs";
 import { ActivatedRoute, RouterLink } from "@angular/router";
+import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { Product } from "../../core/api/catalog.models";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { INSTAGRAM_PROFILE_URL } from "../../core/social-links";
@@ -12,6 +20,11 @@ import {
   createPageResponseStatus,
 } from "../../core/seo/page-metadata";
 import { homeContent } from "./home-content";
+import {
+  bandsCategorySlug,
+  HomeBandSuggestions,
+  pickBandSuggestions,
+} from "./home-band-suggestions";
 import { HomeShowcase } from "./home-showcase";
 import {
   seoCopy,
@@ -23,7 +36,7 @@ type HomeState = "loading" | "ready" | "empty" | "error";
 
 @Component({
   selector: "app-home-page",
-  imports: [RouterLink, ProductGrid, StatusPanel],
+  imports: [RouterLink, ProductGrid, StatusPanel, HomeBandSuggestions],
   templateUrl: "./home-page.html",
   styleUrl: "./home-page.scss",
 })
@@ -53,12 +66,15 @@ export class HomePage {
   ] as const;
   readonly state = signal<HomeState>("loading");
   readonly products = signal<Product[]>([]);
+  readonly bands = signal<Product[]>([]);
   private readonly showcase = inject(HomeShowcase);
+  private readonly api = inject(CatalogApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly metadata = createPageMetadata();
   private readonly responseStatus = createPageResponseStatus();
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
+  private bandsSubscription?: Subscription;
 
   constructor() {
     this.route.parent?.paramMap
@@ -81,6 +97,7 @@ export class HomePage {
       jsonLd: [storeSchema(currentLocale), websiteSchema(currentLocale)],
     });
     this.state.set("loading");
+    this.loadBands(locale);
     this.loadSubscription = this.showcase
       .products(locale)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -99,5 +116,26 @@ export class HomePage {
           this.state.set("error");
         },
       });
+  }
+
+  private loadBands(locale: string): void {
+    this.bandsSubscription?.unsubscribe();
+    this.bands.set([]);
+    // Suggestions are optional: a slow or failed request never blocks the showcase.
+    this.bandsSubscription = this.api
+      .products({
+        locale,
+        category: bandsCategorySlug,
+        sort: "displayOrder",
+        page: 1,
+        pageSize: 12,
+      })
+      .pipe(
+        timeout({ first: 1500 }),
+        map(({ items }) => pickBandSuggestions(items)),
+        catchError(() => of([])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((bands) => this.bands.set(bands));
   }
 }

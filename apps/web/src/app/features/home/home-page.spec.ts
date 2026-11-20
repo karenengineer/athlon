@@ -66,8 +66,31 @@ describe("HomePage", () => {
 
   afterEach(() => {
     document.cookie = "athlon_home_brand=; Path=/; Max-Age=0";
+    http
+      .match((request) => request.params.get("category") === "resistance-bands")
+      .filter((request) => !request.cancelled)
+      .forEach((request) => request.flush({ items: [] }));
     http.verify();
   });
+
+  function band(slug: string, overrides: Partial<Product> = {}): Product {
+    return {
+      ...product(slug, "fitness-house"),
+      name: `Fitness Resistance Band — ${slug}`,
+      price: "2000",
+      category: { slug: "resistance-bands", name: "Resistance bands" },
+      ...overrides,
+    };
+  }
+
+  function bandsRequest(locale = "en") {
+    return http.expectOne(
+      (request) =>
+        request.url.endsWith("/products") &&
+        request.params.get("category") === "resistance-bands" &&
+        request.params.get("locale") === locale,
+    );
+  }
 
   function canonicalProducts() {
     return http.expectOne(
@@ -325,4 +348,138 @@ describe("HomePage", () => {
       ).toEqual(alts);
     });
   }
+
+  describe("band suggestions", () => {
+    const bands = () => [
+      band("red-resistance-band-6-16-kg", {
+        name: "Fitness Resistance Band — 7–16 kg, Red",
+      }),
+      band("yellow-resistance-band-2-7-kg", {
+        name: "Fitness Resistance Band — 2–7 kg, Yellow",
+      }),
+      band("purple-resistance-band-15-39-kg", {
+        name: "Fitness Resistance Band — 16–40 kg, Purple",
+        featured: true,
+      }),
+    ];
+
+    function renderWithBands(items: Product[], locale = "en"): HTMLElement {
+      localeParams.next(convertToParamMap({ locale }));
+      const fixture = TestBed.createComponent(HomePage);
+      fixture.detectChanges();
+      canonicalProducts().flush({
+        items: Array.from({ length: 8 }, (_, index) =>
+          product(`showcase-${index}`, "trec"),
+        ),
+      });
+      http
+        .match(
+          (request) =>
+            request.url.endsWith("/products") && request.params.has("brand"),
+        )
+        .forEach((request) => request.flush({ items: [] }));
+      bandsRequest(locale).flush({ items });
+      fixture.detectChanges();
+      return fixture.nativeElement;
+    }
+
+    it("shows ATHLON's choice first, then the warm-up band, in both layouts", () => {
+      const element = renderWithBands(bands());
+
+      for (const layout of ["sidebar", "inline"]) {
+        const section = element.querySelector(
+          `app-home-band-suggestions.layout-${layout}`,
+        );
+        expect(section).not.toBeNull();
+        const cards = [
+          ...section!.querySelectorAll<HTMLAnchorElement>(
+            '[data-testid="home-band-suggestion"]',
+          ),
+        ];
+        expect(cards.map((card) => card.getAttribute("href"))).toEqual([
+          "/en/product/purple-resistance-band-15-39-kg",
+          "/en/product/yellow-resistance-band-2-7-kg",
+        ]);
+        expect(cards[0].querySelector(".band-choice")?.textContent).toContain(
+          "ATHLON’s choice",
+        );
+        expect(cards[1].querySelector(".band-choice")).toBeNull();
+        expect(cards[0].querySelector(".band-use")?.textContent).toBe(
+          "For strength training",
+        );
+        expect(cards[0].querySelector(".band-range")?.textContent).toBe(
+          "16–40 kg",
+        );
+        expect(cards[1].querySelector(".band-use")?.textContent).toBe(
+          "For warm-ups",
+        );
+        expect(
+          section!
+            .querySelector('[data-testid="home-bands-view-all"]')
+            ?.getAttribute("href"),
+        ).toBe("/en/catalog/resistance-bands");
+      }
+    });
+
+    it("places the inline suggestions inside the product grid after the first row", () => {
+      const element = renderWithBands(bands());
+      const grid = element.querySelector(".product-grid");
+      expect(grid?.classList).toContain("has-insert");
+      expect(
+        grid?.querySelector("app-home-band-suggestions.bands-inline"),
+      ).not.toBeNull();
+      expect(element.querySelector(".showcase-layout")?.classList).toContain(
+        "has-bands",
+      );
+    });
+
+    it.each([
+      ["hy", "Լրացրու մարզումդ", "Տաքացման համար"],
+      ["ru", "Дополни тренировку", "Для разминки"],
+    ])("localizes the suggestions in %s", (locale, title, warmUp) => {
+      const element = renderWithBands(bands(), locale);
+      const sidebar = element.querySelector(
+        "app-home-band-suggestions.layout-sidebar",
+      );
+      expect(sidebar?.querySelector("h2")?.textContent?.trim()).toBe(title);
+      expect(sidebar?.querySelectorAll(".band-use")[1]?.textContent).toBe(
+        warmUp,
+      );
+    });
+
+    it("ignores products from other categories and out-of-stock bands", () => {
+      const element = renderWithBands([
+        product("protein", "trec"),
+        band("purple-resistance-band-15-39-kg", {
+          featured: true,
+          availability: "OUT_OF_STOCK",
+        }),
+      ]);
+      expect(element.querySelector("app-home-band-suggestions")).toBeNull();
+      expect(element.querySelector(".product-grid")?.classList).not.toContain(
+        "has-insert",
+      );
+    });
+
+    it("keeps the showcase when the suggestions request fails", () => {
+      localeParams.next(convertToParamMap({ locale: "en" }));
+      const fixture = TestBed.createComponent(HomePage);
+      fixture.detectChanges();
+      canonicalProducts().flush({ items: [product("showcase", "trec")] });
+      http
+        .match(
+          (request) =>
+            request.url.endsWith("/products") && request.params.has("brand"),
+        )
+        .forEach((request) => request.flush({ items: [] }));
+      bandsRequest().flush(
+        { message: "down" },
+        { status: 503, statusText: "Unavailable" },
+      );
+      fixture.detectChanges();
+      const element: HTMLElement = fixture.nativeElement;
+      expect(element.querySelectorAll("app-product-card").length).toBe(1);
+      expect(element.querySelector("app-home-band-suggestions")).toBeNull();
+    });
+  });
 });
