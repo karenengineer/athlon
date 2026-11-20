@@ -52,6 +52,8 @@ export class ProductPage {
   private readonly responseStatus = createPageResponseStatus();
   private readonly destroyRef = inject(DestroyRef);
   private loadSubscription?: Subscription;
+  private swipeOrigin: { x: number; y: number } | null = null;
+  private static readonly swipeThreshold = 40;
 
   constructor() {
     combineLatest([this.route.paramMap, this.route.parent!.paramMap])
@@ -180,6 +182,31 @@ export class ProductPage {
       images[this.selectedImage()]?.detailUrl ??
       "/placeholders/product-placeholder.svg"
     );
+  }
+
+  onSwipeStart(event: PointerEvent): void {
+    this.swipeOrigin = { x: event.clientX, y: event.clientY };
+  }
+
+  onSwipeEnd(event: PointerEvent): void {
+    const origin = this.swipeOrigin;
+    this.swipeOrigin = null;
+    if (!origin) return;
+    const deltaX = event.clientX - origin.x;
+    const deltaY = event.clientY - origin.y;
+    if (
+      Math.abs(deltaX) < ProductPage.swipeThreshold ||
+      Math.abs(deltaX) < Math.abs(deltaY) * 1.5
+    ) {
+      return;
+    }
+    const last = (this.product()?.images.length ?? 1) - 1;
+    const next = this.selectedImage() + (deltaX < 0 ? 1 : -1);
+    this.selectedImage.set(Math.min(Math.max(next, 0), Math.max(last, 0)));
+  }
+
+  onSwipeCancel(): void {
+    this.swipeOrigin = null;
   }
 
   availabilityLabel(): string {

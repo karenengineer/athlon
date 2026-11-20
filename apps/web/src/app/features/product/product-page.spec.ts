@@ -86,6 +86,80 @@ describe("ProductPage basket availability", () => {
     );
   }
 
+  describe("gallery swipe", () => {
+    const pictures = [0, 1, 2].map((index) => ({
+      id: `image-${index}`,
+      alt: `Image ${index}`,
+      primary: index === 0,
+      thumbnailUrl: `/thumb-${index}.webp`,
+      detailUrl: `/detail-${index}.webp`,
+    })) as unknown as Product["images"];
+
+    function setup() {
+      const fixture = TestBed.createComponent(ProductPage);
+      const page = fixture.componentInstance;
+      page.product.set({ ...product, images: pictures });
+      page.state.set("ready");
+      fixture.detectChanges();
+      const area = fixture.nativeElement.querySelector(
+        ".main-image",
+      ) as HTMLElement;
+      const swipe = (fromX: number, toX: number, fromY = 100, toY = 100) => {
+        area.dispatchEvent(
+          new MouseEvent("pointerdown", {
+            clientX: fromX,
+            clientY: fromY,
+            bubbles: true,
+          }),
+        );
+        area.dispatchEvent(
+          new MouseEvent("pointerup", {
+            clientX: toX,
+            clientY: toY,
+            bubbles: true,
+          }),
+        );
+        fixture.detectChanges();
+      };
+      return { page, swipe };
+    }
+
+    it("shows the next image after a left swipe and the previous after a right swipe", () => {
+      const { page, swipe } = setup();
+      swipe(250, 150);
+      expect(page.selectedImage()).toBe(1);
+      swipe(250, 150);
+      expect(page.selectedImage()).toBe(2);
+      swipe(150, 250);
+      expect(page.selectedImage()).toBe(1);
+    });
+
+    it("stays on the first and last image at the ends", () => {
+      const { page, swipe } = setup();
+      swipe(150, 250);
+      expect(page.selectedImage()).toBe(0);
+      page.selectedImage.set(2);
+      swipe(250, 150);
+      expect(page.selectedImage()).toBe(2);
+    });
+
+    it("ignores taps, short moves and mostly vertical scrolls", () => {
+      const { page, swipe } = setup();
+      swipe(200, 200);
+      swipe(200, 170);
+      swipe(200, 150, 100, 220);
+      expect(page.selectedImage()).toBe(0);
+    });
+
+    it("ignores a cancelled gesture", () => {
+      const { page } = setup();
+      page.onSwipeStart({ clientX: 250, clientY: 100 } as PointerEvent);
+      page.onSwipeCancel();
+      page.onSwipeEnd({ clientX: 100, clientY: 100 } as PointerEvent);
+      expect(page.selectedImage()).toBe(0);
+    });
+  });
+
   it("adds and increments an in-stock product using the enabled action", () => {
     const fixture = TestBed.createComponent(ProductPage);
     const page = fixture.componentInstance;
