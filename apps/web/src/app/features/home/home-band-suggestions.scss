@@ -1,0 +1,165 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.bands {
+  padding: 22px 18px 18px;
+  border: 1px solid #e3e3e7;
+  border-radius: 16px;
+  color: #171719;
+  background: #fff;
+  box-shadow: 0 10px 30px rgb(23 23 25 / 6%);
+}
+
+.bands-eyebrow {
+  margin: 0 0 8px;
+  color: #323236;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.bands-title {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.bands-subtitle {
+  margin: 8px 0 0;
+  color: #6c6c72;
+  font-size: 0.9rem;
+}
+
+.bands-accent {
+  display: block;
+  width: 56px;
+  height: 4px;
+  margin: 14px 0 16px;
+  border-radius: 2px;
+  background: #7c3aed;
+}
+
+.bands-list {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.band {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  height: 100%;
+  padding: 10px;
+  border: 1px solid #ececef;
+  border-radius: 12px;
+  color: inherit;
+  background: #fafafb;
+  text-decoration: none;
+  transition: border-color 160ms ease;
+}
+
+.band:hover,
+.band:focus-visible {
+  border-color: #171719;
+}
+
+.band-image {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #f8f8f9, #e8e8eb);
+}
+
+.band-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.band-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.band-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: #fff;
+  background: #171719;
+  font-size: 0.65rem;
+  font-weight: 900;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.band-use {
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.band-range {
+  color: #6c6c72;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.band-price {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.bands-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  color: #fff;
+  background: #171719;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
+:host(.layout-inline) .bands-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 700px) {
+  :host(.layout-inline) .band {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  :host(.layout-inline) .band-image {
+    aspect-ratio: 1.6;
+  }
+}
+
+@media (max-width: 360px) {
+  :host(.layout-inline) .bands-list {
+    grid-template-columns: 1fr;
+  }
+}

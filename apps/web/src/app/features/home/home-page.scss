@@ -157,6 +157,40 @@ h1 {
   text-transform: uppercase;
 }
 
+.showcase-main {
+  min-width: 0;
+}
+
+.bands-aside {
+  display: none;
+}
+
+.bands-inline {
+  order: 1;
+  grid-column: 1 / -1;
+}
+
+/* Wide screens: suggestions move into a sidebar beside the product grid. */
+@media (min-width: 1280px) {
+  .showcase-layout.has-bands {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 28px;
+    width: min(1440px, calc(100% - 48px));
+  }
+
+  .bands-aside {
+    display: block;
+    position: sticky;
+    top: 24px;
+  }
+
+  .bands-inline {
+    display: none;
+  }
+}
+
 .showcase-footer {
   display: flex;
   justify-content: center;

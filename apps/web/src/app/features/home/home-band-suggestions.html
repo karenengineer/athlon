@@ -1,0 +1,53 @@
+<section class="bands" [attr.aria-labelledby]="headingId()">
+  <p class="bands-eyebrow">{{ i18n.t("bandsEyebrow") }}</p>
+  <h2 class="bands-title" [id]="headingId()">{{ i18n.t("bandsTitle") }}</h2>
+  <p class="bands-subtitle">{{ i18n.t("bandsSubtitle") }}</p>
+  <span class="bands-accent" aria-hidden="true"></span>
+
+  <ul class="bands-list">
+    @for (product of products(); track product.id) {
+    <li>
+      <a
+        class="band"
+        data-testid="home-band-suggestion"
+        [routerLink]="['/', i18n.locale(), 'product', product.slug]"
+      >
+        <span class="band-image">
+          <img
+            [src]="imageUrl(product)"
+            [alt]="imageAlt(product)"
+            width="560"
+            height="560"
+            loading="lazy"
+            decoding="async"
+          />
+        </span>
+        <span class="band-copy">
+          @if (product.featured) {
+          <span class="band-choice"
+            ><span aria-hidden="true">★</span>{{ i18n.t("athlonChoice") }}</span
+          >
+          }
+          <span class="band-use">{{ useLabel(product) }}</span>
+          @if (resistance(product); as range) {
+          <span class="band-range">{{ range }}</span>
+          } @if (product.price !== null) {
+          <strong class="band-price"
+            >{{ +product.price! | currency: "AMD" : "symbol-narrow" : "1.0-0"
+            }}</strong
+          >
+          }
+        </span>
+      </a>
+    </li>
+    }
+  </ul>
+
+  <a
+    class="bands-all"
+    data-testid="home-bands-view-all"
+    [routerLink]="['/', i18n.locale(), 'catalog', bandsCategorySlug]"
+  >
+    {{ i18n.t("bandsViewAll") }} <span aria-hidden="true">→</span>
+  </a>
+</section>

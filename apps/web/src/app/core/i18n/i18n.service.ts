@@ -62,6 +62,12 @@ type Copy = {
   unavailable: string;
   recommended: string;
   athlonChoice: string;
+  bandsEyebrow: string;
+  bandsTitle: string;
+  bandsSubtitle: string;
+  bandsViewAll: string;
+  bandsUseStrength: string;
+  bandsUseWarmUp: string;
   newest: string;
   priceAsc: string;
   priceDesc: string;
@@ -215,6 +221,12 @@ const copy: Record<Locale, Copy> = {
     unavailable: "Нет в наличии",
     recommended: "Рекомендуемые",
     athlonChoice: "Выбор ATHLON",
+    bandsEyebrow: "Аксессуары для тренировок",
+    bandsTitle: "Дополни тренировку",
+    bandsSubtitle: "Посмотри наши тренировочные резинки",
+    bandsViewAll: "Все резинки",
+    bandsUseStrength: "Для силовых тренировок",
+    bandsUseWarmUp: "Для разминки",
     newest: "Новинки",
     priceAsc: "Сначала дешевле",
     priceDesc: "Сначала дороже",
@@ -384,6 +396,12 @@ const copy: Record<Locale, Copy> = {
     unavailable: "Առկա չէ",
     recommended: "Առաջարկվող",
     athlonChoice: "ATHLON-ի ընտրություն",
+    bandsEyebrow: "Մարզման աքսեսուարներ",
+    bandsTitle: "Լրացրու մարզումդ",
+    bandsSubtitle: "Բացահայտիր մեր մարզման ժապավենները",
+    bandsViewAll: "Դիտել բոլոր ժապավենները",
+    bandsUseStrength: "Ուժային մարզումների համար",
+    bandsUseWarmUp: "Տաքացման համար",
     newest: "Նորույթներ",
     priceAsc: "Գինը՝ ցածրից",
     priceDesc: "Գինը՝ բարձրից",
@@ -553,6 +571,12 @@ const copy: Record<Locale, Copy> = {
     unavailable: "Out of stock",
     recommended: "Recommended",
     athlonChoice: "ATHLON’s choice",
+    bandsEyebrow: "Training accessories",
+    bandsTitle: "Complete your workout",
+    bandsSubtitle: "Explore our training bands",
+    bandsViewAll: "View all bands",
+    bandsUseStrength: "For strength training",
+    bandsUseWarmUp: "For warm-ups",
     newest: "Newest",
     priceAsc: "Lowest price",
     priceDesc: "Highest price",

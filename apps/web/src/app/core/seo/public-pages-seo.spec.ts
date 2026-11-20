@@ -82,6 +82,10 @@ describe("Public page SEO navigation", () => {
     fixture = TestBed.createComponent(App);
   });
   afterEach(() => {
+    http
+      .match((request) => request.params.get("category") === "resistance-bands")
+      .filter((request) => !request.cancelled)
+      .forEach((request) => request.flush({ items: [] }));
     http.verify();
     fixture.destroy();
     TestBed.resetTestingModule();
@@ -349,7 +353,9 @@ describe("Public page SEO navigation", () => {
     http
       .expectOne(
         (request) =>
-          request.url.endsWith("/products") && !request.params.has("brand"),
+          request.url.endsWith("/products") &&
+          !request.params.has("brand") &&
+          request.params.get("category") !== "resistance-bands",
       )
       .flush({}, { status: 500, statusText: "Unavailable" });
     expect(response.status).toBe(503);

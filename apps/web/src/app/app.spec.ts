@@ -60,7 +60,13 @@ describe("ATHLON public application", () => {
     router = TestBed.inject(Router);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http
+      .match((request) => request.params.get("category") === "resistance-bands")
+      .filter((request) => !request.cancelled)
+      .forEach((request) => request.flush({ items: [] }));
+    http.verify();
+  });
 
   function homeProducts(locale: string) {
     http
