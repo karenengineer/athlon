@@ -3,6 +3,7 @@ import { provideRouter } from "@angular/router";
 import { Product } from "../../core/api/catalog.models";
 import { ProductCard } from "./product-card";
 import { BasketService } from "../../core/basket/basket.service";
+import { I18nService } from "../../core/i18n/i18n.service";
 
 const product: Product = {
   id: "product-1",
@@ -200,5 +201,76 @@ describe("ProductCard basket controls", () => {
     expect(increment.disabled).toBe(false);
     increment.click();
     expect(basket.totalQuantity()).toBe(2);
+  });
+});
+
+describe("ProductCard recommendation badge", () => {
+  it.each([
+    ["hy", "ATHLON-ի ընտրություն"],
+    ["ru", "Выбор ATHLON"],
+    ["en", "ATHLON’s choice"],
+  ] as const)(
+    "labels featured products in %s without hiding the recommendation from assistive technology",
+    async (locale, label) => {
+      await TestBed.configureTestingModule({
+        imports: [ProductCard],
+        providers: [provideRouter([])],
+      }).compileComponents();
+      const fixture = TestBed.createComponent(ProductCard);
+      TestBed.inject(I18nService).setLocale(locale);
+      fixture.componentRef.setInput("product", { ...product, featured: true });
+      fixture.detectChanges();
+
+      const badge = fixture.nativeElement.querySelector(
+        ".badge--choice",
+      ) as HTMLElement;
+      expect(badge).not.toBeNull();
+      expect(badge.textContent).toContain(label);
+      expect(badge.closest('[aria-hidden="true"]')).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(".image-region--recommended"),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(".image-region--two-badges"),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(".badge--new")?.textContent,
+      ).toContain("NEW");
+    },
+  );
+
+  it("reserves one badge row when a recommended product is not new", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductCard],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ProductCard);
+    fixture.componentRef.setInput("product", {
+      ...product,
+      featured: true,
+      isNew: false,
+    });
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector(".image-region--recommended"),
+    ).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(".image-region--two-badges"),
+    ).toBeNull();
+    expect(fixture.nativeElement.querySelector(".badge--new")).toBeNull();
+  });
+
+  it("does not recommend products that are not featured", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductCard],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ProductCard);
+    fixture.componentRef.setInput("product", product);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector(".badge--choice")).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(".image-region--recommended"),
+    ).toBeNull();
   });
 });
