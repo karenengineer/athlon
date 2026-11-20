@@ -178,12 +178,9 @@ export class CatalogPage {
   }
 
   categoryOptions(): CategoryOption[] {
-    const sportsNutrition = this.categories().find(
-      (item) => item.slug === DEFAULT_CATEGORY_SLUG,
+    const options = this.publishedCategories().filter(
+      (item) => item.slug !== DEFAULT_CATEGORY_SLUG,
     );
-    const options = sportsNutrition?.children.length
-      ? sportsNutrition.children
-      : this.categories().filter((item) => item.slug !== DEFAULT_CATEGORY_SLUG);
 
     return [...options].sort((left, right) => {
       const order = left.displayOrder - right.displayOrder;
