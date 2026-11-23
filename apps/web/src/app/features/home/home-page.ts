@@ -19,6 +19,8 @@ import {
   createPageMetadata,
   createPageResponseStatus,
 } from "../../core/seo/page-metadata";
+import { guideSlugs } from "../guides/guide-slugs";
+import { guides, guidesCopy } from "../guides/guides-content";
 import { homeContent } from "./home-content";
 import {
   bandsCategorySlug,
@@ -44,6 +46,13 @@ type ShowcaseCategory = "sports-nutrition" | "accessories";
 export class HomePage {
   readonly i18n = inject(I18nService);
   readonly content = computed(() => homeContent[this.i18n.locale()]);
+  readonly guideLinks = computed(() => ({
+    heading: guidesCopy[this.i18n.locale()].related,
+    items: guideSlugs.map((slug) => ({
+      slug,
+      heading: guides[slug].copy[this.i18n.locale()].heading,
+    })),
+  }));
   readonly instagramUrl = INSTAGRAM_PROFILE_URL;
   readonly communityPhotos = [
     {

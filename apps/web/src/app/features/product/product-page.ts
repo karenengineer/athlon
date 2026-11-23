@@ -19,6 +19,7 @@ import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { imageAlt } from "../../core/seo/image-alt";
 import { localizeCharacteristicValue } from "./characteristic-values";
+import { guidesForCategory } from "../guides/guides-content";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
 import {
   createPageMetadata,
@@ -48,6 +49,16 @@ export class ProductPage {
   readonly settings = signal<PublicSettings>({});
   readonly selectedImage = signal(0);
   readonly basket = inject(BasketService);
+
+  /** The guide for the product's category, linked from the product page. */
+  guideFor(
+    category: string | null | undefined,
+  ): { slug: string; heading: string } | null {
+    const [match] = guidesForCategory(category);
+    return match
+      ? { slug: match[0], heading: match[1].copy[this.i18n.locale()].heading }
+      : null;
+  }
 
   altFor(alt: string | null | undefined, name: string): string {
     return imageAlt(alt, name, this.i18n.locale());
