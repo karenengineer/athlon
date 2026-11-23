@@ -15,6 +15,7 @@
     <b>{{ heading() }}</b>
   </nav>
   <header class="catalog-heading">
+    <h1 data-testid="catalog-heading">{{ pageHeading() }}</h1>
     <div class="result-count">{{ i18n.productCountLabel(meta().total) }}</div>
   </header>
 
@@ -22,7 +23,7 @@
   <nav class="category-navigation" [attr.aria-label]="contentCopy().categories">
     @for (category of publishedCategories(); track category.id) {
     <a
-      [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
+      [routerLink]="categoryLink(category.slug)"
       [attr.aria-current]="selectedCategory()?.slug === category.slug ? 'page' : null"
       >{{ category.name }}</a
     >
@@ -42,9 +43,7 @@
     <nav class="related-categories" [attr.aria-label]="contentCopy().related">
       <h3>{{ contentCopy().related }}</h3>
       @for (category of relatedCategories(); track category.id) {
-      <a [routerLink]="['/', i18n.locale(), 'catalog', category.slug]"
-        >{{ category.name }}</a
-      >
+      <a [routerLink]="categoryLink(category.slug)">{{ category.name }}</a>
       }
     </nav>
     }
@@ -192,5 +191,15 @@
     >
     }
   </nav>
+  } @if (state() === "ready" && faq().length && meta().page === 1) {
+  <section class="category-faq" aria-labelledby="category-faq-title">
+    <h2 id="category-faq-title">{{ i18n.t("faqTitle") }}</h2>
+    @for (item of faq(); track item.question) {
+    <details>
+      <summary>{{ item.question }}</summary>
+      <p>{{ item.answer }}</p>
+    </details>
+    }
+  </section>
   }
 </section>

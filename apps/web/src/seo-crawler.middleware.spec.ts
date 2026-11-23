@@ -36,7 +36,10 @@ describe("real crawler endpoints", () => {
       { slug: "z", updatedAt: "2026-03-01T10:00:00.000Z" },
       { slug: "հայ /x", updatedAt: "2026-01-02T10:00:00.000Z" },
     ],
-    categories: [{ slug: "protein", updatedAt: "2026-02-01T10:00:00.000Z" }],
+    categories: [
+      { slug: "protein", updatedAt: "2026-02-01T10:00:00.000Z" },
+      { slug: "sports-nutrition", updatedAt: "2026-02-01T10:00:00.000Z" },
+    ],
   };
   const setup = async (
     options: Parameters<typeof createSeoCrawlerMiddleware>[0] = {},
@@ -163,6 +166,8 @@ describe("real crawler endpoints", () => {
       "<lastmod>2026-03-01T10:00:00.000Z</lastmod>",
     );
     expect(entry("https://athlon.am/hy/catalog")).toContain("<lastmod>");
+    // The default category duplicates /catalog, so only /catalog is listed.
+    expect(xml).not.toContain("/catalog/sports-nutrition");
     expect(entry("https://athlon.am/hy/about")).not.toContain("<lastmod>");
     expect(entry("https://athlon.am/hy/about")).toContain(
       'hreflang="x-default"',
