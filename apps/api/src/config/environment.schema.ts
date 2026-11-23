@@ -60,6 +60,15 @@ export const environmentSchema = Joi.object({
   AMERIA_MERCHANT_ID: ameriaRequiredWhenEnabled,
   AMERIA_USERNAME: ameriaRequiredWhenEnabled,
   AMERIA_PASSWORD: ameriaRequiredWhenEnabled,
+  // Storefront origin the bank sends the shopper back to. It must be one of
+  // the origins registered with Ameriabank for this merchant.
+  AMERIA_RETURN_ORIGIN: Joi.string()
+    .valid("https://athlon.am", "https://www.athlon.am")
+    .when("AMERIA_PAYMENTS_ENABLED", {
+      is: true,
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(""),
+    }),
   CARD_PAYMENT_TEST_FLOW_ENABLED: Joi.boolean().default(false),
   CARD_PAYMENT_TEST_MODE: Joi.string()
     .valid("MOCK", "AMERIA_SANDBOX")

@@ -4,6 +4,18 @@ export const supportedLocales = ["hy", "ru", "en"] as const;
 export type Locale = (typeof supportedLocales)[number];
 
 type Copy = {
+  paymentReturnChecking: string;
+  paymentReturnPaidTitle: string;
+  paymentReturnPaidText: string;
+  paymentReturnFailedTitle: string;
+  paymentReturnFailedText: string;
+  paymentReturnPendingTitle: string;
+  paymentReturnPendingText: string;
+  paymentReturnErrorText: string;
+  paymentReturnReference: string;
+  paymentReturnBackToBasket: string;
+  paymentReturnContinue: string;
+  paymentReturnRecheck: string;
   paymentSuccessTitle: string;
   paymentSuccessChecking: string;
   paymentSuccessMockMessage: string;
@@ -159,6 +171,22 @@ type Copy = {
 
 const copy: Record<Locale, Copy> = {
   ru: {
+    paymentReturnChecking: "Проверяем оплату в банке…",
+    paymentReturnPaidTitle: "Оплата прошла",
+    paymentReturnPaidText:
+      "Банк подтвердил оплату. Мы отправили подтверждение на вашу почту, курьер свяжется с вами для доставки.",
+    paymentReturnFailedTitle: "Оплата не завершена",
+    paymentReturnFailedText:
+      "Деньги не списаны или платёж отменён. Можно вернуться в корзину и попробовать снова или выбрать оплату при получении.",
+    paymentReturnPendingTitle: "Платёж ещё обрабатывается",
+    paymentReturnPendingText:
+      "Банк пока не подтвердил оплату. Это может занять несколько минут — страница обновится сама, а при подтверждении вы получите письмо.",
+    paymentReturnErrorText:
+      "Не удалось проверить статус оплаты. Попробуйте ещё раз через минуту.",
+    paymentReturnReference: "Номер заказа",
+    paymentReturnBackToBasket: "Вернуться в корзину",
+    paymentReturnContinue: "Продолжить покупки",
+    paymentReturnRecheck: "Проверить снова",
     paymentSuccessRecheckUnverified:
       "Ранее тестовая оплата была подтверждена. Последнюю проверку завершить не удалось. Повторно платить не нужно.",
     paymentSuccessMethod: "Банковская карта",
@@ -336,6 +364,22 @@ const copy: Record<Locale, Copy> = {
       "Симуляция тайм-аута. Заказ не создан, корзина сохранена.",
   },
   hy: {
+    paymentReturnChecking: "Ստուգում ենք վճարումը բանկում…",
+    paymentReturnPaidTitle: "Վճարումը հաջողվեց",
+    paymentReturnPaidText:
+      "Բանկը հաստատեց վճարումը։ Հաստատումը ուղարկել ենք ձեր էլ. փոստին, առաքիչը կկապվի ձեզ հետ։",
+    paymentReturnFailedTitle: "Վճարումը չի ավարտվել",
+    paymentReturnFailedText:
+      "Գումարը չի գանձվել կամ վճարումը չեղարկվել է։ Կարող եք վերադառնալ զամբյուղ և փորձել կրկին կամ ընտրել վճարում ստանալիս։",
+    paymentReturnPendingTitle: "Վճարումը դեռ մշակվում է",
+    paymentReturnPendingText:
+      "Բանկը դեռ չի հաստատել վճարումը։ Դա կարող է տևել մի քանի րոպե․ էջը կթարմացվի ինքնաշխատ, իսկ հաստատվելու դեպքում կստանաք նամակ։",
+    paymentReturnErrorText:
+      "Չհաջողվեց ստուգել վճարման կարգավիճակը։ Փորձեք կրկին մեկ րոպեից։",
+    paymentReturnReference: "Պատվերի համար",
+    paymentReturnBackToBasket: "Վերադառնալ զամբյուղ",
+    paymentReturnContinue: "Շարունակել գնումները",
+    paymentReturnRecheck: "Ստուգել կրկին",
     paymentSuccessRecheckUnverified:
       "Թեստային վճարումը նախկինում հաստատվել է։ Վերջին ստուգումը չհաջողվեց ավարտել։ Կրկին մի վճարեք։",
     paymentSuccessMethod: "Բանկային քարտ",
@@ -513,6 +557,22 @@ const copy: Record<Locale, Copy> = {
       "Ժամանակի ավարտի սիմուլյացիա։ Պատվեր չի ստեղծվել, զամբյուղը պահպանված է։",
   },
   en: {
+    paymentReturnChecking: "Checking your payment with the bank…",
+    paymentReturnPaidTitle: "Payment complete",
+    paymentReturnPaidText:
+      "The bank confirmed your payment. We emailed you a confirmation, and the courier will contact you about delivery.",
+    paymentReturnFailedTitle: "Payment not completed",
+    paymentReturnFailedText:
+      "No money was taken or the payment was cancelled. You can go back to the basket and try again, or choose to pay on delivery.",
+    paymentReturnPendingTitle: "Payment still processing",
+    paymentReturnPendingText:
+      "The bank has not confirmed the payment yet. This can take a few minutes; this page updates by itself and you will get an email once it is confirmed.",
+    paymentReturnErrorText:
+      "We could not check the payment status. Please try again in a minute.",
+    paymentReturnReference: "Order reference",
+    paymentReturnBackToBasket: "Back to basket",
+    paymentReturnContinue: "Continue shopping",
+    paymentReturnRecheck: "Check again",
     paymentSuccessRecheckUnverified:
       "Test payment was previously confirmed. The latest check could not be verified. Do not pay again.",
     paymentSuccessMethod: "Bank card",

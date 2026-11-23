@@ -15,6 +15,7 @@ const telegramCopy = {
     products: "Ապրանքներ",
     total: "Ընդամենը",
     askPrice: "Ճշտել գինը",
+    paidByCard: "✅ Վճարված է քարտով",
   },
   ru: {
     heading: "Новый заказ ATHLON",
@@ -25,6 +26,7 @@ const telegramCopy = {
     products: "Товары",
     total: "Итого",
     askPrice: "Уточнить цену",
+    paidByCard: "✅ Оплачено картой",
   },
   en: {
     heading: "New ATHLON order",
@@ -35,6 +37,7 @@ const telegramCopy = {
     products: "Products",
     total: "Total",
     askPrice: "Ask for price",
+    paidByCard: "✅ Paid by card",
   },
 } as const;
 
@@ -100,7 +103,9 @@ function formatOrder(order: OrderEmailMessage): string {
     "",
     copy.products,
   ].join("\n");
-  const footer = `\n\n${copy.total}: ${price(order.total)}`;
+  const footer = `\n\n${copy.total}: ${price(order.total)}${
+    order.paidByCard ? `\n${copy.paidByCard}` : ""
+  }`;
   const lines = order.items.map((item, index) => ({
     prefix: `\n${index + 1}. `,
     name: singleLine(item.name) || item.sku,

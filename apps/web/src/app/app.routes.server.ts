@@ -7,6 +7,12 @@ export const serverRoutes: ServerRoute[] = [
     headers: { "X-Robots-Tag": "noindex, nofollow" },
   },
   {
+    // Bank return page: per-shopper and polled client-side, never indexed.
+    path: ":locale/payment/:reference",
+    renderMode: RenderMode.Client,
+    headers: { "X-Robots-Tag": "noindex, nofollow" },
+  },
+  {
     path: "admin",
     renderMode: RenderMode.Client,
     headers: { "X-Robots-Tag": "noindex, nofollow" },

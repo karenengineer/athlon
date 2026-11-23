@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Headers,
   Param,
   Post,
@@ -29,7 +30,9 @@ export class OrdersController {
 
   @Get(":reference/payment-status")
   @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  // The bank return page polls every 4 s for about two minutes.
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Header("Cache-Control", "no-store")
   paymentStatus(@Param("reference") reference: string) {
     return this.orders.paymentStatus(reference);
   }

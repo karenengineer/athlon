@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
-import { AMERIA_PAYMENT_FLOW_READY } from "../orders/ameria-vpos.client";
+import { ameriaLiveConfigured } from "../orders/ameria-vpos.client";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../database/prisma.service";
 
@@ -34,9 +34,7 @@ export class SiteSettingsService {
     );
     return {
       ...values,
-      cardPaymentsEnabled:
-        AMERIA_PAYMENT_FLOW_READY &&
-        this.config.get<boolean>("AMERIA_PAYMENTS_ENABLED") === true,
+      cardPaymentsEnabled: ameriaLiveConfigured(this.config),
     };
   }
 

@@ -15,6 +15,7 @@ const emailCopy = {
     products: "Ապրանքներ",
     total: "Ընդամենը",
     payment: "Վճարումը՝ պատվերը ստանալիս․ կանխիկ կամ քարտով։",
+    paidByCard: "Վճարված է առցանց՝ բանկային քարտով։",
     postPayment:
       "Առաքիչը հնարավորինս շուտ կկապվի ձեզ հետ՝ առաքումը կազմակերպելու համար։",
     askPrice: "Ճշտել գինը",
@@ -29,6 +30,7 @@ const emailCopy = {
     products: "Товары",
     total: "Итого",
     payment: "Оплата при получении заказа — наличными или картой.",
+    paidByCard: "Оплачено онлайн банковской картой.",
     postPayment:
       "Курьер свяжется с вами как можно скорее, чтобы согласовать доставку.",
     askPrice: "Уточнить цену",
@@ -43,6 +45,7 @@ const emailCopy = {
     products: "Products",
     total: "Total",
     payment: "Pay the courier on delivery by cash or card.",
+    paidByCard: "Paid online by card.",
     postPayment:
       "The courier will contact you as soon as possible to arrange delivery.",
     askPrice: "Ask for price",
@@ -102,6 +105,7 @@ export class OrderEmailService {
         `${index + 1}. ${item.name} (${item.sku}) × ${item.quantity} — ${priceText(item.lineTotal, copy.askPrice)}`,
     );
     const total = priceText(order.total, copy.askPrice);
+    const paymentNote = order.paidByCard ? copy.paidByCard : copy.payment;
     const text = [
       `${copy.reference}: ${order.orderReference}`,
       `${copy.customer}: ${order.customer.name}`,
@@ -111,7 +115,7 @@ export class OrderEmailService {
       copy.products,
       ...productLines,
       `${copy.total}: ${total}`,
-      copy.payment,
+      paymentNote,
       ...(customerConfirmation ? [copy.postPayment] : []),
     ].join("\n");
     const html = [
@@ -128,7 +132,7 @@ export class OrderEmailService {
         )
         .join("")}</ul>`,
       `<p><strong>${escapeHtml(copy.total)}:</strong> ${escapeHtml(total)}</p>`,
-      `<p>${escapeHtml(copy.payment)}</p>`,
+      `<p>${escapeHtml(paymentNote)}</p>`,
       ...(customerConfirmation
         ? [`<p>${escapeHtml(copy.postPayment)}</p>`]
         : []),
