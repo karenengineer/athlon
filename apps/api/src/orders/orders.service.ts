@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
@@ -13,6 +14,7 @@ import { PrismaService } from "../database/prisma.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { OrderEmailService } from "./order-email.service";
 import { OrderPersistenceService } from "./order-persistence.service";
+import { OrderTelegramService } from "./order-telegram.service";
 import {
   CardPaymentInitializer,
   OrderPaymentChoice,
@@ -21,8 +23,16 @@ import {
 
 export const CARD_PAYMENT_INITIALIZER = Symbol("CARD_PAYMENT_INITIALIZER");
 
+interface NotificationState {
+  id: string;
+  status: string;
+  recipientType: string;
+}
+
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly email: OrderEmailService,
@@ -30,6 +40,8 @@ export class OrdersService {
     @Optional()
     @Inject(CARD_PAYMENT_INITIALIZER)
     private readonly paymentInitializer?: CardPaymentInitializer,
+    @Optional()
+    private readonly telegram?: OrderTelegramService,
   ) {}
 
   async submit(
@@ -174,7 +186,7 @@ export class OrdersService {
 
     if (paymentMethod === "CASH_ON_DELIVERY") {
       const message = orderEmailMessage(order);
-      await this.dispatchOrderNotifications(order, message);
+      await this.dispatchOrderNotifications(order, message, persisted.created);
       return {
         kind: "COD_ACCEPTED",
         accepted: true,
@@ -278,17 +290,37 @@ export class OrdersService {
   }
 
   private async dispatchOrderNotifications(
-    order: {
-      notifications?: Array<{
-        id: string;
-        status: string;
-        recipientType: string;
-      }>;
-    },
+    order: { id: string; notifications?: NotificationState[] },
+    message: ReturnType<typeof orderEmailMessage>,
+    createTelegramIntent = false,
+  ): Promise<void> {
+    const notifications = order.notifications ?? [];
+    const telegramDelivery = this.dispatchTelegramNotification(
+      order.id,
+      notifications.find(
+        ({ recipientType }) => recipientType === "MERCHANT_TELEGRAM",
+      ),
+      message,
+      createTelegramIntent,
+    );
+    try {
+      await this.dispatchOrderEmails(notifications, message);
+    } finally {
+      await telegramDelivery;
+    }
+  }
+
+  private async dispatchOrderEmails(
+    notifications: NotificationState[],
     message: ReturnType<typeof orderEmailMessage>,
   ): Promise<void> {
-    for (const notification of order.notifications ?? []) {
-      if (notification.status === "SENT") continue;
+    for (const notification of notifications) {
+      if (
+        notification.status === "SENT" ||
+        notification.recipientType === "MERCHANT_TELEGRAM"
+      ) {
+        continue;
+      }
 
       await this.persistence.recordNotificationAttempt(notification.id);
       try {
@@ -306,6 +338,37 @@ export class OrdersService {
           "Order notification delivery is unavailable",
         );
       }
+    }
+  }
+
+  private async dispatchTelegramNotification(
+    orderId: string,
+    notification: NotificationState | undefined,
+    message: ReturnType<typeof orderEmailMessage>,
+    createIntent: boolean,
+  ): Promise<void> {
+    try {
+      if (!this.telegram?.isEnabled || notification?.status === "SENT") return;
+      // The order and email intents have already committed. A Telegram insert
+      // failure cannot roll them back, and replays never add missing intents.
+      const intent =
+        notification ??
+        (createIntent
+          ? await this.persistence.createMerchantTelegramNotification(orderId)
+          : undefined);
+      if (!intent) return;
+
+      const skipSent = { skipSent: true };
+      await this.persistence.recordNotificationAttempt(intent.id, skipSent);
+      try {
+        await this.telegram.send(message);
+      } catch {
+        await this.persistence.markNotificationFailed(intent.id, skipSent);
+        return;
+      }
+      await this.persistence.markNotificationSent(intent.id);
+    } catch {
+      this.logger.warn("Could not track order Telegram notification");
     }
   }
 }

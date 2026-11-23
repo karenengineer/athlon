@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  Logger,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service";
 import { OrderEmailService } from "./order-email.service";
 import { OrderPersistenceService } from "./order-persistence.service";
+import { OrderTelegramService } from "./order-telegram.service";
 import { OrdersService } from "./orders.service";
 
 const productId = "4ebeb944-3503-47a2-9843-d37f1eb34768";
@@ -52,6 +54,11 @@ const persistedOrder = {
     },
   ],
 };
+const telegramNotification = {
+  id: "telegram-notification",
+  status: "PENDING",
+  recipientType: "MERCHANT_TELEGRAM",
+};
 
 describe("OrdersService", () => {
   const findProducts = jest.fn();
@@ -59,6 +66,7 @@ describe("OrdersService", () => {
   const sendEmail = jest.fn().mockResolvedValue(undefined);
   const sendCustomerEmail = jest.fn().mockResolvedValue(undefined);
   const createPendingOrder = jest.fn();
+  const createMerchantTelegramNotification = jest.fn();
   const markInitializationFailed = jest.fn().mockResolvedValue(undefined);
   const recordProviderPaymentId = jest.fn().mockResolvedValue(undefined);
   const recordNotificationAttempt = jest.fn().mockResolvedValue(undefined);
@@ -71,6 +79,7 @@ describe("OrdersService", () => {
   } as unknown as OrderEmailService;
   const persistence = {
     createPendingOrder,
+    createMerchantTelegramNotification,
     findByIdempotencyKey: findOrderByIdempotencyKey,
     markInitializationFailed,
     recordProviderPaymentId,
@@ -90,6 +99,15 @@ describe("OrdersService", () => {
     email,
     persistence,
     paymentInitializer,
+  );
+  const sendTelegram = jest.fn();
+  const telegram = { isEnabled: true, send: sendTelegram };
+  const telegramOrders = new OrdersService(
+    { product: { findMany: findProducts } } as unknown as PrismaService,
+    email,
+    persistence,
+    paymentInitializer,
+    telegram as unknown as OrderTelegramService,
   );
   const publishedProduct = {
     id: productId,
@@ -112,6 +130,11 @@ describe("OrdersService", () => {
       order: persistedOrder,
       created: true,
     });
+    createMerchantTelegramNotification
+      .mockReset()
+      .mockResolvedValue({ id: telegramNotification.id });
+    sendTelegram.mockReset().mockResolvedValue(undefined);
+    telegram.isEnabled = true;
     findOrderByIdempotencyKey.mockReset().mockResolvedValue(null);
     markInitializationFailed.mockReset().mockResolvedValue(undefined);
     recordProviderPaymentId.mockReset().mockResolvedValue(undefined);
@@ -394,6 +417,191 @@ describe("OrdersService", () => {
       "merchant-notification",
     );
     expect(sendCustomerEmail).not.toHaveBeenCalled();
+  });
+
+  it("persists and sends Telegram independently for a new configured COD order", async () => {
+    const result = await telegramOrders.submit(orderInput, "web-telegram-new");
+
+    expect(result).toEqual({
+      kind: "COD_ACCEPTED",
+      accepted: true,
+      orderReference: persistedOrder.reference,
+    });
+    expect(createMerchantTelegramNotification).toHaveBeenCalledWith(
+      persistedOrder.id,
+    );
+    expect(sendTelegram).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderReference: persistedOrder.reference,
+        locale: "hy",
+        total: "48000",
+      }),
+    );
+    expect(markNotificationSent).toHaveBeenCalledWith(telegramNotification.id);
+    expect(markNotificationSent).toHaveBeenCalledWith("merchant-notification");
+    expect(markNotificationSent).toHaveBeenCalledWith("customer-notification");
+  });
+
+  it("never adds a Telegram intent when replaying a historical COD order", async () => {
+    const key = "web-telegram-historical";
+    await service.submit(orderInput, key);
+    const fingerprint = createPendingOrder.mock.calls[0]![0].requestFingerprint;
+    findOrderByIdempotencyKey.mockResolvedValueOnce({
+      ...persistedOrder,
+      paymentMethod: "CASH_ON_DELIVERY",
+      requestFingerprint: fingerprint,
+    });
+
+    await expect(telegramOrders.submit(orderInput, key)).resolves.toMatchObject(
+      {
+        kind: "COD_ACCEPTED",
+      },
+    );
+    expect(createPendingOrder).toHaveBeenCalledTimes(1);
+    expect(createMerchantTelegramNotification).not.toHaveBeenCalled();
+    expect(sendTelegram).not.toHaveBeenCalled();
+  });
+
+  it("does not create a Telegram intent when Telegram is disabled", async () => {
+    telegram.isEnabled = false;
+    await telegramOrders.submit(orderInput, "web-telegram-disabled");
+
+    expect(createMerchantTelegramNotification).not.toHaveBeenCalled();
+    expect(sendTelegram).not.toHaveBeenCalled();
+    expect(markNotificationSent).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not create a Telegram intent for a card checkout", async () => {
+    await telegramOrders.submit(
+      { ...orderInput, paymentMethod: "CARD" },
+      "web-telegram-card",
+    );
+
+    expect(createMerchantTelegramNotification).not.toHaveBeenCalled();
+    expect(sendTelegram).not.toHaveBeenCalled();
+  });
+
+  it("retries a failed Telegram intent and skips it once confirmed sent", async () => {
+    const key = "web-telegram-retry";
+    sendTelegram.mockRejectedValueOnce(new Error("provider details"));
+    const result = await telegramOrders.submit(orderInput, key);
+    expect(markNotificationFailed).toHaveBeenCalledWith(
+      telegramNotification.id,
+      { skipSent: true },
+    );
+    expect(markNotificationSent).not.toHaveBeenCalledWith(
+      telegramNotification.id,
+    );
+    expect(markNotificationSent).toHaveBeenCalledWith("merchant-notification");
+    expect(markNotificationSent).toHaveBeenCalledWith("customer-notification");
+
+    const replay = {
+      ...persistedOrder,
+      paymentMethod: "CASH_ON_DELIVERY",
+      requestFingerprint:
+        createPendingOrder.mock.calls[0]![0].requestFingerprint,
+    };
+    const sentEmails = persistedOrder.notifications.map((notification) => ({
+      ...notification,
+      status: "SENT",
+    }));
+    findOrderByIdempotencyKey
+      .mockResolvedValueOnce({
+        ...replay,
+        notifications: [
+          ...sentEmails,
+          { ...telegramNotification, status: "FAILED" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        ...replay,
+        notifications: [
+          ...sentEmails,
+          { ...telegramNotification, status: "SENT" },
+        ],
+      });
+
+    await expect(telegramOrders.submit(orderInput, key)).resolves.toEqual(
+      result,
+    );
+    expect(markNotificationSent).toHaveBeenLastCalledWith(
+      telegramNotification.id,
+    );
+    await expect(telegramOrders.submit(orderInput, key)).resolves.toEqual(
+      result,
+    );
+    expect(sendTelegram).toHaveBeenCalledTimes(2);
+    expect(createMerchantTelegramNotification).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendCustomerEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["creation", "attempt", "mark sent", "mark failed"] as const)(
+    "accepts COD and sends both emails when Telegram tracking fails during %s",
+    async (stage) => {
+      const trackingError = new Error("provider or database details");
+      const warning = jest
+        .spyOn(Logger.prototype, "warn")
+        .mockImplementation(() => {});
+      switch (stage) {
+        case "creation":
+          createMerchantTelegramNotification.mockRejectedValueOnce(
+            trackingError,
+          );
+          break;
+        case "attempt":
+          recordNotificationAttempt.mockImplementation((id: string) =>
+            id === telegramNotification.id
+              ? Promise.reject(trackingError)
+              : Promise.resolve(),
+          );
+          break;
+        case "mark sent":
+          markNotificationSent.mockImplementation((id: string) =>
+            id === telegramNotification.id
+              ? Promise.reject(trackingError)
+              : Promise.resolve(),
+          );
+          break;
+        case "mark failed":
+          sendTelegram.mockRejectedValueOnce(trackingError);
+          markNotificationFailed.mockRejectedValueOnce(trackingError);
+          break;
+      }
+
+      try {
+        await expect(
+          telegramOrders.submit(orderInput, "web-telegram-tracking"),
+        ).resolves.toMatchObject({ kind: "COD_ACCEPTED" });
+        expect(markNotificationSent).toHaveBeenCalledWith(
+          "merchant-notification",
+        );
+        expect(markNotificationSent).toHaveBeenCalledWith(
+          "customer-notification",
+        );
+        expect(sendTelegram).toHaveBeenCalledTimes(
+          stage === "creation" || stage === "attempt" ? 0 : 1,
+        );
+        expect(warning).toHaveBeenCalledWith(
+          "Could not track order Telegram notification",
+        );
+      } finally {
+        warning.mockRestore();
+      }
+    },
+  );
+
+  it("keeps the email error response while still delivering Telegram", async () => {
+    sendEmail.mockRejectedValueOnce(new Error("email provider error"));
+
+    await expect(
+      telegramOrders.submit(orderInput, "web-telegram-email-failure"),
+    ).rejects.toThrow("Order notification delivery is unavailable");
+    expect(markNotificationFailed).toHaveBeenCalledWith(
+      "merchant-notification",
+    );
+    expect(sendCustomerEmail).not.toHaveBeenCalled();
+    expect(markNotificationSent).toHaveBeenCalledWith(telegramNotification.id);
   });
 
   it("creates a pending card attempt and returns the validated hosted checkout URL", async () => {

@@ -22,6 +22,11 @@ const ameriaHttpsUrl = Joi.string()
     otherwise: Joi.optional().allow(""),
   });
 
+const orderTelegramSetting = (pattern: RegExp) =>
+  Joi.string().trim().empty("").pattern(pattern).messages({
+    "string.pattern.base": "{#label} has an invalid format",
+  });
+
 export const environmentSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid("development", "test", "production")
@@ -47,6 +52,8 @@ export const environmentSchema = Joi.object({
     .email()
     .empty("")
     .default("orders@athlonsport.am"),
+  ORDER_TELEGRAM_BOT_TOKEN: orderTelegramSetting(/^\d+:[A-Za-z0-9_-]+$/),
+  ORDER_TELEGRAM_CHAT_ID: orderTelegramSetting(/^-?[1-9]\d{0,15}$/),
   AMERIA_PAYMENTS_ENABLED: Joi.boolean().default(false),
   AMERIA_API_BASE_URL: ameriaHttpsUrl,
   AMERIA_CHECKOUT_BASE_URL: ameriaHttpsUrl,
@@ -95,4 +102,4 @@ export const environmentSchema = Joi.object({
       then: Joi.required(),
       otherwise: Joi.optional().allow(""),
     }),
-});
+}).and("ORDER_TELEGRAM_BOT_TOKEN", "ORDER_TELEGRAM_CHAT_ID");

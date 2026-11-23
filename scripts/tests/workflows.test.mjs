@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { parseDocument } from "yaml";
+import { configureOrderTelegram } from "../configure-order-telegram.mjs";
 
 const root = new URL("../../", import.meta.url);
 const composeAvailable =
@@ -444,4 +445,156 @@ test("release guard refuses unchecked revisions and changed targets before secre
   assert.equal(execute({ EXPECTED_REVISION: "b".repeat(40) }).status, 1);
   assert.equal(execute({ DEPLOY_HOST: "evil.example" }).status, 1);
   assert.equal(execute({ DEPLOY_USER: "root" }).status, 1);
+});
+
+test("production Compose gives only the API its optional order Telegram settings", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "athlon-order-telegram-"));
+  const envFile = join(fixture, "production.env");
+  const orderSettings = {
+    ORDER_TELEGRAM_BOT_TOKEN: "123456:order-bot-fixture",
+    ORDER_TELEGRAM_CHAT_ID: "-1001234567890",
+  };
+  try {
+    const template = readFileSync(
+      new URL("infrastructure/production.env.example", root),
+      "utf8",
+    );
+    const unconfigured = template.replace(/^ORDER_TELEGRAM_.*$/gm, "");
+    const configuredValues = Object.entries(orderSettings)
+      .map(([key, value]) => `${key}=${value}`)
+      .join("\n");
+    for (const configured of [false, true]) {
+      writeFileSync(
+        envFile,
+        `${unconfigured}\n${configured ? configuredValues : ""}\n`,
+      );
+      const result = spawnSync(
+        "docker",
+        [
+          "compose",
+          "--env-file",
+          envFile,
+          "-f",
+          "infrastructure/docker-compose.production.yml",
+          "config",
+          "--format",
+          "json",
+        ],
+        {
+          cwd: root,
+          env: {
+            PATH: process.env.PATH,
+            HOME: process.env.HOME,
+            TELEGRAM_BOT_TOKEN: "654321:deployment-bot-fixture",
+            TELEGRAM_CHAT_ID: "123456789",
+          },
+          encoding: "utf8",
+          timeout: 5000,
+        },
+      );
+      assert.ifError(result.error);
+      assert.equal(result.status, 0, result.stderr);
+      assert.doesNotMatch(result.stderr, /ORDER_TELEGRAM_/);
+      const { services } = JSON.parse(result.stdout);
+      for (const [key, value] of Object.entries(orderSettings)) {
+        assert.equal(
+          services.api.environment[key],
+          configured ? value : "",
+          key,
+        );
+        for (const [name, service] of Object.entries(services)) {
+          if (name !== "api")
+            assert.equal(service.environment?.[key], undefined, name);
+        }
+      }
+    }
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});
+
+const setupBotToken = "97235:order-bot-fixture";
+const setupChatId = 104529381;
+const setupBot = {
+  ok: true,
+  result: { is_bot: true, username: "OrdersFixtureBot" },
+};
+
+function setupUpdate(text, username, chatType = "private") {
+  return {
+    message: {
+      text,
+      from: { id: setupChatId, username, is_bot: false },
+      chat: { id: setupChatId, type: chatType },
+    },
+  };
+}
+
+test("private setup uses the verified bot and exact chat challenge, saving a protected snippet once", async (t) => {
+  const fixture = mkdtempSync(join(tmpdir(), "athlon-order-telegram-setup-"));
+  t.after(() => rmSync(fixture, { recursive: true, force: true }));
+  const destination = join(fixture, ".private", "order-telegram.env");
+  let challenge;
+  let updates = 0;
+  const telegram = t.mock.method(globalThis, "fetch", (url, options) => {
+    assert.equal(options.redirect, "error");
+    assert.equal(options.method, "POST");
+    assert.equal(new URL(url).origin, "https://api.telegram.org");
+    assert.ok(new URL(url).pathname.startsWith(`/bot${setupBotToken}/`));
+    if (url.endsWith("/getMe")) return Response.json(setupBot);
+    assert.ok(url.endsWith("/getUpdates"));
+    assert.ok(challenge);
+    updates++;
+    return Response.json({
+      ok: true,
+      result: [
+        setupUpdate("/start unrelated", "FixtureRecipient"),
+        setupUpdate(challenge, "DifferentUser"),
+        setupUpdate(challenge, "FixtureRecipient", "group"),
+        ...(updates === 1 ? [] : [setupUpdate(challenge, "FixtureRecipient")]),
+      ],
+    });
+  });
+  const setup = {
+    token: setupBotToken,
+    username: "@fixturerecipient",
+    destination,
+    showChallenge: async (botUsername, command) => {
+      assert.equal(botUsername, "OrdersFixtureBot");
+      assert.match(command, /^\/start athlon_[a-f0-9]{32}$/);
+      challenge = command;
+    },
+  };
+  await configureOrderTelegram(setup);
+  assert.equal(updates, 2);
+  assert.equal(statSync(join(fixture, ".private")).mode & 0o777, 0o700);
+  assert.equal(statSync(destination).mode & 0o777, 0o600);
+  assert.equal(
+    readFileSync(destination, "utf8"),
+    `ORDER_TELEGRAM_BOT_TOKEN=${setupBotToken}\nORDER_TELEGRAM_CHAT_ID=${setupChatId}\n`,
+  );
+  await assert.rejects(configureOrderTelegram(setup), /already exists/);
+  assert.equal(telegram.mock.callCount(), 3);
+});
+
+test("private setup sanitizes provider failures and writes no credentials", async (t) => {
+  const fixture = mkdtempSync(join(tmpdir(), "athlon-order-telegram-setup-"));
+  t.after(() => rmSync(fixture, { recursive: true, force: true }));
+  const destination = join(fixture, ".private", "order-telegram.env");
+  t.mock.method(globalThis, "fetch", () => {
+    throw new Error(`raw provider error with ${setupBotToken}`);
+  });
+  await assert.rejects(
+    configureOrderTelegram({
+      token: setupBotToken,
+      username: "FixtureRecipient",
+      destination,
+      showChallenge: async () => assert.fail("unverified bot shown"),
+    }),
+    {
+      message:
+        "Could not verify the bot with Telegram. Check the token and connectivity.",
+    },
+  );
+  assert.equal(existsSync(destination), false);
 });

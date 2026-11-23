@@ -98,6 +98,57 @@ describe("environmentSchema", () => {
     expect(value.ORDER_FROM_EMAIL).toBe("sales@example.com");
   });
 
+  it("accepts blank order Telegram settings and treats them as absent", () => {
+    const result = environmentSchema.validate({
+      ...requiredEnvironment,
+      ORDER_TELEGRAM_BOT_TOKEN: "",
+      ORDER_TELEGRAM_CHAT_ID: " ",
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.value.ORDER_TELEGRAM_BOT_TOKEN).toBeUndefined();
+    expect(result.value.ORDER_TELEGRAM_CHAT_ID).toBeUndefined();
+  });
+
+  it.each(["1234567", "-1001234567890"])(
+    "accepts a complete order Telegram configuration for chat %s",
+    (chatId) => {
+      const result = environmentSchema.validate({
+        ...requiredEnvironment,
+        ORDER_TELEGRAM_BOT_TOKEN: " 123456:sample-bot-token ",
+        ORDER_TELEGRAM_CHAT_ID: chatId,
+      });
+
+      expect(result.error).toBeUndefined();
+      expect(result.value.ORDER_TELEGRAM_BOT_TOKEN).toBe(
+        "123456:sample-bot-token",
+      );
+      expect(result.value.ORDER_TELEGRAM_CHAT_ID).toBe(chatId);
+    },
+  );
+
+  it.each([
+    ["123456:sample-bot-token", ""],
+    ["", "-1001234567890"],
+    ["123456:sample-bot-token", "@somechannel"],
+    ["invalid-secret-value", "-1001234567890"],
+  ])(
+    "rejects incomplete or invalid order Telegram settings",
+    (token, chatId) => {
+      const result = environmentSchema.validate(
+        {
+          ...requiredEnvironment,
+          ORDER_TELEGRAM_BOT_TOKEN: token,
+          ORDER_TELEGRAM_CHAT_ID: chatId,
+        },
+        { allowUnknown: true },
+      );
+
+      expect(result.error).toBeDefined();
+      if (token) expect(result.error?.message).not.toContain(token);
+    },
+  );
+
   it("keeps Ameria disabled by default and requires the complete HTTPS configuration to enable", () => {
     const defaults = environmentSchema.validate(requiredEnvironment);
     expect(defaults.error).toBeUndefined();

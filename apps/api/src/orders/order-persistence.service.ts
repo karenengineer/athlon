@@ -48,6 +48,8 @@ const orderInclude = {
   notifications: true,
 } satisfies Prisma.OrderInclude;
 
+const unsentNotification = { status: { not: "SENT" as const } };
+
 @Injectable()
 export class OrderPersistenceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -147,9 +149,23 @@ export class OrderPersistenceService {
     });
   }
 
-  async recordNotificationAttempt(notificationId: string): Promise<void> {
+  createMerchantTelegramNotification(orderId: string) {
+    return this.prisma.orderNotification.create({
+      data: {
+        orderId,
+        eventType: "ORDER_ACCEPTED",
+        recipientType: "MERCHANT_TELEGRAM",
+      },
+      select: { id: true },
+    });
+  }
+
+  async recordNotificationAttempt(
+    notificationId: string,
+    { skipSent = false } = {},
+  ): Promise<void> {
     await this.prisma.orderNotification.update({
-      where: { id: notificationId },
+      where: { id: notificationId, ...(skipSent ? unsentNotification : {}) },
       data: { attemptCount: { increment: 1 }, status: "PENDING" },
     });
   }
@@ -161,9 +177,12 @@ export class OrderPersistenceService {
     });
   }
 
-  async markNotificationFailed(notificationId: string): Promise<void> {
+  async markNotificationFailed(
+    notificationId: string,
+    { skipSent = false } = {},
+  ): Promise<void> {
     await this.prisma.orderNotification.update({
-      where: { id: notificationId },
+      where: { id: notificationId, ...(skipSent ? unsentNotification : {}) },
       data: { status: "FAILED", lastErrorCode: "DELIVERY_FAILED" },
     });
   }
