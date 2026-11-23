@@ -91,7 +91,7 @@
       } @if (guideFor(item.category.slug); as guide) {
       <p class="related-guide">
         <a [routerLink]="['/', i18n.locale(), 'guides', guide.slug]"
-          >{{ guide.heading }} →</a
+          ><b>{{ guide.heading }} →</b></a
         >
       </p>
       }
@@ -103,7 +103,9 @@
   } } }
 </section>
 
-@if (relatedProducts().length) {
+@if (state() === "ready" && product(); as item) {
+<app-product-reviews [slug]="item.slug" [reviews]="reviews()" />
+} @if (relatedProducts().length) {
 <section class="related page-width" data-testid="related-products">
   <header>
     <p>ATHLON SELECT</p>

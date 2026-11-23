@@ -7,9 +7,11 @@ import {
   Category,
   CreateOrderRequest,
   CreateOrderResponse,
+  CreateReviewRequest,
   Product,
   ProductPageResponse,
   ProductQuery,
+  ProductReviews,
   PaymentStatusResponse,
   PublicSettings,
 } from "./catalog.models";
@@ -47,6 +49,19 @@ export class CatalogApiService {
     return this.http.get<Product>(`${this.baseUrl}/products/${slug}`, {
       params: { locale },
     });
+  }
+
+  reviews(slug: string): Observable<ProductReviews> {
+    return this.http.get<ProductReviews>(
+      `${this.baseUrl}/products/${encodeURIComponent(slug)}/reviews`,
+    );
+  }
+
+  submitReview(slug: string, review: CreateReviewRequest): Observable<unknown> {
+    return this.http.post(
+      `${this.baseUrl}/products/${encodeURIComponent(slug)}/reviews`,
+      review,
+    );
   }
 
   settings(): Observable<PublicSettings> {
