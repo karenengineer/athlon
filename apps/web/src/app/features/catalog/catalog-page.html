@@ -191,6 +191,15 @@
     >
     }
   </nav>
+  } @if (relatedGuides().length) {
+  <nav class="category-guides" [attr.aria-label]="guidesCopy().related">
+    <h2>{{ guidesCopy().related }}</h2>
+    @for (guide of relatedGuides(); track guide[0]) {
+    <a [routerLink]="['/', i18n.locale(), 'guides', guide[0]]"
+      >{{ guide[1].copy[i18n.locale()].heading }}</a
+    >
+    }
+  </nav>
   } @if (state() === "ready" && faq().length && meta().page === 1) {
   <section class="category-faq" aria-labelledby="category-faq-title">
     <h2 id="category-faq-title">{{ i18n.t("faqTitle") }}</h2>

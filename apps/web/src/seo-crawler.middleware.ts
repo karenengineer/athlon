@@ -1,5 +1,10 @@
 import type { RequestHandler } from "express";
 
+import {
+  GUIDES_PUBLISHED,
+  guideSlugs,
+} from "./app/features/guides/guide-slugs";
+
 const CATALOG_ROOT_CATEGORY = "sports-nutrition";
 
 interface InventoryEntry {
@@ -109,6 +114,9 @@ export function renderSitemap(
     "/privacy",
   ])
     pages.set(path, undefined);
+  const guidesModified = new Date(GUIDES_PUBLISHED).toISOString();
+  pages.set("/guides", guidesModified);
+  for (const slug of guideSlugs) pages.set(`/guides/${slug}`, guidesModified);
   // The default category is served at /catalog; its own URL canonicalises there.
   for (const { slug, updatedAt } of inventory.categories)
     if (slug !== CATALOG_ROOT_CATEGORY)

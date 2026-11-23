@@ -166,6 +166,9 @@ describe("real crawler endpoints", () => {
       "<lastmod>2026-03-01T10:00:00.000Z</lastmod>",
     );
     expect(entry("https://athlon.am/hy/catalog")).toContain("<lastmod>");
+    expect(entry("https://athlon.am/ru/guides/creatine-guide")).toContain(
+      'hreflang="x-default" href="https://athlon.am/hy/guides/creatine-guide"',
+    );
     // The default category duplicates /catalog, so only /catalog is listed.
     expect(xml).not.toContain("/catalog/sports-nutrition");
     expect(entry("https://athlon.am/hy/about")).not.toContain("<lastmod>");
@@ -273,7 +276,7 @@ describe("real crawler endpoints", () => {
   it("accepts empty published inventory and enforces URL/XML bounds without truncation", () => {
     expect([
       ...renderSitemap({ products: [], categories: [] }).matchAll(/<loc>/g),
-    ]).toHaveLength(24);
+    ]).toHaveLength(39); // 8 static pages + 5 guide pages, × 3 locales
     expect(() =>
       renderSitemap({
         products: Array.from({ length: 16661 }, (_, index) => ({
