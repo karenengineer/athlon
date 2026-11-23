@@ -75,6 +75,49 @@ or logs. The notification recipient is fixed in API code and cannot be supplied 
 browser request. Do not use the production inbox for test orders; automated tests mock
 the provider and database.
 
+### Telegram order notifications
+
+The API can also notify a separate Telegram chat about new pay-on-delivery orders.
+Each message contains the order reference, customer name, phone, delivery address,
+products, quantities and total. Use a private chat or a restricted group whose
+members handle orders.
+
+For a private recipient, open a private terminal in the checkout and run
+`node scripts/configure-order-telegram.mjs @YourTelegramUsername` with Node.js 22.
+Paste the order bot token at the hidden prompt. Open the verified bot in Telegram
+and send the displayed command from the specified account. The helper saves both
+settings to `../.private/order-telegram.env` with mode `600` for private transfer to
+the API environment. It uses Telegram to verify the chat and writes the settings
+locally. Apply both settings using step 4 below.
+
+1. Create a dedicated order bot privately. [@BotFather](https://t.me/BotFather)
+2. For a private chat, open the bot and press **Start**. For a group, add the bot with
+   permission to send messages. Send a fresh message with a unique marker, such as
+   `/start@YourOrderBot setup-917263` in the group. [Telegram bot privacy mode](https://core.telegram.org/bots/features#privacy-mode)
+3. Read `message.chat.id` from that message's fresh Bot API `getUpdates` result.
+   Use the hidden token prompt from the private terminal example and adapt its
+   filter to match the message you sent and the intended `private`, `group` or
+   `supergroup` chat type. Copy the numeric chat ID including the leading minus sign
+   for a group. [Private terminal example](#setting-up-the-private-telegram-recipient)
+4. Set `ORDER_TELEGRAM_BOT_TOKEN` and `ORDER_TELEGRAM_CHAT_ID` in `.env` for local
+   development or in the protected `/opt/athlon/.env` on production. Keep the values
+   out of source control, chat, shell history and logs. Restart the local API after
+   editing `.env`. On production, recreate the API container with the updated
+   environment during a release. [Production release procedure](#deploying-updates-and-checking-services)
+
+Leave both values empty to disable order messages. The API rejects a partial
+configuration and reads only the `ORDER_TELEGRAM_*` pair for order delivery.
+Telegram failures do not interrupt order acceptance or email delivery. A repeat of
+the same order request can retry a failed Telegram delivery. An ambiguous network
+timeout can lead to a duplicate if Telegram accepted the first request. Enabling the
+bot applies to new orders, with no historical broadcast.
+
+Retries run only when the same checkout request is repeated; there is no background
+delivery worker. Concurrent retries can also duplicate a Telegram message. The
+Telegram intent is written after the order commits so a tracking failure cannot
+reject checkout; a crash or failed write in that short interval can leave an order
+without a Telegram notification. Email remains the existing notification channel.
+
 ### Ameriabank card payments and isolated sandbox testing
 
 Ordinary customer card payments remain disabled: keep `AMERIA_PAYMENTS_ENABLED=false`.

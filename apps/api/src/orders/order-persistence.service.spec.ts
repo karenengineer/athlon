@@ -39,11 +39,15 @@ describe("OrderPersistenceService", () => {
   const orderUpdate = jest.fn().mockResolvedValue(undefined);
   const paymentAttemptUpdate = jest.fn().mockResolvedValue(undefined);
   const notificationUpdate = jest.fn().mockResolvedValue(undefined);
+  const notificationCreate = jest.fn().mockResolvedValue({ id: "telegram-id" });
   const transaction = jest.fn();
   const prisma = {
     order: { findUnique: orderFindUnique },
     paymentAttempt: { update: paymentAttemptUpdate },
-    orderNotification: { update: notificationUpdate },
+    orderNotification: {
+      create: notificationCreate,
+      update: notificationUpdate,
+    },
     $transaction: transaction,
   } as unknown as PrismaService;
   const service = new OrderPersistenceService(prisma);
@@ -154,6 +158,34 @@ describe("OrderPersistenceService", () => {
         sentAt: expect.any(Date),
         lastErrorCode: null,
       },
+    });
+  });
+
+  it("creates an independent durable Telegram notification intent", async () => {
+    await expect(
+      service.createMerchantTelegramNotification("order-id"),
+    ).resolves.toEqual({ id: "telegram-id" });
+    expect(notificationCreate).toHaveBeenCalledWith({
+      data: {
+        orderId: "order-id",
+        eventType: "ORDER_ACCEPTED",
+        recipientType: "MERCHANT_TELEGRAM",
+      },
+      select: { id: true },
+    });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it("guards Telegram attempts and failures against downgrading a sent record", async () => {
+    await service.recordNotificationAttempt("telegram-id", { skipSent: true });
+    expect(notificationUpdate).toHaveBeenCalledWith({
+      where: { id: "telegram-id", status: { not: "SENT" } },
+      data: { attemptCount: { increment: 1 }, status: "PENDING" },
+    });
+    await service.markNotificationFailed("telegram-id", { skipSent: true });
+    expect(notificationUpdate).toHaveBeenLastCalledWith({
+      where: { id: "telegram-id", status: { not: "SENT" } },
+      data: { status: "FAILED", lastErrorCode: "DELIVERY_FAILED" },
     });
   });
 

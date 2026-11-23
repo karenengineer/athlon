@@ -84,6 +84,7 @@ enum OrderNotificationEventType {
 enum OrderNotificationRecipientType {
   CUSTOMER
   MERCHANT
+  MERCHANT_TELEGRAM
 }
 
 enum OrderNotificationStatus {

@@ -31,6 +31,7 @@ describe("Public orders", () => {
   const persistence = {
     findByIdempotencyKey: jest.fn().mockResolvedValue(null),
     createPendingOrder: jest.fn(),
+    createMerchantTelegramNotification: jest.fn(),
     markInitializationFailed: jest.fn().mockResolvedValue(undefined),
     recordProviderPaymentId: jest.fn().mockResolvedValue(undefined),
     recordNotificationAttempt: jest.fn().mockResolvedValue(undefined),
@@ -41,12 +42,17 @@ describe("Public orders", () => {
   beforeEach(async () => {
     process.env.RESEND_API_KEY = "test-only-key";
     process.env.ORDER_FROM_EMAIL = "orders@example.test";
+    process.env.ORDER_TELEGRAM_BOT_TOKEN = "";
+    process.env.ORDER_TELEGRAM_CHAT_ID = "";
     fetchMock
       .mockReset()
       .mockResolvedValue(
         new Response(JSON.stringify({ id: "email_test_1" }), { status: 200 }),
       );
     prisma.product.findMany.mockReset().mockResolvedValue([product]);
+    persistence.createMerchantTelegramNotification
+      .mockReset()
+      .mockResolvedValue({ id: "e2e-telegram-notification" });
     persistence.createPendingOrder
       .mockReset()
       .mockImplementation(
@@ -98,6 +104,8 @@ describe("Public orders", () => {
   afterAll(() => {
     delete process.env.RESEND_API_KEY;
     delete process.env.ORDER_FROM_EMAIL;
+    delete process.env.ORDER_TELEGRAM_BOT_TOKEN;
+    delete process.env.ORDER_TELEGRAM_CHAT_ID;
     global.fetch = originalFetch;
   });
 
@@ -162,6 +170,59 @@ describe("Public orders", () => {
       .expect(400);
 
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sends configured Telegram alongside both emails for an accepted order", async () => {
+    const token = "123456:e2e-order-test";
+    const chatId = "-1001234567890";
+    const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+    process.env.ORDER_TELEGRAM_BOT_TOKEN = token;
+    process.env.ORDER_TELEGRAM_CHAT_ID = chatId;
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        Response.json(
+          url === telegramUrl ? { ok: true } : { id: "email_test_1" },
+        ),
+      ),
+    );
+
+    await request(app.getHttpServer())
+      .post("/api/v1/public/orders")
+      .set("Idempotency-Key", "e2e-order-telegram")
+      .send({
+        locale: "hy",
+        customer: {
+          name: "Անի",
+          email: "ani@example.com",
+          phone: "+374 91 123456",
+          address: "Երևան, Աբովյան 1",
+        },
+        items: [
+          { productId: product.id, quantity: 2, expectedUnitPrice: "24000" },
+        ],
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ kind: "COD_ACCEPTED", accepted: true });
+      });
+
+    expect(persistence.createMerchantTelegramNotification).toHaveBeenCalledWith(
+      "order-test-id",
+    );
+    expect(persistence.markNotificationSent).toHaveBeenCalledWith(
+      "e2e-telegram-notification",
+    );
+    const calls = fetchMock.mock.calls as [string, RequestInit][];
+    expect(
+      calls.filter(([url]) => url === "https://api.resend.com/emails"),
+    ).toHaveLength(2);
+    const telegramRequest = calls.find(([url]) => url === telegramUrl)?.[1];
+    expect(JSON.parse(telegramRequest!.body as string)).toEqual(
+      expect.objectContaining({
+        chat_id: chatId,
+        text: expect.stringContaining("Ընդամենը: 48000 AMD"),
+      }),
+    );
   });
 
   it("requires a valid idempotency key and customer email", async () => {
