@@ -20,7 +20,7 @@ import {
   createPageResponseStatus,
 } from "../../core/seo/page-metadata";
 import { guideSlugs } from "../guides/guide-slugs";
-import { guides, guidesCopy } from "../guides/guides-content";
+import { guideIndex, guidesCopy } from "../guides/guide-index";
 import { homeContent } from "./home-content";
 import {
   bandsCategorySlug,
@@ -50,7 +50,7 @@ export class HomePage {
     heading: guidesCopy[this.i18n.locale()].related,
     items: guideSlugs.map((slug) => ({
       slug,
-      heading: guides[slug].copy[this.i18n.locale()].heading,
+      heading: guideIndex[slug].heading[this.i18n.locale()],
     })),
   }));
   readonly instagramUrl = INSTAGRAM_PROFILE_URL;

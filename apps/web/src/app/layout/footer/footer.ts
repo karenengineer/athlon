@@ -6,7 +6,7 @@ import {
   informationNavigation,
   informationPageIds,
 } from "../../core/i18n/information-navigation";
-import { guidesCopy } from "../../features/guides/guides-content";
+import { guidesCopy } from "../../features/guides/guide-index";
 import {
   FACEBOOK_PROFILE_URL,
   INSTAGRAM_PROFILE_URL,

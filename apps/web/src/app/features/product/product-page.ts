@@ -24,7 +24,7 @@ import { BasketService } from "../../core/basket/basket.service";
 import { I18nService, Locale } from "../../core/i18n/i18n.service";
 import { imageAlt } from "../../core/seo/image-alt";
 import { localizeCharacteristicValue } from "./characteristic-values";
-import { guidesForCategory } from "../guides/guides-content";
+import { guidesForCategory } from "../guides/guide-index";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
 import {
   createPageMetadata,
@@ -68,7 +68,7 @@ export class ProductPage {
   ): { slug: string; heading: string } | null {
     const [match] = guidesForCategory(category);
     return match
-      ? { slug: match[0], heading: match[1].copy[this.i18n.locale()].heading }
+      ? { slug: match.slug, heading: match.link.heading[this.i18n.locale()] }
       : null;
   }
 

@@ -10,7 +10,8 @@ import { App } from "../../app";
 import { routes } from "../../app.routes";
 import { supportedLocales } from "../../core/i18n/i18n.service";
 import { guideSlugs } from "./guide-slugs";
-import { guides, guidesCopy } from "./guides-content";
+import { guideIndex, guidesCopy } from "./guide-index";
+import { guides } from "./guides-content";
 
 describe("Guides", () => {
   let fixture: ComponentFixture<App>;
@@ -55,7 +56,7 @@ describe("Guides", () => {
     for (const slug of guideSlugs)
       for (const locale of supportedLocales) {
         const guide = guides[slug].copy[locale];
-        expect(guide.heading.trim()).not.toBe("");
+        expect(guideIndex[slug].heading[locale].trim()).not.toBe("");
         expect(guide.description.trim()).not.toBe("");
         expect(guide.sections.length).toBeGreaterThanOrEqual(3);
       }
@@ -85,7 +86,10 @@ describe("Guides", () => {
     "renders a guide with Article data and a shop link in %s",
     async (locale) => {
       await visit(`/${locale}/guides/creatine-guide`);
-      const guide = guides["creatine-guide"].copy[locale];
+      const guide = {
+        ...guides["creatine-guide"].copy[locale],
+        heading: guideIndex["creatine-guide"].heading[locale],
+      };
       expect(page().querySelectorAll("h1")).toHaveLength(1);
       expect(page().querySelector("h1")?.textContent?.trim()).toBe(
         guide.heading,

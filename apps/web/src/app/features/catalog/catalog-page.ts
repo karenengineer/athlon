@@ -37,11 +37,7 @@ import {
   categoryIntroduction,
 } from "./category-content";
 import { categoryFaq, categorySeo, faqSchema, FaqItem } from "./category-seo";
-import {
-  GuideSlugAndEntry,
-  guidesCopy,
-  guidesForCategory,
-} from "../guides/guides-content";
+import { guidesCopy, guidesForCategory } from "../guides/guide-index";
 
 type CatalogState = "loading" | "ready" | "empty" | "error" | "not-found";
 type CategoryOption = Pick<Category, "id" | "slug" | "name" | "displayOrder">;
@@ -184,7 +180,7 @@ export class CatalogPage {
       : [...catalog, slug];
   }
 
-  relatedGuides(): GuideSlugAndEntry[] {
+  relatedGuides(): ReturnType<typeof guidesForCategory> {
     if (this.isSearch()) return [];
     return guidesForCategory(this.selectedCategory()?.slug);
   }

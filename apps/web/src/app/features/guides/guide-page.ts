@@ -10,8 +10,11 @@ import {
   publicPageUrl,
 } from "../../core/seo/page-metadata";
 import { breadcrumbSchema } from "../../core/seo/seo-content";
-import { GUIDES_PUBLISHED, GuideSlug, guideSlugs } from "./guide-slugs";
-import { Guide, guides, guidesCopy } from "./guides-content";
+import { GuideSlug, guidePublished, guideSlugs } from "./guide-slugs";
+import { guideIndex, guidesCopy } from "./guide-index";
+import { Guide, guides } from "./guides-content";
+
+type GuideView = Guide & { heading: string };
 
 /** Guides index (/:locale/guides) and articles (/:locale/guides/:slug). */
 @Component({
@@ -23,7 +26,7 @@ import { Guide, guides, guidesCopy } from "./guides-content";
 export class GuidePage {
   readonly i18n = inject(I18nService);
   readonly slug = signal<GuideSlug | null>(null);
-  readonly guide = signal<Guide | null>(null);
+  readonly guide = signal<GuideView | null>(null);
   readonly category = signal<string | null>(null);
   readonly notFound = signal(false);
   readonly slugs = guideSlugs;
@@ -49,8 +52,8 @@ export class GuidePage {
     return guidesCopy[this.i18n.locale()];
   }
 
-  entry(slug: GuideSlug): Guide {
-    return guides[slug].copy[this.i18n.locale()];
+  entry(slug: GuideSlug): GuideView {
+    return this.view(slug, this.i18n.locale());
   }
 
   /** The default category is served at /catalog. */
@@ -82,13 +85,13 @@ export class GuidePage {
 
   private showGuide(locale: Locale, slug: GuideSlug): void {
     const copy = guidesCopy[locale];
-    const guide = guides[slug].copy[locale];
+    const guide = this.view(slug, locale);
     const url = publicPageUrl(locale, ["guides", slug]);
     this.responseStatus(200);
     this.notFound.set(false);
     this.slug.set(slug);
     this.guide.set(guide);
-    this.category.set(guides[slug].category);
+    this.category.set(guideIndex[slug].category);
     this.metadata.set({
       title: `${guide.title} | ATHLON`,
       description: guide.description,
@@ -103,8 +106,8 @@ export class GuidePage {
           inLanguage: locale,
           url,
           mainEntityOfPage: url,
-          datePublished: GUIDES_PUBLISHED,
-          dateModified: GUIDES_PUBLISHED,
+          datePublished: guidePublished[slug],
+          dateModified: guidePublished[slug],
           image: `${PUBLIC_ORIGIN}/brand/athlon-hero-wide.jpeg`,
           author: { "@type": "Organization", name: "ATHLON" },
           publisher: { "@id": `${PUBLIC_ORIGIN}/#store` },
@@ -116,6 +119,13 @@ export class GuidePage {
         ]),
       ],
     });
+  }
+
+  private view(slug: GuideSlug, locale: Locale): GuideView {
+    return {
+      ...guides[slug].copy[locale],
+      heading: guideIndex[slug].heading[locale],
+    };
   }
 
   private showNotFound(): void {
