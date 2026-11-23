@@ -12,7 +12,7 @@
     >
       <img
         [src]="imageUrl()"
-        [alt]="product().images[0]?.alt || product().name"
+        [alt]="imageAlt()"
         width="560"
         height="560"
         [attr.loading]="eager() ? 'eager' : 'lazy'"

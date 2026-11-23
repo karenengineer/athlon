@@ -1,0 +1,46 @@
+<article class="guide-page page-width">
+  @if (notFound()) {
+  <h1>{{ i18n.t("notFoundTitle") }}</h1>
+  <p>{{ i18n.t("notFoundText") }}</p>
+  <a [routerLink]="['/', i18n.locale(), 'guides']">{{ copy().all }}</a>
+  } @else if (guide(); as article) {
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a [routerLink]="['/', i18n.locale()]">{{ i18n.t("home") }}</a>
+    <span>/</span>
+    <a [routerLink]="['/', i18n.locale(), 'guides']">{{ copy().heading }}</a>
+  </nav>
+  <h1>{{ article.heading }}</h1>
+  <p class="guide-introduction">{{ article.introduction }}</p>
+  @for (section of article.sections; track section.heading) {
+  <section class="guide-section">
+    <h2>{{ section.heading }}</h2>
+    @for (paragraph of section.paragraphs; track paragraph) {
+    <p>{{ paragraph }}</p>
+    }
+  </section>
+  }
+  <nav class="guide-actions" [attr.aria-label]="article.heading">
+    @if (category(); as slug) {
+    <a class="primary-link" [routerLink]="categoryLink(slug)"
+      >{{ copy().shop }}</a
+    >
+    }
+    <a [routerLink]="['/', i18n.locale(), 'guides']">{{ copy().all }}</a>
+  </nav>
+  } @else {
+  <h1>{{ copy().heading }}</h1>
+  <p class="guide-introduction">{{ copy().introduction }}</p>
+  <ul class="guide-list">
+    @for (slug of slugs; track slug) {
+    <li>
+      <h2>
+        <a [routerLink]="['/', i18n.locale(), 'guides', slug]"
+          >{{ entry(slug).heading }}</a
+        >
+      </h2>
+      <p>{{ entry(slug).description }}</p>
+    </li>
+    }
+  </ul>
+  }
+</article>

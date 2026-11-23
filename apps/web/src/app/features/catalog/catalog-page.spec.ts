@@ -1,3 +1,5 @@
+import { Locale } from "../../core/i18n/i18n.service";
+import { categorySeo } from "./category-seo";
 import { provideHttpClient } from "@angular/common/http";
 import {
   HttpTestingController,
@@ -213,7 +215,8 @@ describe("Catalog category content and metadata", () => {
       fixture.nativeElement.querySelectorAll(".category-navigation a"),
     ) as HTMLAnchorElement[];
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "/ru/catalog/sports-nutrition",
+      // The default category is served at /catalog.
+      "/ru/catalog",
       "/ru/catalog/protein",
       "/ru/catalog/new-category",
     ]);
@@ -238,10 +241,12 @@ describe("Catalog category content and metadata", () => {
       fixture.nativeElement.querySelectorAll(".related-categories a"),
     ) as HTMLAnchorElement[];
     expect(related.map((link) => link.getAttribute("href"))).toEqual([
-      "/en/catalog/sports-nutrition",
+      "/en/catalog",
       "/en/catalog/new-category",
     ]);
-    expect(title.getTitle()).toBe("Protein — Armenia | ATHLON");
+    expect(title.getTitle()).toBe(
+      "Buy protein in Armenia — whey protein powder | ATHLON",
+    );
     expect(description()).toBe(
       "<b>Compare packages</b> Free delivery throughout Armenia.",
     );
@@ -264,7 +269,10 @@ describe("Catalog category content and metadata", () => {
       expect(
         fixture.nativeElement.querySelector(".category-guidance")?.textContent,
       ).toContain(guidanceFragment);
-      expect(description()).toContain(fallbackFragment);
+      // Without an admin description, the built-in search copy is used.
+      expect(description()).toBe(
+        categorySeo("protein", locale as Locale)!.description,
+      );
     });
   }
 
@@ -302,7 +310,9 @@ describe("Catalog category content and metadata", () => {
     categories[0].children[0].name = "Протеин";
     categories[0].children[0].description = "Сравните упаковки протеина.";
     flushCatalog(categories);
-    expect(title.getTitle()).toBe("Протеин — Армения | ATHLON");
+    expect(title.getTitle()).toBe(
+      "Купить протеин в Ереване — сывороточный протеин | ATHLON",
+    );
     expect(description()).toBe(
       "Сравните упаковки протеина. Бесплатная доставка по всей Армении.",
     );

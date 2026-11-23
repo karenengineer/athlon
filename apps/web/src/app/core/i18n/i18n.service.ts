@@ -28,6 +28,9 @@ type Copy = {
   heroEyebrow: string;
   heroTitle: string;
   heroTrust: string;
+  heroHeading: string;
+  heroImageAlt: string;
+  faqTitle: string;
   heroText: string;
   communityTitle: string;
   communityText: string;
@@ -189,6 +192,9 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Создай тело под стать своему духу",
     heroTrust: "Оригинальная продукция напрямую от производителя",
+    heroHeading: "Спортивное питание в Армении",
+    heroImageAlt: "Магазин спортивного питания ATHLON",
+    faqTitle: "Частые вопросы",
     heroText: "Спортивное питание для ежедневного прогресса.",
     communityTitle: "Присоединяйся к ATHLON",
     communityText: "Тренировки, новинки и спортивные будни.",
@@ -366,6 +372,9 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
     heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
     heroTrust: "Օրիգինալ ապրանք միայն արտադրողից",
+    heroHeading: "Սպորտային սնունդ Հայաստանում",
+    heroImageAlt: "ATHLON սպորտային սննդի խանութ",
+    faqTitle: "Հաճախ տրվող հարցեր",
     heroText: "Սպորտային սնունդ ամենօրյա առաջընթացի համար։",
     communityTitle: "Միացիր ATHLON-ին",
     communityText: "Մարզումներ, նորություններ և սպորտային առօրյա։",
@@ -543,6 +552,9 @@ const copy: Record<Locale, Copy> = {
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Build a body to match your spirit",
     heroTrust: "Original products directly from the manufacturer",
+    heroHeading: "Sports nutrition in Armenia",
+    heroImageAlt: "ATHLON sports nutrition store",
+    faqTitle: "Frequently asked questions",
     heroText: "Sports nutrition for everyday progress.",
     communityTitle: "Join ATHLON",
     communityText: "Training, new arrivals and everyday sport.",

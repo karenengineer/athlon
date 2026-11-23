@@ -81,6 +81,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "guides",
+        loadComponent: () =>
+          import("./features/guides/guide-page").then(
+            (module) => module.GuidePage,
+          ),
+      },
+      {
+        path: "guides/:slug",
+        loadComponent: () =>
+          import("./features/guides/guide-page").then(
+            (module) => module.GuidePage,
+          ),
+      },
+      {
         path: "basket",
         loadComponent: () =>
           import("./features/basket/basket-page").then(

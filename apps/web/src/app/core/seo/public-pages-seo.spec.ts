@@ -1,3 +1,4 @@
+import { categorySeo } from "../../features/catalog/category-seo";
 import { provideHttpClient } from "@angular/common/http";
 import {
   HttpTestingController,
@@ -167,10 +168,18 @@ describe("Public page SEO navigation", () => {
         guide.querySelector(`a[href="/${locale}/catalog/protein"]`),
       ).not.toBeNull();
       await visit(`/${locale}/catalog/protein`);
-      flushCatalog();
+      flushCatalog(1, 1, [product]);
       expect(response.status).toBe(200);
-      expect(TestBed.inject(Title).getTitle()).toContain("Protein");
-      expect(TestBed.inject(Title).getTitle()).toContain(armenia);
+      // Each category targets its own search query.
+      expect(TestBed.inject(Title).getTitle()).toBe(
+        `${categorySeo("protein", locale as Locale)!.title} | ATHLON`,
+      );
+      expect(
+        fixture.nativeElement.querySelector("app-catalog-page h1").textContent,
+      ).toBe(categorySeo("protein", locale as Locale)!.heading);
+      expect(
+        schemas().find((value) => value["@type"] === "FAQPage"),
+      ).toBeDefined();
       expect(noindex()).toBeUndefined();
       await visit(`/${locale}/product/whey`);
       flushProduct();
@@ -325,6 +334,11 @@ describe("Public page SEO navigation", () => {
     flushCatalog();
     expect(response.status).toBe(200);
     expect(noindex()).toBeUndefined();
+    // The default category duplicates /catalog, so it canonicalises there.
+    await visit("/en/catalog/sports-nutrition");
+    flushCatalog();
+    expect(response.status).toBe(200);
+    expect(canonical()).toBe("https://athlon.am/en/catalog");
     await visit("/en/catalog");
     http
       .expectOne((request) => request.url.endsWith("/categories"))
