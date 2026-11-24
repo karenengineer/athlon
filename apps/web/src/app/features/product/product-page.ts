@@ -1,6 +1,6 @@
 import { CurrencyPipe, KeyValuePipe } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { Component, computed, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import {
@@ -353,10 +353,37 @@ export class ProductPage {
     }
   }
 
-  inBasket(): boolean {
+  readonly quantityInBasket = computed(() => {
     const product = this.product();
+    if (!product) return 0;
     return (
-      !!product && this.basket.items().some((item) => item.id === product.id)
+      this.basket.items().find((item) => item.id === product.id)?.quantity ?? 0
     );
+  });
+
+  inBasket(): boolean {
+    return this.quantityInBasket() > 0;
+  }
+
+  changeQuantity(quantity: number): void {
+    const product = this.product();
+    if (!product || !isBasketEligible(product)) return;
+    const next = Math.min(99, Math.max(0, Math.floor(quantity)));
+    if (this.quantityInBasket() === 0) {
+      if (next > 0) this.basket.add(product, next);
+      return;
+    }
+    this.basket.update(product.id, next);
+  }
+
+  setQuantityFromInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+    if (!Number.isFinite(value) || input.value.trim() === "") {
+      input.value = String(this.quantityInBasket());
+      return;
+    }
+    this.changeQuantity(value);
+    input.value = String(this.quantityInBasket());
   }
 }
