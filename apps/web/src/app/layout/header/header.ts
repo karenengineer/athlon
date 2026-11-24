@@ -6,15 +6,18 @@ import {
   supportedLocales,
 } from "../../core/i18n/i18n.service";
 import { informationNavigation } from "../../core/i18n/information-navigation";
+import { BasketService } from "../../core/basket/basket.service";
+import { BasketBumpDirective } from "../../shared/basket-bump/basket-bump.directive";
 
 @Component({
   selector: "app-header",
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, BasketBumpDirective],
   templateUrl: "./header.html",
   styleUrl: "./header.scss",
 })
 export class Header {
   readonly i18n = inject(I18nService);
+  readonly basket = inject(BasketService);
   readonly locales = supportedLocales;
   readonly information = informationNavigation;
   private readonly router = inject(Router);

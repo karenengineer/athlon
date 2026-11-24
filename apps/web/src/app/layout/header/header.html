@@ -108,6 +108,29 @@
       }
     </div>
 
+    <a
+      class="header-basket"
+      data-testid="header-basket-link"
+      [routerLink]="['/', i18n.locale(), 'basket']"
+      routerLinkActive="active"
+      ariaCurrentWhenActive="page"
+      [attr.aria-label]="i18n.t('basket') + ': ' + basket.totalQuantity()"
+      [appBasketBump]="basket.totalQuantity()"
+      basketBumpBadge=".header-basket-count"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M3 4h2.2l2.1 10.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4l1.4-5.4H6.2"
+        />
+        <circle cx="9.2" cy="20" r="1.3" />
+        <circle cx="17.2" cy="20" r="1.3" />
+      </svg>
+      <span class="header-basket-label">{{ i18n.t("basket") }}</span>
+      <span class="header-basket-count" data-testid="header-basket-count"
+        >{{ basket.totalQuantity() }}</span
+      >
+    </a>
+
     <label class="mobile-language">
       <span class="sr-only">Language</span>
       <select

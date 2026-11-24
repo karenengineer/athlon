@@ -1,6 +1,7 @@
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { I18nService } from "../../core/i18n/i18n.service";
+import { BasketService } from "../../core/basket/basket.service";
 import { Header } from "./header";
 
 describe("Header logo presentation", () => {
@@ -111,7 +112,52 @@ describe("Header logo presentation", () => {
     ).toBe(0);
   });
 
-  it("renders mobile home and language controls without header basket or social controls", async () => {
+  it("shows a desktop header basket link with the live item count", async () => {
+    await TestBed.configureTestingModule({
+      imports: [Header],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(Header);
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector(
+      "[data-testid='header-basket-link']",
+    ) as HTMLAnchorElement;
+    expect(link).not.toBeNull();
+    expect(link.getAttribute("href")).toBe("/hy/basket");
+    expect(
+      fixture.nativeElement
+        .querySelector("[data-testid='header-basket-count']")
+        .textContent.trim(),
+    ).toBe("0");
+
+    TestBed.inject(BasketService).add(
+      {
+        id: "product-id",
+        sku: "SKU",
+        slug: "product",
+        name: "Product",
+        price: "13000",
+        currency: "AMD",
+        availability: "IN_STOCK",
+        featured: false,
+        isNew: false,
+        category: { slug: "protein", name: "Protein" },
+        brand: null,
+        images: [],
+        shortDescription: null,
+      } as never,
+      2,
+    );
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement
+        .querySelector("[data-testid='header-basket-count']")
+        .textContent.trim(),
+    ).toBe("2");
+    localStorage.clear();
+  });
+
+  it("renders mobile home and language controls without social controls", async () => {
     await TestBed.configureTestingModule({
       imports: [Header],
       providers: [provideRouter([])],
@@ -130,9 +176,6 @@ describe("Header logo presentation", () => {
     expect(mobileHome.getAttribute("href")).toBe("/hy");
     expect(mobileHome.querySelector(".favicon-logo")).not.toBeNull();
     expect(mobileLanguage).not.toBeNull();
-    expect(
-      fixture.nativeElement.querySelector("[data-testid='basket-link']"),
-    ).toBeNull();
   });
 });
 

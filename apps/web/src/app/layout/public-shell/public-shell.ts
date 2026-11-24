@@ -8,13 +8,21 @@ import {
   RouterOutlet,
 } from "@angular/router";
 import { BasketService } from "../../core/basket/basket.service";
+import { BasketBumpDirective } from "../../shared/basket-bump/basket-bump.directive";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { Footer } from "../footer/footer";
 import { Header } from "../header/header";
 
 @Component({
   selector: "app-public-shell",
-  imports: [Header, Footer, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [
+    Header,
+    Footer,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    BasketBumpDirective,
+  ],
   template: `
     <div class="dark-shell"><app-header /></div>
     <main><router-outlet /></main>
@@ -26,6 +34,8 @@ import { Header } from "../header/header";
       routerLinkActive="is-hidden"
       [routerLinkActiveOptions]="{ exact: true }"
       [attr.aria-label]="i18n.t('basket')"
+      [appBasketBump]="basket.totalQuantity()"
+      basketBumpBadge="span"
     >
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path
@@ -71,6 +81,12 @@ import { Header } from "../header/header";
     }
     .floating-basket.is-hidden {
       display: none;
+    }
+    /* Desktop shows the basket in the header instead. */
+    @media (min-width: 861px) {
+      .floating-basket {
+        display: none;
+      }
     }
     .floating-basket svg {
       width: 28px;
