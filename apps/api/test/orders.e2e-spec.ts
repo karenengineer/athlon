@@ -30,6 +30,7 @@ describe("Public orders", () => {
   };
   const persistence = {
     findByIdempotencyKey: jest.fn().mockResolvedValue(null),
+    findCheckoutByIdempotencyKey: jest.fn(),
     createPendingOrder: jest.fn(),
     createMerchantTelegramNotification: jest.fn(),
     markInitializationFailed: jest.fn().mockResolvedValue(undefined),
@@ -50,6 +51,9 @@ describe("Public orders", () => {
         new Response(JSON.stringify({ id: "email_test_1" }), { status: 200 }),
       );
     prisma.product.findMany.mockReset().mockResolvedValue([product]);
+    persistence.findCheckoutByIdempotencyKey
+      .mockReset()
+      .mockResolvedValue(null);
     persistence.createMerchantTelegramNotification
       .mockReset()
       .mockResolvedValue({ id: "e2e-telegram-notification" });
@@ -292,6 +296,22 @@ describe("Public orders", () => {
         expect(body).not.toHaveProperty("paymentStatus");
         expect(body).not.toHaveProperty("orderReference");
       });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("requires the checkout key in the header and returns a non-cacheable missing status", async () => {
+    const url = "/api/v1/public/orders/checkout-status";
+    await request(app.getHttpServer()).get(url).expect(400);
+    expect(persistence.findCheckoutByIdempotencyKey).not.toHaveBeenCalled();
+
+    await request(app.getHttpServer())
+      .get(url)
+      .set("Idempotency-Key", "e2e-card-status-key")
+      .expect("Cache-Control", "no-store")
+      .expect(200, { paymentStatus: "NOT_FOUND" });
+    expect(persistence.findCheckoutByIdempotencyKey).toHaveBeenCalledWith(
+      "e2e-card-status-key",
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
