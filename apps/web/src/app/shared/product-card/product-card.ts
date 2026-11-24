@@ -3,7 +3,10 @@ import { Component, computed, inject, input } from "@angular/core";
 import { ProductVideoPreview } from "./product-video-preview";
 import { RouterLink } from "@angular/router";
 import { Product } from "../../core/api/catalog.models";
-import { BasketService } from "../../core/basket/basket.service";
+import {
+  BasketService,
+  isBasketEligible,
+} from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { imageAlt } from "../../core/seo/image-alt";
 
@@ -15,6 +18,7 @@ import { imageAlt } from "../../core/seo/image-alt";
 })
 export class ProductCard {
   readonly product = input.required<Product>();
+  readonly canAddToBasket = computed(() => isBasketEligible(this.product()));
   readonly eager = input(false);
   readonly i18n = inject(I18nService);
   readonly basket = inject(BasketService);
@@ -60,12 +64,12 @@ export class ProductCard {
   }
 
   addToBasket(): void {
-    if (this.product().availability !== "IN_STOCK") return;
+    if (!this.canAddToBasket()) return;
     this.basket.add(this.product());
   }
 
   incrementBasket(): void {
-    if (this.product().availability !== "IN_STOCK") return;
+    if (!this.canAddToBasket()) return;
     this.basket.add(this.product());
   }
 

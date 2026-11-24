@@ -12,6 +12,24 @@ export interface BasketItem {
   quantity: number;
 }
 
+// Basket entries saved before the category restriction contain only the slug.
+const legacyBandSlugs = new Set([
+  "yellow-resistance-band-2-7-kg",
+  "red-resistance-band-6-16-kg",
+  "black-resistance-band-11-30-kg",
+  "purple-resistance-band-15-39-kg",
+  "green-resistance-band-22-57-kg",
+]);
+
+export const resistanceBandsCategory = "resistance-bands";
+
+export function isBasketEligible(product: Product): boolean {
+  return (
+    product.availability === "IN_STOCK" &&
+    product.category?.slug !== resistanceBandsCategory
+  );
+}
+
 const storageKey = "athlon:basket:v1";
 
 interface StoredBasket {
@@ -77,7 +95,7 @@ export class BasketService {
   });
 
   add(product: Product, quantity = 1): void {
-    if (product.availability !== "IN_STOCK") return;
+    if (!isBasketEligible(product)) return;
     const next = [...this.items()];
     const existing = next.find((item) => item.id === product.id);
     if (existing) {
@@ -202,7 +220,11 @@ export class BasketService {
       ) {
         return null;
       }
-      return record as StoredBasket;
+      return {
+        version: 2,
+        items: record.items.filter((item) => !legacyBandSlugs.has(item.slug)),
+        settledReferences: record.settledReferences,
+      };
     } catch {
       return null;
     }

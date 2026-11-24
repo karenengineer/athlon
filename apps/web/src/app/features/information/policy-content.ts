@@ -30,7 +30,7 @@ export const policyContent: Record<
         },
         {
           heading: "Առաքում և վճարում",
-          text: "Առաքումն անվճար է ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Պատվերը ստանալիս կարող եք վճարել կանխիկ կամ քարտով՝ առաքիչին։ Առաքման մանրամասները ճշտեք մեզ հետ։ Եթե պատվերի ձևակերպման էջում հասանելի է առցանց քարտային վճարում, քարտի տվյալները մուտքագրվում են բանկի վճարման էջում։ ATHLON-ը չի հավաքում և չի պահպանում քարտի ամբողջական համարը կամ CVV կոդը։",
+          text: "Առաքումն անվճար է ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Առաքման մանրամասները ճշտեք մեզ հետ։ Պատվերը վճարվում է առցանց՝ բանկային քարտով։ Քարտի տվյալները մուտքագրվում են բանկի վճարման էջում։ ATHLON-ը չի հավաքում և չի պահպանում քարտի ամբողջական համարը կամ CVV կոդը։",
         },
         {
           heading: "Փոփոխություն, չեղարկում և վերադարձ",
@@ -102,7 +102,7 @@ export const policyContent: Record<
         },
         {
           heading: "Доставка и оплата",
-          text: "Доставка бесплатна по всей Армении независимо от суммы заказа. При получении можно оплатить заказ наличными или картой курьеру. Детали доставки уточняйте у нас. Если при оформлении доступна онлайн-оплата картой, реквизиты вводятся на платежной странице банка. ATHLON не собирает и не хранит полный номер карты или код CVV.",
+          text: "Доставка бесплатна по всей Армении независимо от суммы заказа. Детали доставки уточняйте у нас. Заказ оплачивается банковской картой онлайн. Реквизиты карты вводятся на платежной странице банка. ATHLON не собирает и не хранит полный номер карты или код CVV.",
         },
         {
           heading: "Изменение, отмена и возврат",
@@ -174,7 +174,7 @@ export const policyContent: Record<
         },
         {
           heading: "Delivery and payment",
-          text: "Delivery is free throughout Armenia, regardless of order value. You can pay cash or card to the courier on delivery. Contact us to confirm delivery details. If online card payment is offered at checkout, card details are entered on the bank's payment page. ATHLON does not collect or store full card numbers or CVV codes.",
+          text: "Delivery is free throughout Armenia, regardless of order value. Contact us to confirm delivery details. Orders are paid online by card. Enter your card details on the bank's payment page. ATHLON does not collect or store full card numbers or CVV codes.",
         },
         {
           heading: "Changes, cancellation and returns",

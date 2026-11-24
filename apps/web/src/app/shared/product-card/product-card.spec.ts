@@ -185,6 +185,28 @@ describe("ProductCard basket controls", () => {
     },
   );
 
+  it("keeps an in-stock resistance band visible without basket actions", async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProductCard],
+      providers: [provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(ProductCard);
+    fixture.componentRef.setInput("product", {
+      ...product,
+      category: { slug: "resistance-bands", name: "Resistance bands" },
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector(".detail-link")).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        "[data-testid='product-card-add-basket']",
+      ),
+    ).toBeNull();
+    fixture.componentInstance.addToBasket();
+    expect(TestBed.inject(BasketService).items()).toHaveLength(0);
+  });
+
   it("increments an in-stock product using the enabled plus control", async () => {
     await TestBed.configureTestingModule({
       imports: [ProductCard],

@@ -47,19 +47,19 @@ const seo: Record<string, Record<Locale, CategorySeo>> = {
       title: "Պրոտեին գնել Երևանում — շիճուկային պրոտեին",
       heading: "Պրոտեին (շիճուկային սպիտակուց)",
       description:
-        "Օրիգինալ շիճուկային պրոտեին Optimum Nutrition Gold Standard և Trec Nutrition՝ տարբեր համերով և փաթեթներով։ Անվճար առաքում ողջ Հայաստանում, վճարում՝ առաքման պահին։",
+        "Օրիգինալ շիճուկային պրոտեին Optimum Nutrition Gold Standard և Trec Nutrition՝ տարբեր համերով և փաթեթներով։ Անվճար առաքում ողջ Հայաստանում, առցանց քարտային վճարում։",
     },
     ru: {
       title: "Купить протеин в Ереване — сывороточный протеин",
       heading: "Протеин (сывороточный белок)",
       description:
-        "Оригинальный сывороточный протеин Optimum Nutrition Gold Standard и Trec Nutrition разных вкусов и фасовок. Бесплатная доставка по всей Армении, оплата при получении.",
+        "Оригинальный сывороточный протеин Optimum Nutrition Gold Standard и Trec Nutrition разных вкусов и фасовок. Бесплатная доставка по всей Армении, оплата картой онлайн.",
     },
     en: {
       title: "Buy protein in Armenia — whey protein powder",
       heading: "Whey protein",
       description:
-        "Original whey protein from Optimum Nutrition Gold Standard and Trec Nutrition in several flavors and sizes. Free delivery throughout Armenia, pay on delivery.",
+        "Original whey protein from Optimum Nutrition Gold Standard and Trec Nutrition in several flavors and sizes. Free delivery throughout Armenia, pay online by card.",
     },
   },
   creatine: {
@@ -175,7 +175,7 @@ const faq: Record<string, Record<Locale, readonly FaqItem[]>> = {
       {
         question: "Որքա՞ն արժե առաքումը։",
         answer:
-          "Առաքումը ողջ Հայաստանում անվճար է։ Վճարումը կատարվում է առաքիչին՝ կանխիկ կամ քարտով։",
+          "Առաքումը ողջ Հայաստանում անվճար է։ Վճարումը կատարվում է առցանց՝ բանկային քարտով։",
       },
       {
         question: "Ինչպե՞ս պատվիրել։",
@@ -192,7 +192,7 @@ const faq: Record<string, Record<Locale, readonly FaqItem[]>> = {
       {
         question: "Сколько стоит доставка?",
         answer:
-          "Доставка по всей Армении бесплатная. Оплата курьеру наличными или картой.",
+          "Доставка по всей Армении бесплатная. Оплата банковской картой онлайн.",
       },
       {
         question: "Как сделать заказ?",
@@ -208,8 +208,7 @@ const faq: Record<string, Record<Locale, readonly FaqItem[]>> = {
       },
       {
         question: "How much is delivery?",
-        answer:
-          "Delivery is free throughout Armenia. You pay the courier in cash or by card.",
+        answer: "Delivery is free throughout Armenia. You pay online by card.",
       },
       {
         question: "How do I order?",

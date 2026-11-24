@@ -73,8 +73,8 @@ test product) ready.
    completed" and the basket is still there.
 4. Refund the paid order in the Ameriabank merchant back-office. Within
    5 minutes the order moves to `CANCELLED` (status 4, refunded).
-5. If anything is off, set `AMERIA_PAYMENTS_ENABLED=false` and restart. Card
-   checkout disappears immediately; cash on delivery is unaffected.
+5. If anything is off, set `AMERIA_PAYMENTS_ENABLED=false` and restart. The
+   storefront pauses new orders while card payment is unavailable.
 
 ## 4. Go live
 

@@ -1,13 +1,16 @@
 import { CurrencyPipe } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { Component, computed, DestroyRef, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { createPageMetadata } from "../../core/seo/page-metadata";
 import { catchError, Observable, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { Product } from "../../core/api/catalog.models";
-import { BasketService } from "../../core/basket/basket.service";
+import {
+  BasketService,
+  isBasketEligible,
+} from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
 import {
   CardPaymentTestApiService,
@@ -35,12 +38,14 @@ export class BasketPage {
   readonly basket = inject(BasketService);
   readonly i18n = inject(I18nService);
   readonly submitting = signal(false);
-  readonly orderSuccess = signal(false);
   readonly paymentPending = signal(false);
   readonly orderError = signal("");
   readonly validationAttempted = signal(false);
   readonly privacyAccepted = signal(false);
-  readonly cardPaymentsEnabled = signal(false);
+  readonly cardPaymentsEnabled = signal<boolean | null>(null);
+  readonly liveCheckoutAvailable = computed(
+    () => this.cardPaymentsEnabled() === true && this.basket.total() !== null,
+  );
   private readonly route = inject(ActivatedRoute);
   readonly cardPaymentTestMode =
     this.route.snapshot.data["cardPaymentTestMode"] === true;
@@ -56,9 +61,6 @@ export class BasketPage {
   readonly sandboxAttemptComplete = signal(false);
   private readonly cancellableSandboxReference = signal<string | null>(null);
   sandboxAccess = "";
-  readonly paymentMethod = signal<"CARD" | "CASH_ON_DELIVERY">(
-    this.cardPaymentTestMode ? "CARD" : loadPaymentMethod(),
-  );
   readonly customer = this.cardPaymentTestMode
     ? { name: "", email: "", phone: "", address: "" }
     : loadCustomerDraft();
@@ -81,7 +83,6 @@ export class BasketPage {
         });
       });
     if (this.cardPaymentTestMode) {
-      this.paymentMethod.set("CARD");
       const config = this.cardPaymentTestApi.configuration();
       if (config) this.applyTestConfig(config);
       else this.loadTestConfig();
@@ -186,7 +187,7 @@ export class BasketPage {
   addSuggestion(product: Product, heading: HTMLHeadingElement): void {
     if (
       this.submitting() ||
-      product.availability !== "IN_STOCK" ||
+      !isBasketEligible(product) ||
       this.basket.items().some((item) => item.id === product.id)
     ) {
       return;
@@ -226,8 +227,8 @@ export class BasketPage {
 
   submitOrder(event: SubmitEvent): void {
     event.preventDefault();
+    if (!this.cardPaymentTestMode && !this.liveCheckoutAvailable()) return;
     this.orderError.set("");
-    this.orderSuccess.set(false);
     this.paymentPending.set(false);
     this.validationAttempted.set(true);
 
@@ -284,7 +285,7 @@ export class BasketPage {
       .submitOrder(
         {
           locale: this.i18n.locale(),
-          paymentMethod: this.paymentMethod(),
+          paymentMethod: "CARD",
           customer: { name, email, phone, address },
           items: this.basket.items().map((item) => ({
             productId: item.id,
@@ -297,41 +298,17 @@ export class BasketPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          if (response?.kind === "CARD_PAYMENT_PENDING") {
-            if (
-              response.paymentStatus !== "PENDING" ||
-              !isSecureCheckoutUrl(response.checkoutUrl)
-            ) {
-              this.orderError.set(this.i18n.t("orderFailure"));
-              this.submitting.set(false);
-              return;
-            }
-            this.paymentPending.set(true);
-            this.submitting.set(false);
-            this.redirectToCheckout(response.checkoutUrl);
-            return;
-          }
-          if (response?.kind !== "COD_ACCEPTED" || response.accepted !== true) {
-            this.orderError.set(this.i18n.t("orderFailure"));
-            this.submitting.set(false);
-            return;
-          }
-          this.basket.clear();
-          this.clearIdempotencyKey();
-          clearCustomerDraft();
-          clearPaymentMethodDraft();
-          this.paymentMethod.set("CASH_ON_DELIVERY");
-          this.customer.name = "";
-          this.customer.email = "";
-          this.customer.phone = "";
-          this.customer.address = "";
-          this.privacyAccepted.set(false);
-          this.validationAttempted.set(false);
-          this.orderSuccess.set(true);
           this.submitting.set(false);
-          if (typeof window !== "undefined") {
-            window.setTimeout(() => this.orderSuccess.set(false), 5_000);
+          if (
+            response?.kind !== "CARD_PAYMENT_PENDING" ||
+            response.paymentStatus !== "PENDING" ||
+            !isSecureCheckoutUrl(response.checkoutUrl)
+          ) {
+            this.orderError.set(this.i18n.t("orderFailure"));
+            return;
           }
+          this.paymentPending.set(true);
+          this.redirectToCheckout(response.checkoutUrl);
         },
         error: (error: unknown) => {
           const isConflict =
@@ -342,20 +319,6 @@ export class BasketPage {
           this.submitting.set(false);
         },
       });
-  }
-
-  setPaymentMethod(value: string): void {
-    if (this.cardPaymentTestMode) {
-      this.paymentMethod.set("CARD");
-      return;
-    }
-    if (value === "CARD" && this.cardPaymentsEnabled()) {
-      this.paymentMethod.set("CARD");
-      savePaymentMethod("CARD");
-      return;
-    }
-    this.paymentMethod.set("CASH_ON_DELIVERY");
-    savePaymentMethod("CASH_ON_DELIVERY");
   }
 
   setPrivacyAccepted(accepted: boolean): void {
@@ -675,7 +638,8 @@ function isSandboxCheckoutUrl(value: string, locale: string): boolean {
 }
 
 const CUSTOMER_DRAFT_KEY = "athlon_checkout_customer_v1";
-const IDEMPOTENCY_KEY = "athlon_checkout_idempotency_v1";
+const IDEMPOTENCY_KEY = "athlon_checkout_card_idempotency_v1";
+const LEGACY_IDEMPOTENCY_KEY = "athlon_checkout_idempotency_v1";
 const PAYMENT_METHOD_KEY = "athlon_checkout_payment_method_v1";
 
 function loadCustomerDraft() {
@@ -711,48 +675,16 @@ function saveCustomerDraft(customer: {
   }
 }
 
-function clearCustomerDraft(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(CUSTOMER_DRAFT_KEY);
-  } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts.
-  }
-}
-
-function loadPaymentMethod(): "CARD" | "CASH_ON_DELIVERY" {
-  if (typeof window === "undefined") return "CASH_ON_DELIVERY";
-  try {
-    return window.sessionStorage.getItem(PAYMENT_METHOD_KEY) === "CARD"
-      ? "CARD"
-      : "CASH_ON_DELIVERY";
-  } catch {
-    return "CASH_ON_DELIVERY";
-  }
-}
-
-function savePaymentMethod(value: "CARD" | "CASH_ON_DELIVERY"): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(PAYMENT_METHOD_KEY, value);
-  } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts.
-  }
-}
-
-function clearPaymentMethodDraft(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(PAYMENT_METHOD_KEY);
-  } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts.
-  }
-}
-
 function loadIdempotencyKey(): string {
   if (typeof window === "undefined") return "";
   try {
-    const value = window.sessionStorage.getItem(IDEMPOTENCY_KEY) ?? "";
+    const savedKey = window.sessionStorage.getItem(IDEMPOTENCY_KEY);
+    const legacyCardKey =
+      savedKey === null &&
+      window.sessionStorage.getItem(PAYMENT_METHOD_KEY) === "CARD"
+        ? window.sessionStorage.getItem(LEGACY_IDEMPOTENCY_KEY)
+        : null;
+    const value = savedKey ?? legacyCardKey ?? "";
     return /^[A-Za-z0-9._:-]{8,120}$/.test(value) ? value : "";
   } catch {
     return "";
@@ -772,6 +704,8 @@ function clearStoredIdempotencyKey(): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.removeItem(IDEMPOTENCY_KEY);
+    window.sessionStorage.removeItem(LEGACY_IDEMPOTENCY_KEY);
+    window.sessionStorage.removeItem(PAYMENT_METHOD_KEY);
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }

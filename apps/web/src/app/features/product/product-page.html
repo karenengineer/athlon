@@ -62,7 +62,7 @@
         } @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
         <span>{{ availabilityLabel() }}</span>
       </div>
-      @if (item.availability === "IN_STOCK") {
+      @if (isBasketEligible(item)) {
       <button type="button" class="basket-cta" (click)="addToBasket()">
         {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
       </button>
