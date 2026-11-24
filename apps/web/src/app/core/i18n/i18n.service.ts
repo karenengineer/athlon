@@ -116,9 +116,9 @@ type Copy = {
   orderCustomerPhone: string;
   orderDeliveryAddress: string;
   orderPaymentMethod: string;
+  orderPayOnDelivery: string;
   orderPayByCard: string;
-  orderCardUnavailable: string;
-  orderCardRequiresPrices: string;
+  orderPaymentOnDelivery: string;
   orderPaymentPending: string;
   orderPaymentConfirmed: string;
   orderPaymentFailed: string;
@@ -127,6 +127,7 @@ type Copy = {
   orderPaymentTimeout: string;
   orderPlace: string;
   orderSending: string;
+  orderSuccess: string;
   orderFailure: string;
   orderConflict: string;
   orderRequired: string;
@@ -179,7 +180,7 @@ const copy: Record<Locale, Copy> = {
       "Банк подтвердил оплату. Мы отправили подтверждение на вашу почту, курьер свяжется с вами для доставки.",
     paymentReturnFailedTitle: "Оплата не завершена",
     paymentReturnFailedText:
-      "Деньги не списаны или платёж отменён. Можно вернуться в корзину и попробовать снова.",
+      "Деньги не списаны или платёж отменён. Можно вернуться в корзину и попробовать снова или выбрать оплату при получении.",
     paymentReturnPendingTitle: "Платёж ещё обрабатывается",
     paymentReturnPendingText:
       "Банк пока не подтвердил оплату. Это может занять несколько минут — страница обновится сама, а при подтверждении вы получите письмо.",
@@ -295,10 +296,10 @@ const copy: Record<Locale, Copy> = {
     orderCustomerPhone: "Номер телефона",
     orderDeliveryAddress: "Адрес доставки",
     orderPaymentMethod: "Способ оплаты",
+    orderPayOnDelivery: "Наличными или картой курьеру при доставке",
     orderPayByCard: "Оплатить банковской картой сейчас",
-    orderCardUnavailable: "Онлайн-оплата картой временно недоступна.",
-    orderCardRequiresPrices:
-      "Чтобы оплатить онлайн, удалите из корзины товары без указанной цены.",
+    orderPaymentOnDelivery:
+      "Оплата при получении заказа — наличными или картой.",
     orderPaymentPending: "Открываем защищённую страницу оплаты банка…",
     orderPaymentConfirmed: "Оплата подтверждена.",
     orderPaymentFailed:
@@ -309,6 +310,7 @@ const copy: Record<Locale, Copy> = {
       "Статус оплаты пока не подтверждён. Корзина сохранена.",
     orderPlace: "Оформить заказ",
     orderSending: "Отправляем…",
+    orderSuccess: "Ваш заказ зарегистрирован.",
     orderFailure: "Не удалось отправить заказ. Попробуйте ещё раз.",
     orderConflict:
       "Цена или наличие товара изменились. Проверьте корзину и повторите попытку.",
@@ -374,7 +376,7 @@ const copy: Record<Locale, Copy> = {
       "Բանկը հաստատեց վճարումը։ Հաստատումը ուղարկել ենք ձեր էլ. փոստին, առաքիչը կկապվի ձեզ հետ։",
     paymentReturnFailedTitle: "Վճարումը չի ավարտվել",
     paymentReturnFailedText:
-      "Գումարը չի գանձվել կամ վճարումը չեղարկվել է։ Կարող եք վերադառնալ զամբյուղ և փորձել կրկին։",
+      "Գումարը չի գանձվել կամ վճարումը չեղարկվել է։ Կարող եք վերադառնալ զամբյուղ և փորձել կրկին կամ ընտրել վճարում ստանալիս։",
     paymentReturnPendingTitle: "Վճարումը դեռ մշակվում է",
     paymentReturnPendingText:
       "Բանկը դեռ չի հաստատել վճարումը։ Դա կարող է տևել մի քանի րոպե․ էջը կթարմացվի ինքնաշխատ, իսկ հաստատվելու դեպքում կստանաք նամակ։",
@@ -490,10 +492,9 @@ const copy: Record<Locale, Copy> = {
     orderCustomerPhone: "Հեռախոսահամար",
     orderDeliveryAddress: "Առաքման հասցե",
     orderPaymentMethod: "Վճարման եղանակը",
+    orderPayOnDelivery: "Կանխիկ կամ քարտով՝ առաքման պահին",
     orderPayByCard: "Վճարել բանկային քարտով հիմա",
-    orderCardUnavailable: "Առցանց քարտային վճարումն այս պահին հասանելի չէ։",
-    orderCardRequiresPrices:
-      "Առցանց վճարելու համար զամբյուղից հեռացրեք այն ապրանքները, որոնց գինը նշված չէ։",
+    orderPaymentOnDelivery: "Վճարումը՝ պատվերը ստանալիս․ կանխիկ կամ քարտով։",
     orderPaymentPending: "Բացում ենք բանկի անվտանգ վճարման էջը…",
     orderPaymentConfirmed: "Վճարումը հաստատվել է։",
     orderPaymentFailed:
@@ -504,6 +505,7 @@ const copy: Record<Locale, Copy> = {
       "Վճարման կարգավիճակը դեռ հաստատված չէ։ Զամբյուղը պահպանված է։",
     orderPlace: "Պատվիրել",
     orderSending: "Ուղարկվում է…",
+    orderSuccess: "Ձեր պատվերը գրանցված է",
     orderFailure: "Չհաջողվեց ուղարկել պատվերը։ Խնդրում ենք կրկին փորձել։",
     orderConflict:
       "Ապրանքի գինը կամ առկայությունը փոխվել է։ Ստուգեք զամբյուղը և կրկին փորձեք։",
@@ -570,7 +572,7 @@ const copy: Record<Locale, Copy> = {
       "The bank confirmed your payment. We emailed you a confirmation, and the courier will contact you about delivery.",
     paymentReturnFailedTitle: "Payment not completed",
     paymentReturnFailedText:
-      "No money was taken or the payment was cancelled. You can go back to the basket and try again.",
+      "No money was taken or the payment was cancelled. You can go back to the basket and try again, or choose to pay on delivery.",
     paymentReturnPendingTitle: "Payment still processing",
     paymentReturnPendingText:
       "The bank has not confirmed the payment yet. This can take a few minutes; this page updates by itself and you will get an email once it is confirmed.",
@@ -686,10 +688,9 @@ const copy: Record<Locale, Copy> = {
     orderCustomerPhone: "Phone number",
     orderDeliveryAddress: "Delivery address",
     orderPaymentMethod: "Payment method",
+    orderPayOnDelivery: "Cash or card when the courier delivers",
     orderPayByCard: "Pay by bank card now",
-    orderCardUnavailable: "Online card payment is currently unavailable.",
-    orderCardRequiresPrices:
-      "Remove items without a listed price to pay online.",
+    orderPaymentOnDelivery: "Pay the courier on delivery by cash or card.",
     orderPaymentPending: "Opening the bank’s secure payment page…",
     orderPaymentConfirmed: "Payment confirmed.",
     orderPaymentFailed:
@@ -699,6 +700,7 @@ const copy: Record<Locale, Copy> = {
     orderPaymentTimeout: "Payment is not confirmed yet. Your basket is saved.",
     orderPlace: "Place order",
     orderSending: "Sending…",
+    orderSuccess: "Your order has been registered.",
     orderFailure: "Could not submit your order. Please try again.",
     orderConflict:
       "An item’s price or availability changed. Review your basket and try again.",

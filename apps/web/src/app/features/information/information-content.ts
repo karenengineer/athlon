@@ -44,12 +44,12 @@ export const informationContent: Record<
     delivery: {
       heading: "Առաքում և վճարում",
       description:
-        "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Վճարումը կատարվում է առցանց՝ բանկային քարտով։",
+        "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Վճարեք կանխիկ կամ քարտով՝ առաքիչին, պատվերը ստանալիս։",
       introduction: "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։",
       sections: [
         {
-          heading: "Առցանց քարտային վճարում",
-          text: "Պատվերը ձևակերպելիս վճարեք բանկային քարտով՝ բանկի վճարման էջում։",
+          heading: "Վճարում ստանալիս",
+          text: "Պատվերը ստանալիս վճարեք կանխիկ կամ քարտով՝ առաքիչին։",
         },
         {
           heading: "Առաքման հարցեր",
@@ -102,13 +102,13 @@ export const informationContent: Record<
     delivery: {
       heading: "Доставка и оплата",
       description:
-        "Бесплатная доставка по всей Армении независимо от суммы заказа. Оплата банковской картой онлайн.",
+        "Бесплатная доставка по всей Армении независимо от суммы заказа. Оплата наличными или картой курьеру при получении.",
       introduction:
         "Бесплатная доставка по всей Армении независимо от суммы заказа.",
       sections: [
         {
-          heading: "Оплата картой онлайн",
-          text: "При оформлении заказа оплатите его банковской картой на странице банка.",
+          heading: "Оплата при получении",
+          text: "Оплатите заказ наличными или картой курьеру при получении.",
         },
         {
           heading: "Вопросы о доставке",
@@ -161,13 +161,13 @@ export const informationContent: Record<
     delivery: {
       heading: "Delivery and payment",
       description:
-        "Free delivery throughout Armenia, regardless of order value. Pay online by card.",
+        "Free delivery throughout Armenia, regardless of order value. Pay with cash or card to the courier on delivery.",
       introduction:
         "Free delivery throughout Armenia, regardless of order value.",
       sections: [
         {
-          heading: "Online card payment",
-          text: "Pay by card on the bank’s payment page when you place your order.",
+          heading: "Payment on delivery",
+          text: "Pay for your order with cash or card to the courier on delivery.",
         },
         {
           heading: "Delivery questions",

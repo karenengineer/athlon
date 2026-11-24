@@ -204,22 +204,49 @@
         <fieldset class="payment-methods" [disabled]="submitting()">
           <legend>{{ i18n.t("orderPaymentMethod") }}</legend>
           <label>
-            <input type="radio" name="paymentMethod" value="CARD" checked />
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="CARD"
+              checked
+              (change)="setPaymentMethod('CARD')"
+            />
             <span>{{ i18n.t("orderPayByCard") }}</span>
           </label>
         </fieldset>
+        } @else {
+        <fieldset class="payment-methods" [disabled]="submitting()">
+          <legend>{{ i18n.t("orderPaymentMethod") }}</legend>
+          <label>
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="CASH_ON_DELIVERY"
+              [checked]="paymentMethod() === 'CASH_ON_DELIVERY'"
+              (change)="setPaymentMethod('CASH_ON_DELIVERY')"
+            />
+            <span>{{ i18n.t("orderPayOnDelivery") }}</span>
+          </label>
+          @if (cardPaymentsEnabled()) {
+          <label>
+            <input
+              type="radio"
+              name="paymentMethod"
+              value="CARD"
+              [checked]="paymentMethod() === 'CARD'"
+              (change)="setPaymentMethod('CARD')"
+            />
+            <span>{{ i18n.t("orderPayByCard") }}</span>
+          </label>
+          }
+        </fieldset>
+        } @if (cardPaymentTestMode) {
         <p class="payment-note">
           {{ i18n.t(sandboxMode() ? "paymentSandboxDescription" :
           "paymentTestNoCharge") }}
         </p>
-        } @else if (cardPaymentsEnabled() === false) {
-        <p class="payment-note" role="status" aria-live="polite">
-          {{ i18n.t("orderCardUnavailable") }}
-        </p>
-        } @else if (cardPaymentsEnabled() && basket.total() === null) {
-        <p class="payment-note" role="status" aria-live="polite">
-          {{ i18n.t("orderCardRequiresPrices") }}
-        </p>
+        } @else if (paymentMethod() === 'CASH_ON_DELIVERY') {
+        <p class="payment-note">{{ i18n.t("orderPaymentOnDelivery") }}</p>
         } @if (paymentPending()) {
         <p class="payment-note" role="status" aria-live="polite">
           {{ i18n.t("orderPaymentPending") }}
@@ -256,10 +283,9 @@
         <button
           type="submit"
           class="order-button"
-          [disabled]="submitting() || (!cardPaymentTestMode && !liveCheckoutAvailable()) || (cardPaymentTestMode && !testReady()) || (sandboxMode() && (sandboxAccessRequired() || sandboxStorageBlocked() || sandboxAttemptComplete() || sandboxStatusPending() || verifyingSandbox()))"
+          [disabled]="submitting() || (cardPaymentTestMode && !testReady()) || (sandboxMode() && (sandboxAccessRequired() || sandboxStorageBlocked() || sandboxAttemptComplete() || sandboxStatusPending() || verifyingSandbox()))"
         >
-          {{ submitting() ? i18n.t("orderSending") : i18n.t(cardPaymentTestMode
-          ? "orderPlace" : "orderPayByCard") }}
+          {{ submitting() ? i18n.t("orderSending") : i18n.t("orderPlace") }}
         </button>
       </form>
       <button
@@ -284,6 +310,10 @@
       >{{ i18n.t("continueShopping") }}</a
     >
   </div>
+  } @if (orderSuccess()) {
+  <p class="order-feedback order-success" role="status" aria-live="polite">
+    {{ i18n.t("orderSuccess") }}
+  </p>
   } @if (orderError()) {
   <p class="order-feedback order-error" role="alert" aria-live="assertive">
     {{ orderError() }}
