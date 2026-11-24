@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { OrdersService } from "./orders.service";
 
 const reference = "ATH-1234ABCD1234ABCD1234ABCD1234ABCD";
@@ -8,6 +8,7 @@ describe("OrdersService payment status", () => {
   const sendCustomer = jest.fn();
   const sendTelegram = jest.fn();
   const persistence = {
+    findCheckoutByIdempotencyKey: jest.fn(),
     findOrderWithNotifications: jest.fn(),
     findPendingCardOrderReferences: jest.fn(),
     recordNotificationAttempt: jest.fn(),
@@ -75,6 +76,49 @@ describe("OrdersService payment status", () => {
       BadRequestException,
     );
     expect(initializer.verifyAndApplyStatus).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid checkout key before looking for an order", async () => {
+    await expect(service.checkoutStatus("short")).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(persistence.findCheckoutByIdempotencyKey).not.toHaveBeenCalled();
+  });
+
+  it("reports missing checkouts and withholds cash order information", async () => {
+    persistence.findCheckoutByIdempotencyKey.mockResolvedValueOnce(null);
+    await expect(service.checkoutStatus("checkout-key")).resolves.toEqual({
+      paymentStatus: "NOT_FOUND",
+    });
+    persistence.findCheckoutByIdempotencyKey.mockResolvedValueOnce({
+      reference,
+      paymentMethod: "CASH_ON_DELIVERY",
+    });
+    await expect(service.checkoutStatus("checkout-key")).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(initializer.verifyAndApplyStatus).not.toHaveBeenCalled();
+  });
+
+  it("returns only the public bank-verified status for a card checkout key", async () => {
+    persistence.findCheckoutByIdempotencyKey.mockResolvedValue({
+      reference,
+      paymentMethod: "CARD",
+    });
+    initializer.verifyAndApplyStatus.mockResolvedValue({
+      orderReference: reference,
+      paymentStatus: "FAILED",
+      locale: "RU",
+      retryAllowed: true,
+    });
+
+    await expect(service.checkoutStatus("checkout-key")).resolves.toEqual({
+      orderReference: reference,
+      paymentStatus: "FAILED",
+      locale: "RU",
+      retryAllowed: true,
+    });
+    expect(initializer.verifyAndApplyStatus).toHaveBeenCalledWith(reference);
   });
 
   it("sends paid-by-card notifications only on the transition to PAID and hides internals", async () => {

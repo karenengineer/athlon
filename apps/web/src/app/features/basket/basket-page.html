@@ -7,7 +7,51 @@
     <h1 #basketHeading tabindex="-1">{{ i18n.t("basket") }}</h1>
   </header>
 
-  @if (cardPaymentTestMode) {
+  @if (liveCheckout()?.phase === "pending") {
+  <section
+    class="order-feedback"
+    aria-labelledby="live-payment-heading"
+    [attr.aria-busy]="livePaymentState() === 'CHECKING'"
+  >
+    <strong id="live-payment-heading">{{ i18n.t("orderPayByCard") }}</strong>
+    <p role="status" aria-live="polite">
+      @switch (livePaymentState()) { @case ("CHECKING") { {{
+      i18n.t("paymentReturnChecking") }} } @case ("ERROR") { {{
+      i18n.t("paymentReturnErrorText") }} } @case ("NOT_FOUND") { {{
+      i18n.t("livePaymentNotFound") }} } @case ("RETRY") { {{
+      i18n.t("livePaymentRetryReady") }} } @case ("PAID") { {{
+      i18n.t("paymentReturnPaidText") }} } @default { {{ i18n.t(paymentPending()
+      ? "orderPaymentPending" : "paymentReturnPendingText") }} } }
+    </p>
+    @if (livePaymentState() !== "PAID") {
+    <button
+      id="live-payment-check"
+      class="sandbox-recheck"
+      type="button"
+      [disabled]="submitting() || livePaymentState() === 'CHECKING'"
+      (click)="checkLivePayment()"
+    >
+      {{ i18n.t("livePaymentCheck") }}
+    </button>
+    } @if (livePaymentState() === "RETRY") {
+    <button
+      id="live-payment-retry"
+      class="sandbox-recheck"
+      type="button"
+      [disabled]="!cardPaymentsEnabled()"
+      (click)="retryLivePayment()"
+    >
+      {{ i18n.t("livePaymentRetry") }}
+    </button>
+    } @if (livePaymentState() === "PAID" && liveCheckout()?.reference) {
+    <a
+      [routerLink]="['/', i18n.locale(), 'payment', liveCheckout()?.reference]"
+    >
+      {{ i18n.t("paymentReturnPaidTitle") }}
+    </a>
+    }
+  </section>
+  } @if (cardPaymentTestMode) {
   <p class="order-feedback" role="note">
     @if (sandboxMode()) {
     <strong>{{ i18n.t("paymentSandboxLabel") }} · AMD 10</strong><br />
@@ -215,7 +259,10 @@
           </label>
         </fieldset>
         } @else {
-        <fieldset class="payment-methods" [disabled]="submitting()">
+        <fieldset
+          class="payment-methods"
+          [disabled]="submitting() || liveCheckout()?.phase === 'pending'"
+        >
           <legend>{{ i18n.t("orderPaymentMethod") }}</legend>
           <label>
             <input
@@ -247,10 +294,6 @@
         </p>
         } @else if (paymentMethod() === 'CASH_ON_DELIVERY') {
         <p class="payment-note">{{ i18n.t("orderPaymentOnDelivery") }}</p>
-        } @if (paymentPending()) {
-        <p class="payment-note" role="status" aria-live="polite">
-          {{ i18n.t("orderPaymentPending") }}
-        </p>
         }
         <div class="privacy-consent">
           <label for="order-privacy">
@@ -283,7 +326,7 @@
         <button
           type="submit"
           class="order-button"
-          [disabled]="submitting() || (cardPaymentTestMode && !testReady()) || (sandboxMode() && (sandboxAccessRequired() || sandboxStorageBlocked() || sandboxAttemptComplete() || sandboxStatusPending() || verifyingSandbox()))"
+          [disabled]="submitting() || checkoutBlocked() || (liveCheckout()?.phase === 'pending' && !cardPaymentsEnabled()) || (cardPaymentTestMode && !testReady()) || (sandboxMode() && (sandboxAccessRequired() || sandboxStorageBlocked() || sandboxAttemptComplete() || sandboxStatusPending() || verifyingSandbox()))"
         >
           {{ submitting() ? i18n.t("orderSending") : i18n.t("orderPlace") }}
         </button>

@@ -59,7 +59,7 @@ type VerifiedAttemptStatus = Exclude<PaymentStatus, "PENDING">;
 const allowedPreviousStatuses: Record<VerifiedAttemptStatus, PaymentStatus[]> =
   {
     PAID: ["PENDING", "FAILED", "EXPIRED"],
-    FAILED: ["PENDING"],
+    FAILED: ["PENDING", "EXPIRED"],
     EXPIRED: ["PENDING"],
     CANCELLED: ["PENDING", "PAID", "FAILED", "EXPIRED"],
   };
@@ -142,6 +142,13 @@ export class OrderPersistenceService {
     });
   }
 
+  findCheckoutByIdempotencyKey(idempotencyKey: string) {
+    return this.prisma.order.findUnique({
+      where: { idempotencyKey },
+      select: { reference: true, paymentMethod: true },
+    });
+  }
+
   async markInitializationFailed(orderId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.order.update({
@@ -201,6 +208,27 @@ export class OrderPersistenceService {
         paymentAttempts: { orderBy: { createdAt: "desc" }, take: 1 },
       },
     });
+  }
+
+  async hasVerifiedUnpaidAttempt(input: {
+    orderId: string;
+    paymentAttemptId: string;
+    status: "FAILED" | "CANCELLED";
+    providerStatus: "payment_declined" | "payment_void";
+  }): Promise<boolean> {
+    const attempt = await this.prisma.paymentAttempt.findUnique({
+      where: {
+        id: input.paymentAttemptId,
+        orderId: input.orderId,
+        status: input.status,
+        providerStatus: input.providerStatus,
+        order: {
+          notifications: { none: { eventType: "PAYMENT_CONFIRMED" } },
+        },
+      },
+      select: { id: true },
+    });
+    return attempt !== null;
   }
 
   findOrderWithNotifications(orderId: string) {

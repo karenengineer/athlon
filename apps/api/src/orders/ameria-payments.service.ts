@@ -98,11 +98,13 @@ export class AmeriaPaymentsService implements CardPaymentInitializer {
     const result = (
       paymentStatus: CardPaymentStatus,
       newlyPaidOrderId?: string,
+      retryAllowed = false,
     ): VerifiedPaymentStatus => ({
       orderReference: order.reference,
       paymentStatus,
       locale: order.locale,
       ...(newlyPaidOrderId ? { newlyPaidOrderId } : {}),
+      ...(retryAllowed ? { retryAllowed: true } : {}),
     });
 
     if (!attempt.providerPaymentId) return result(attempt.status);
@@ -134,6 +136,34 @@ export class AmeriaPaymentsService implements CardPaymentInitializer {
       this.logger.log(
         `Card payment ${order.reference} verified as ${verdict.status}`,
       );
+    }
+    // EXPIRED may be a local timeout, and a refund means the order was paid.
+    // Only a fresh, matching decline or void without a deposit permits retry.
+    if (
+      ((verdict.status === "FAILED" &&
+        verdict.providerStatus === "payment_declined") ||
+        (verdict.status === "CANCELLED" &&
+          verdict.providerStatus === "payment_void")) &&
+      details.PaymentState === verdict.providerStatus &&
+      attempt.status !== "PAID" &&
+      (details.DepositedAmount == null ||
+        amountEquals(details.DepositedAmount, "0"))
+    ) {
+      // The PAID transition records payment-confirmation intents atomically.
+      // A later void must not hide a deposit that won a concurrent update.
+      const retryAllowed = await this.persistence.hasVerifiedUnpaidAttempt({
+        orderId: order.id,
+        paymentAttemptId: attempt.id,
+        status: verdict.status,
+        providerStatus: verdict.providerStatus,
+      });
+      if (retryAllowed) return result(verdict.status, undefined, true);
+      if (!changed) {
+        const latest = (
+          await this.persistence.findCardOrderForVerification(orderReference)
+        )?.paymentAttempts[0];
+        if (latest?.id === attempt.id) return result(latest.status);
+      }
     }
     const current = changed ? verdict.status : attempt.status;
     return result(
