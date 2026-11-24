@@ -383,6 +383,25 @@ export class BasketPage {
     this.sandboxAttemptComplete.set(false);
   }
 
+  /** Stepper and typed quantities stay within 1–99; Remove deletes the item. */
+  step(id: string, quantity: number): void {
+    const next = Math.min(99, Math.max(1, Math.floor(quantity)));
+    this.update(id, String(next));
+  }
+
+  setQuantityFromInput(id: string, current: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = Number(input.value);
+    if (input.value.trim() === "" || !Number.isFinite(value) || value < 1) {
+      input.value = String(current);
+      return;
+    }
+    this.step(id, value);
+    input.value = String(
+      this.basket.items().find((item) => item.id === id)?.quantity ?? current,
+    );
+  }
+
   remove(id: string): void {
     if (this.submitting()) return;
     this.clearIdempotencyKey();

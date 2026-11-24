@@ -186,8 +186,58 @@ describe("BasketPage", () => {
 
     expect(controls).not.toBeNull();
     expect(getComputedStyle(controls).display).toBe("flex");
-    expect(controls.querySelector("label")).not.toBeNull();
-    expect(controls.querySelector("button")).not.toBeNull();
+    expect(controls.querySelector(".quantity-field")).not.toBeNull();
+    expect(controls.querySelector(".stepper-input")).not.toBeNull();
+  });
+
+  it("changes quantity with the − and + stepper and keeps it at least 1", () => {
+    const basket = TestBed.inject(BasketService);
+    basket.add({
+      id: "product-1",
+      sku: "SKU1",
+      slug: "test-product",
+      name: "Test Product",
+      price: "24000",
+      currency: "AMD",
+      availability: "IN_STOCK",
+      featured: false,
+      isNew: false,
+      category: { slug: "protein", name: "Protein" },
+      brand: null,
+      images: [],
+      shortDescription: null,
+    });
+    const fixture = TestBed.createComponent(BasketPage);
+    fixture.detectChanges();
+    flushSettings(false);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    const minus = () =>
+      el.querySelector<HTMLButtonElement>('[data-testid="basket-decrement"]')!;
+    const plus = () =>
+      el.querySelector<HTMLButtonElement>('[data-testid="basket-increment"]')!;
+    const input = () => el.querySelector<HTMLInputElement>(".stepper-input")!;
+
+    expect(minus().disabled).toBe(true);
+    plus().click();
+    fixture.detectChanges();
+    expect(basket.items()[0]!.quantity).toBe(2);
+    expect(input().value).toBe("2");
+
+    input().value = "7";
+    input().dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    expect(basket.items()[0]!.quantity).toBe(7);
+
+    input().value = "0";
+    input().dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    expect(basket.items()[0]!.quantity).toBe(7);
+    expect(input().value).toBe("7");
+
+    minus().click();
+    fixture.detectChanges();
+    expect(basket.items()[0]!.quantity).toBe(6);
   });
 
   it("shows continue shopping as a centered white button", () => {
