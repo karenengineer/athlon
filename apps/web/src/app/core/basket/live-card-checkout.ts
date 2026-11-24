@@ -112,6 +112,22 @@ export function clearPaidLiveCardCheckout(reference: string): void {
   }
 }
 
+/**
+ * Forget an unfinished card checkout so the next card order starts a fresh
+ * bank payment with a new checkout key. The old attempt simply expires.
+ */
+export function abandonLiveCardCheckout(checkout: LiveCardCheckout): void {
+  try {
+    const storage = window.sessionStorage;
+    if (storage.getItem(CHECKOUT_IDEMPOTENCY_KEY) === checkout.key) {
+      storage.removeItem(CHECKOUT_IDEMPOTENCY_KEY);
+    }
+    storage.removeItem(liveCheckoutKey);
+  } catch {
+    // Storage can be unavailable in privacy-restricted browser contexts.
+  }
+}
+
 export function finishRetriedCashCheckout(checkout: LiveCardCheckout): void {
   const current = readLiveCardCheckout();
   if (current?.key !== checkout.key || current.phase !== "ready") return;

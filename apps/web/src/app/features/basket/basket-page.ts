@@ -19,6 +19,7 @@ import {
   isBasketEligible,
 } from "../../core/basket/basket.service";
 import {
+  abandonLiveCardCheckout,
   canRetryCardPayment,
   cardOrderReferencePattern,
   CHECKOUT_IDEMPOTENCY_KEY,
@@ -143,14 +144,50 @@ export class BasketPage {
     ) {
       return;
     }
+    if (saved?.phase === "pending") {
+      // Coming back from the bank page (or via Back) never blocks checkout:
+      // the unfinished attempt is dropped and the next card order starts a
+      // new bank payment with a new key. The basket is kept.
+      abandonLiveCardCheckout(saved);
+      this.liveCheckout.set(null);
+      this.livePaymentState.set("PENDING");
+      this.clearIdempotencyKey();
+      this.paymentMethod.set("CARD");
+      this.redirectIfAlreadyPaid(saved);
+      return;
+    }
     this.liveCheckout.set(saved);
     this.livePaymentState.set("PENDING");
     if (saved) this.paymentMethod.set("CARD");
     // The return page may already have settled this checkout.
     if (!saved && current) this.clearIdempotencyKey();
-    // Coming back from the bank (or via Back) asks the server straight away,
-    // so a declined or never-started payment does not leave checkout locked.
-    if (saved?.phase === "pending") this.checkLivePayment();
+  }
+
+  /** If the dropped attempt was in fact paid, show its success page instead. */
+  private redirectIfAlreadyPaid(checkout: LiveCardCheckout): void {
+    const request = checkout.reference
+      ? this.api.paymentStatus(checkout.reference)
+      : this.api.checkoutStatus(checkout.key);
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        if (
+          response.paymentStatus !== "PAID" ||
+          !cardOrderReferencePattern.test(response.orderReference) ||
+          (checkout.reference &&
+            response.orderReference !== checkout.reference) ||
+          this.submitting()
+        ) {
+          return;
+        }
+        void this.router.navigate([
+          "/",
+          this.i18n.locale(),
+          "payment",
+          response.orderReference,
+        ]);
+      },
+      error: () => undefined,
+    });
   }
 
   checkLivePayment(): void {
