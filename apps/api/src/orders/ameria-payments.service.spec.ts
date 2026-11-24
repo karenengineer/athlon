@@ -202,7 +202,7 @@ describe("AmeriaPaymentsService", () => {
       ameriaOrderId: 410000001,
       amount: 13000,
       locale: "HY",
-      description: `ATHLON order ${reference}`,
+      description: "ATHLON",
     });
   });
 

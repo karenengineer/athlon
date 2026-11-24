@@ -36,7 +36,7 @@ const initInput = {
   ameriaOrderId: 410000001,
   amount: 13000,
   locale: "HY" as const,
-  description: `ATHLON order ${reference}`,
+  description: "ATHLON",
 };
 
 describe("AmeriaVposClient", () => {
@@ -86,7 +86,7 @@ describe("AmeriaVposClient", () => {
       ClientID: "fixture-client-id",
       Username: "fixture-user",
       Password: "fixture-secret",
-      Description: `ATHLON order ${reference}`,
+      Description: "ATHLON",
       OrderID: 410000001,
       Amount: 13000,
       Currency: "051",

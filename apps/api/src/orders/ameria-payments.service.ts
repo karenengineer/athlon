@@ -74,7 +74,7 @@ export class AmeriaPaymentsService implements CardPaymentInitializer {
       ameriaOrderId: Number(attempt.ameriaOrderId),
       amount: amount.toNumber(),
       locale: order.locale,
-      description: `ATHLON order ${order.reference}`,
+      description: "ATHLON",
     });
   }
 
