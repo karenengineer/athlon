@@ -195,10 +195,25 @@ describe("ATHLON public application", () => {
     });
   }
 
-  for (const [locale, title, communityTitle] of [
-    ["hy", "Կառուցիր մարմինդ հոգուդ համապատասխան", "Միացիր ATHLON-ին"],
-    ["ru", "Создай тело под стать своему духу", "Присоединяйся к ATHLON"],
-    ["en", "Build a body to match your spirit", "Join ATHLON"],
+  for (const [locale, title, communityTitle, keyword] of [
+    [
+      "hy",
+      "Կառուցիր մարմինդ հոգուդ համապատասխան",
+      "Միացիր ATHLON-ին",
+      "Սպորտային սնունդ Հայաստանում",
+    ],
+    [
+      "ru",
+      "Создай тело под стать своему духу",
+      "Присоединяйся к ATHLON",
+      "Спортивное питание в Армении",
+    ],
+    [
+      "en",
+      "Build a body to match your spirit",
+      "Join ATHLON",
+      "Sports nutrition in Armenia",
+    ],
   ]) {
     it(`shows the updated homepage slogan in ${locale}`, async () => {
       const fixture = TestBed.createComponent(App);
@@ -211,8 +226,16 @@ describe("ATHLON public application", () => {
       });
       fixture.detectChanges();
 
+      // The H1 leads with the search keyword and keeps the slogan.
       expect(
-        fixture.nativeElement.querySelector(".hero h1").textContent.trim(),
+        fixture.nativeElement
+          .querySelector(".hero h1 .hero-keyword")
+          .textContent.trim(),
+      ).toBe(keyword);
+      expect(
+        fixture.nativeElement
+          .querySelector(".hero h1 .hero-slogan")
+          .textContent.trim(),
       ).toBe(title);
       expect(
         fixture.nativeElement.querySelector(".community h2").textContent.trim(),
@@ -702,6 +725,9 @@ describe("ATHLON public application", () => {
       .expectOne((request) => request.url.endsWith("/public/settings"))
       .flush({ whatsapp: "+37499111222" });
     http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
+    http
       .expectOne(
         (request) =>
           request.url.endsWith("/products") &&
@@ -747,6 +773,9 @@ describe("ATHLON public application", () => {
       .expectOne((request) => request.url.endsWith("/public/settings"))
       .flush({});
     http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
+    http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({
         items: [],
@@ -767,6 +796,9 @@ describe("ATHLON public application", () => {
     http
       .expectOne((request) => request.url.endsWith("/public/settings"))
       .flush({});
+    http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
     http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({

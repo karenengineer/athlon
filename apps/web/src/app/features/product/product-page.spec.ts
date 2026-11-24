@@ -160,6 +160,21 @@ describe("ProductPage basket availability", () => {
     });
   });
 
+  it("links to the guide for the product's category", () => {
+    const fixture = TestBed.createComponent(ProductPage);
+    const page = fixture.componentInstance;
+    page.product.set(product);
+    page.state.set("ready");
+    fixture.detectChanges();
+    const link = fixture.nativeElement.querySelector(
+      ".related-guide a",
+    ) as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toMatch(
+      /\/guides\/how-to-choose-protein$/,
+    );
+    expect(page.guideFor("resistance-bands")).toBeNull();
+  });
+
   it("adds and increments an in-stock product using the enabled action", () => {
     const fixture = TestBed.createComponent(ProductPage);
     const page = fixture.componentInstance;

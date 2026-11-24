@@ -6,6 +6,7 @@ import {
   informationNavigation,
   informationPageIds,
 } from "../../core/i18n/information-navigation";
+import { guidesCopy } from "../../features/guides/guide-index";
 import {
   FACEBOOK_PROFILE_URL,
   INSTAGRAM_PROFILE_URL,
@@ -28,6 +29,11 @@ import {
       <a [routerLink]="['/', i18n.locale(), 'catalog']">{{
         i18n.t("catalog")
       }}</a>
+      <a
+        data-testid="footer-guides"
+        [routerLink]="['/', i18n.locale(), 'guides']"
+        >{{ guides[i18n.locale()].heading }}</a
+      >
       <nav
         class="footer-information"
         [attr.aria-label]="information[i18n.locale()].label"
@@ -162,6 +168,7 @@ export class Footer {
   readonly instagramUrl = INSTAGRAM_PROFILE_URL;
   readonly facebookUrl = FACEBOOK_PROFILE_URL;
   readonly information = informationNavigation;
+  readonly guides = guidesCopy;
   readonly business = businessDetails;
   readonly informationPages = informationPageIds;
   readonly year = new Date().getFullYear();

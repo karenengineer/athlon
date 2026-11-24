@@ -13,7 +13,7 @@ interface HomeContent {
 
 export const homeContent: Record<Locale, HomeContent> = {
   hy: {
-    heading: "Սպորտային սնունդ Հայաստանում",
+    heading: "ATHLON — սպորտային սննդի առցանց խանութ",
     introduction:
       "ATHLON-ը սպորտային սննդի առցանց խանութ է Հայաստանում։ Մեր կատալոգում կգտնեք սպիտակուց (պրոտեին), կրեատին, վիտամիններ, նախավարժանքային ապրանքներ և մարզման աքսեսուարներ։ Յուրաքանչյուր ապրանքի էջում ներկայացված են նկարագրությունը, գինը և առկայությունը, որպեսզի հեշտությամբ համեմատեք տարբերակները և ընտրեք ձեզ անհրաժեշտը։ Մեր բոլոր ապրանքները օրիգինալ են։",
     catalogHeading: "Ինչ կգտնեք կատալոգում",
@@ -55,7 +55,7 @@ export const homeContent: Record<Locale, HomeContent> = {
       "Ընտրեք ապրանքը, ավելացրեք այն զամբյուղում և լրացրեք պատվերի տվյալները։ Առաքումը ողջ Հայաստանում անվճար է, իսկ վճարումը կատարվում է առաքիչին՝ կանխիկ կամ քարտով։ Ապրանքների և պատվերների վերաբերյալ հարցերի դեպքում զանգահարեք 041 44 88 55 հեռախոսահամարով կամ գրեք athlonsportgoods@gmail.com հասցեին։",
   },
   ru: {
-    heading: "Спортивное питание в Армении",
+    heading: "ATHLON — интернет-магазин спортивного питания",
     introduction:
       "ATHLON — интернет-магазин спортивного питания в Армении. В нашем каталоге есть протеин, креатин, витамины, предтренировочные продукты и аксессуары для тренировок. На странице каждого товара указаны описание, цена и наличие, поэтому варианты легко сравнить и выбрать то, что вам нужно. Все наши товары оригинальные.",
     catalogHeading: "Что есть в каталоге",
@@ -97,7 +97,7 @@ export const homeContent: Record<Locale, HomeContent> = {
       "Выберите товар, добавьте его в корзину и заполните данные заказа. Доставка по всей Армении бесплатна, а оплатить заказ можно курьеру наличными или картой. По вопросам о товарах и заказах звоните по номеру 041 44 88 55 или пишите на athlonsportgoods@gmail.com.",
   },
   en: {
-    heading: "Sports nutrition in Armenia",
+    heading: "ATHLON — online sports nutrition shop",
     introduction:
       "ATHLON is an online sports nutrition shop in Armenia. Our catalog includes protein, creatine, vitamins, pre-workout products and training accessories. Each product page shows the description, price and availability, so you can compare the options and choose what you need. All our products are original.",
     catalogHeading: "What you will find in the catalog",

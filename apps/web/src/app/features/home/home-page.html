@@ -1,16 +1,25 @@
 <section class="home-top">
   <div class="hero page-width">
     <div class="hero-copy">
-      <h1>{{ i18n.t("heroTitle") }}</h1>
+      <h1>
+        <span class="hero-keyword">{{ i18n.t("heroHeading") }}</span>
+        <span class="hero-slogan">{{ i18n.t("heroTitle") }}</span>
+      </h1>
       <h2 class="hero-delivery">{{ i18n.t("announcement") }}</h2>
       <h3 class="hero-trust">{{ i18n.t("heroTrust") }}</h3>
     </div>
     <div class="hero-visual">
       <img
-        src="/brand/athlon-hero-wide.jpeg"
+        src="/brand/athlon-hero-1280.webp"
+        srcset="
+          /brand/athlon-hero-640.webp   640w,
+          /brand/athlon-hero-1280.webp 1280w
+        "
+        sizes="(max-width: 860px) 100vw, 50vw"
+        fetchpriority="high"
         width="1280"
         height="634"
-        alt="ATHLON Sports Nutrition Store"
+        [alt]="i18n.t('heroImageAlt')"
       />
     </div>
   </div>
@@ -120,6 +129,16 @@
     }
     <h3>{{ text.deliveryHeading }}</h3>
     <p>{{ text.delivery }}</p>
+    <h3>{{ guideLinks().heading }}</h3>
+    <ul data-testid="home-guides">
+      @for (guide of guideLinks().items; track guide.slug) {
+      <li>
+        <a [routerLink]="['/', i18n.locale(), 'guides', guide.slug]"
+          >{{ guide.heading }}</a
+        >
+      </li>
+      }
+    </ul>
   </div>
 </section>
 }

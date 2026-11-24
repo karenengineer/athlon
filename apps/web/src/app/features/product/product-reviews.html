@@ -1,0 +1,99 @@
+<section
+  class="product-reviews page-width"
+  aria-labelledby="product-reviews-title"
+>
+  <h2 id="product-reviews-title">{{ copy().title }}</h2>
+  @if (reviews(); as data) { @if (data.summary.count && data.summary.average !==
+  null) {
+  <p class="summary" data-testid="review-summary">
+    <span class="stars" aria-hidden="true"
+      >{{ starsText(data.summary.average) }}</span
+    >
+    <b>{{ data.summary.average }}</b>
+    <span class="visually-hidden"
+      >{{ copy().stars(data.summary.average) }}</span
+    >
+    · {{ copy().count(data.summary.count) }}
+  </p>
+  <ul class="review-list">
+    @for (review of data.items; track review.id) {
+    <li [attr.lang]="review.locale">
+      <p class="review-head">
+        <span class="stars" aria-hidden="true"
+          >{{ starsText(review.rating) }}</span
+        >
+        <span class="visually-hidden">{{ copy().stars(review.rating) }}</span>
+        <b>{{ review.authorName }}</b>
+        <time [attr.datetime]="review.createdAt"
+          >{{ review.createdAt | date: "dd.MM.yyyy" }}</time
+        >
+      </p>
+      <p class="review-body">{{ review.body }}</p>
+    </li>
+    }
+  </ul>
+  } @else {
+  <p class="empty">{{ copy().empty }}</p>
+  } } @else {
+  <p class="empty">{{ copy().empty }}</p>
+  }
+
+  <h3>{{ copy().write }}</h3>
+  @if (status() === "sent") {
+  <p class="notice" role="status">{{ copy().thanks }}</p>
+  } @else {
+  <form class="review-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label for="review-name">{{ copy().name }}</label>
+    <input
+      id="review-name"
+      formControlName="authorName"
+      autocomplete="given-name"
+      maxlength="80"
+      required
+      [attr.aria-invalid]="
+        form.controls.authorName.touched && form.controls.authorName.invalid
+      "
+    />
+    <fieldset>
+      <legend>{{ copy().rating }}</legend>
+      <div class="rating-options">
+        @for (value of ratings; track value) {
+        <label>
+          <input type="radio" formControlName="rating" [value]="value" />
+          <span aria-hidden="true">{{ starsText(value) }}</span>
+          <span class="visually-hidden">{{ copy().stars(value) }}</span>
+        </label>
+        }
+      </div>
+    </fieldset>
+    <label for="review-body">{{ copy().text }}</label>
+    <textarea
+      id="review-body"
+      formControlName="body"
+      rows="4"
+      maxlength="2000"
+      required
+      aria-describedby="review-body-hint"
+      [attr.aria-invalid]="form.controls.body.touched && form.controls.body.invalid"
+    ></textarea>
+    <small id="review-body-hint">{{ copy().textHint }}</small>
+    <div class="trap" aria-hidden="true">
+      <label for="review-website">Website</label>
+      <input
+        id="review-website"
+        formControlName="website"
+        tabindex="-1"
+        autocomplete="off"
+      />
+    </div>
+    @if (status() === "error" || status() === "limited") {
+    <p class="error" role="alert">
+      {{ status() === "limited" ? copy().tooMany : copy().error }}
+    </p>
+    }
+    <button type="submit" [disabled]="status() === 'sending'">
+      {{ status() === "sending" ? copy().sending : copy().submit }}
+    </button>
+  </form>
+  }
+</section>

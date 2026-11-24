@@ -1,3 +1,4 @@
+import { guideSlugs } from "../guides/guide-slugs";
 import { provideHttpClient } from "@angular/common/http";
 import {
   HttpTestingController,
@@ -262,11 +263,26 @@ describe("HomePage", () => {
       expect(trustHeading?.tagName).toBe("H3");
       expect(trustHeading?.textContent?.trim()).toBe(trust);
       const image = hero.querySelector("img")!;
-      expect(image.getAttribute("src")).toBe("/brand/athlon-hero-wide.jpeg");
+      expect(image.getAttribute("src")).toBe("/brand/athlon-hero-1280.webp");
+      expect(image.getAttribute("srcset")?.replace(/\s+/g, " ").trim()).toBe(
+        "/brand/athlon-hero-640.webp 640w, /brand/athlon-hero-1280.webp 1280w",
+      );
       expect(image.width).toBe(1280);
       expect(image.height).toBe(634);
     });
   }
+
+  it("links every guide from the store guide", () => {
+    const home = TestBed.createComponent(HomePage).componentInstance;
+    expect(home.guideLinks().items.map((guide) => guide.slug)).toEqual([
+      ...guideSlugs,
+    ]);
+    expect(home.guideLinks().heading).toBe("Helpful guides");
+    http
+      .match(() => true)
+      .filter((request) => !request.cancelled)
+      .forEach((request) => request.flush({ items: [] }));
+  });
 
   it("opens the real ATHLON profile from both community actions", () => {
     const section = renderCommunity();

@@ -36,6 +36,8 @@ import {
   categoryGuidance,
   categoryIntroduction,
 } from "./category-content";
+import { categoryFaq, categorySeo, faqSchema, FaqItem } from "./category-seo";
+import { guidesCopy, guidesForCategory } from "../guides/guide-index";
 
 type CatalogState = "loading" | "ready" | "empty" | "error" | "not-found";
 type CategoryOption = Pick<Category, "id" | "slug" | "name" | "displayOrder">;
@@ -159,6 +161,37 @@ export class CatalogPage {
     if (query) return `${this.i18n.t("searchResults")}: “${query}”`;
     const category = this.route.snapshot.paramMap.get("categorySlug");
     return this.findCategoryName(category) ?? this.i18n.t("catalog");
+  }
+
+  /** Visible H1: the search query, or the listing's search-focused heading. */
+  pageHeading(): string {
+    if (this.isSearch()) return this.heading();
+    return (
+      categorySeo(this.selectedCategory()?.slug, this.i18n.locale())?.heading ??
+      this.heading()
+    );
+  }
+
+  /** The default category is served at /catalog, so links point there. */
+  categoryLink(slug: string | null | undefined): string[] {
+    const catalog = ["/", this.i18n.locale(), "catalog"];
+    return !slug || slug === DEFAULT_CATEGORY_SLUG
+      ? catalog
+      : [...catalog, slug];
+  }
+
+  relatedGuides(): ReturnType<typeof guidesForCategory> {
+    if (this.isSearch()) return [];
+    return guidesForCategory(this.selectedCategory()?.slug);
+  }
+
+  guidesCopy() {
+    return guidesCopy[this.i18n.locale()];
+  }
+
+  faq(): readonly FaqItem[] {
+    if (this.isSearch()) return [];
+    return categoryFaq(this.selectedCategory()?.slug, this.i18n.locale());
   }
 
   activeCategorySlug(): string | null {
@@ -302,18 +335,29 @@ export class CatalogPage {
       });
   }
 
+  private isSearch(): boolean {
+    return (
+      Boolean(this.route.snapshot.queryParamMap.get("q")) ||
+      this.route.snapshot.routeConfig?.path === "search"
+    );
+  }
+
   private updateMetadata(query: string | undefined): void {
     const locale = this.i18n.locale();
     const copy = seoCopy[locale];
     const isSearch =
       Boolean(query) || this.route.snapshot.routeConfig?.path === "search";
+    const activeSlug = this.activeCategorySlug();
+    // /catalog/sports-nutrition duplicates /catalog, so it canonicalises there.
+    const categoryPath =
+      activeSlug && activeSlug !== DEFAULT_CATEGORY_SLUG ? [activeSlug] : [];
     const path =
       isSearch && this.route.snapshot.routeConfig?.path === "search"
         ? ["search"]
-        : [
-            "catalog",
-            ...(this.activeCategorySlug() ? [this.activeCategorySlug()!] : []),
-          ];
+        : ["catalog", ...categoryPath];
+    const listingSeo = isSearch
+      ? undefined
+      : categorySeo(this.selectedCategory()?.slug, locale);
     const noindex =
       this.state() === "loading" ||
       this.catalogStatus !== 200 ||
@@ -327,7 +371,7 @@ export class CatalogPage {
     const breadcrumbs = [
       { name: this.i18n.t("home"), url: publicPageUrl(locale) },
       { name: this.i18n.t("catalog"), url: publicPageUrl(locale, ["catalog"]) },
-      ...(this.activeCategorySlug() && this.selectedCategory()
+      ...(categoryPath.length && this.selectedCategory()
         ? [{ name: label, url: publicPageUrl(locale, path) }]
         : []),
     ];
@@ -340,16 +384,25 @@ export class CatalogPage {
       return;
     }
     this.pageMetadata.set({
-      title: `${query ? `${this.i18n.t("searchResults")}: “${query}”` : `${label} — ${copy.armenia}`}${pageSuffix} | ATHLON`,
+      title: `${query ? `${this.i18n.t("searchResults")}: “${query}”` : (listingSeo?.title ?? `${label} — ${copy.armenia}`)}${pageSuffix} | ATHLON`,
       description: isSearch
         ? this.contentCopy().searchDescription
-        : `${this.introduction() || this.contentCopy().description} ${copy.delivery}`,
+        : // A description written in admin takes precedence over built-in copy.
+          !this.selectedCategory()?.description?.trim() && listingSeo
+          ? listingSeo.description
+          : `${this.introduction() || this.contentCopy().description} ${copy.delivery}`,
       locale,
       ...(this.state() !== "loading" && this.catalogStatus === 200
         ? { path, query: this.seoQuery }
         : {}),
       noindex,
-      jsonLd: [breadcrumbSchema(breadcrumbs)],
+      jsonLd: [
+        breadcrumbSchema(breadcrumbs),
+        // Only when the FAQ is actually rendered (see the template).
+        ...(this.state() === "ready" && this.faq().length && page === 1
+          ? [faqSchema(this.faq())]
+          : []),
+      ],
     });
   }
 

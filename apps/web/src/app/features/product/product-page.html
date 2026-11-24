@@ -25,7 +25,7 @@
         <img
           draggable="false"
           [src]="image()"
-          [alt]="item.images[selectedImage()]?.alt || item.name"
+          [alt]="altFor(item.images[selectedImage()]?.alt, item.name)"
           width="900"
           height="900"
           loading="eager"
@@ -39,15 +39,10 @@
           type="button"
           [class.active]="selectedImage() === index"
           [attr.aria-pressed]="selectedImage() === index"
-          [attr.aria-label]="picture.alt || item.name"
+          [attr.aria-label]="altFor(picture.alt, item.name)"
           (click)="selectedImage.set(index)"
         >
-          <img
-            [src]="picture.thumbnailUrl"
-            [alt]="picture.alt"
-            width="90"
-            height="90"
-          />
+          <img [src]="picture.thumbnailUrl" alt="" width="90" height="90" />
         </button>
         }
       </div>
@@ -93,6 +88,12 @@
           }
         </dl>
       </section>
+      } @if (guideFor(item.category.slug); as guide) {
+      <p class="related-guide">
+        <a [routerLink]="['/', i18n.locale(), 'guides', guide.slug]"
+          ><b>{{ guide.heading }} →</b></a
+        >
+      </p>
       }
       <a class="back" [routerLink]="['/', i18n.locale(), 'catalog']"
         >← {{ i18n.t("backToCatalog") }}</a
@@ -102,7 +103,9 @@
   } } }
 </section>
 
-@if (relatedProducts().length) {
+@if (state() === "ready" && product(); as item) {
+<app-product-reviews [slug]="item.slug" [reviews]="reviews()" />
+} @if (relatedProducts().length) {
 <section class="related page-width" data-testid="related-products">
   <header>
     <p>ATHLON SELECT</p>

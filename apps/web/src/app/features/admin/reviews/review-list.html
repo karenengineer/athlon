@@ -1,0 +1,113 @@
+<div class="heading">
+  <h1>{{ i18n.translate("reviews") }}</h1>
+</div>
+<p>{{ i18n.translate("reviewsHint") }}</p>
+<div class="filters" role="group" [attr.aria-label]="i18n.translate('reviews')">
+  @for (option of filters; track option.key) {
+  <button
+    type="button"
+    [attr.aria-pressed]="status() === option.status"
+    (click)="filter(option.status)"
+  >
+    {{ i18n.translate(option.key) }} @if (option.status === "PENDING" &&
+    list()?.meta?.pending) { ({{ list()!.meta.pending }}) }
+  </button>
+  }
+</div>
+@if (failed()) {
+<p role="alert">
+  {{ i18n.translate("error") }}
+  <button type="button" (click)="load()">{{ i18n.translate("retry") }}</button>
+</p>
+} @if (loading()) {
+<p role="status">{{ i18n.translate("loading") }}</p>
+} @else if (list(); as result) { @if (result.items.length === 0) {
+<p>{{ i18n.translate("noReviews") }}</p>
+} @else {
+<table>
+  <thead>
+    <tr>
+      <th scope="col">{{ i18n.translate("reviewProduct") }}</th>
+      <th scope="col">{{ i18n.translate("reviewRating") }}</th>
+      <th scope="col">{{ i18n.translate("reviews") }}</th>
+      <th scope="col"><span class="visually-hidden">Actions</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (review of result.items; track review.id) {
+    <tr>
+      <td>
+        <a
+          [href]="'/' + review.locale + '/product/' + review.product.slug"
+          target="_blank"
+          rel="noopener"
+          >{{ review.product.name }}</a
+        >
+        <br /><small
+          >{{ review.createdAt | date: "dd.MM.yyyy HH:mm" }} · {{
+          review.locale.toUpperCase() }} · {{
+          i18n.translate(statusKey(review.status)) }}</small
+        >
+      </td>
+      <td [attr.aria-label]="review.rating + '/5'">
+        {{ stars(review.rating) }}
+      </td>
+      <td>
+        <b>{{ review.authorName }}</b>
+        <p>{{ review.body }}</p>
+      </td>
+      <td>
+        @if (review.status !== "APPROVED") {
+        <button
+          type="button"
+          data-approve
+          [disabled]="busy() === review.id"
+          (click)="moderate(review, 'APPROVED')"
+        >
+          {{ i18n.translate("approve") }}
+        </button>
+        } @if (review.status !== "REJECTED") {
+        <button
+          type="button"
+          data-reject
+          [disabled]="busy() === review.id"
+          (click)="moderate(review, 'REJECTED')"
+        >
+          {{ i18n.translate("reject") }}
+        </button>
+        }
+        <button
+          type="button"
+          data-delete
+          [disabled]="busy() === review.id"
+          (click)="remove(review)"
+        >
+          {{ i18n.translate("delete") }}
+        </button>
+      </td>
+    </tr>
+    }
+  </tbody>
+</table>
+@if (result.meta.totalPages > 1) {
+<nav class="pagination" aria-label="Pagination">
+  <button
+    type="button"
+    [disabled]="result.meta.page <= 1"
+    (click)="goTo(result.meta.page - 1)"
+  >
+    {{ i18n.translate("previous") }}
+  </button>
+  <span
+    >{{ i18n.translate("page") }} {{ result.meta.page }} / {{
+    result.meta.totalPages }}</span
+  >
+  <button
+    type="button"
+    [disabled]="result.meta.page >= result.meta.totalPages"
+    (click)="goTo(result.meta.page + 1)"
+  >
+    {{ i18n.translate("next") }}
+  </button>
+</nav>
+} } }

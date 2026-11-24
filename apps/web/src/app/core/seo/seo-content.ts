@@ -1,4 +1,4 @@
-import { Product } from "../api/catalog.models";
+import { Product, ProductReviews } from "../api/catalog.models";
 import { businessDetails } from "../business-details";
 import { Locale } from "../i18n/i18n.service";
 import { FACEBOOK_PROFILE_URL, INSTAGRAM_PROFILE_URL } from "../social-links";
@@ -100,10 +100,41 @@ export function breadcrumbSchema(
   };
 }
 
+/** Most recent approved reviews included in Product structured data. */
+const SCHEMA_REVIEW_LIMIT = 5;
+
 export function productSchema(
   product: Product,
   locale: Locale,
+  reviews?: ProductReviews | null,
 ): Record<string, unknown> {
+  // Only approved reviews reach the storefront, so the rating reflects
+  // exactly what visitors can read on the page.
+  const rating =
+    reviews && reviews.summary.count > 0 && reviews.summary.average !== null
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: reviews.summary.average,
+            reviewCount: reviews.summary.count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+          review: reviews.items.slice(0, SCHEMA_REVIEW_LIMIT).map((item) => ({
+            "@type": "Review",
+            author: { "@type": "Person", name: item.authorName },
+            datePublished: item.createdAt.slice(0, 10),
+            reviewBody: item.body,
+            inLanguage: item.locale,
+            reviewRating: {
+              "@type": "Rating",
+              ratingValue: item.rating,
+              bestRating: 5,
+              worstRating: 1,
+            },
+          })),
+        }
+      : {};
   const url = publicPageUrl(locale, ["product", product.slug]);
   const images = product.images
     .map((image) => publicImageUrl(image.detailUrl))
@@ -155,5 +186,6 @@ export function productSchema(
           },
         }
       : {}),
+    ...rating,
   };
 }

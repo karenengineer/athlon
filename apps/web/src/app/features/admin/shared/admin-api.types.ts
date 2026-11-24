@@ -117,3 +117,28 @@ export interface AdminProductListItem extends Omit<AdminProduct, "images"> {
   category: Omit<AdminCategory, "translations">;
   brand: Omit<AdminBrand, "translations"> | null;
 }
+
+export type AdminReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export interface AdminReview {
+  id: string;
+  authorName: string;
+  rating: number;
+  body: string;
+  locale: "hy" | "ru" | "en";
+  status: AdminReviewStatus;
+  moderatedAt: string | null;
+  createdAt: string;
+  product: { slug: string; name: string };
+}
+
+export interface AdminReviewList {
+  items: AdminReview[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    pending: number;
+  };
+}

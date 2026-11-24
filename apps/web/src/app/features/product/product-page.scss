@@ -102,7 +102,7 @@ h1 {
 }
 
 .sku {
-  color: #8b8b91;
+  color: #66666c;
   font-size: 0.74rem;
   letter-spacing: 0.08em;
 }
@@ -195,7 +195,7 @@ h1 {
 }
 
 .characteristics dt {
-  color: #77777d;
+  color: #66666c;
   text-transform: capitalize;
 }
 
@@ -318,4 +318,8 @@ h1 {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     gap: 10px;
   }
+}
+
+.related-guide a {
+  color: #a41622;
 }

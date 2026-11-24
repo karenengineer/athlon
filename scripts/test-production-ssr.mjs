@@ -102,6 +102,58 @@ const categoryCopy = {
   },
 };
 
+// Search-focused listing titles, headings and built-in descriptions
+// (apps/web/src/app/features/catalog/category-seo.ts).
+const listingSeo = {
+  hy: {
+    "sports-nutrition": [
+      "Սպորտային սննդի խանութ Երևանում — կատալոգ",
+      "Սպորտային սննդի կատալոգ",
+    ],
+    protein: [
+      "Պրոտեին գնել Երևանում — շիճուկային պրոտեին",
+      "Պրոտեին (շիճուկային սպիտակուց)",
+    ],
+    accessories: [
+      "Մարզման աքսեսուարներ Երևանում",
+      "Մարզման աքսեսուարներ",
+      "Աքսեսուարներ տանը և դահլիճում մարզվելու համար, այդ թվում՝ ռետինե ժապավեններ տարբեր դիմադրությամբ։ Անվճար առաքում ողջ Հայաստանում։",
+    ],
+  },
+  ru: {
+    "sports-nutrition": [
+      "Магазин спортивного питания в Ереване — каталог",
+      "Каталог спортивного питания",
+    ],
+    protein: [
+      "Купить протеин в Ереване — сывороточный протеин",
+      "Протеин (сывороточный белок)",
+    ],
+    accessories: [
+      "Аксессуары для тренировок в Ереване",
+      "Аксессуары для тренировок",
+      "Аксессуары для тренировок дома и в зале, включая резинки для фитнеса разной нагрузки. Бесплатная доставка по всей Армении.",
+    ],
+  },
+  en: {
+    "sports-nutrition": [
+      "Sports nutrition shop in Yerevan — catalog",
+      "Sports nutrition catalog",
+    ],
+    protein: ["Buy protein in Armenia — whey protein powder", "Whey protein"],
+    accessories: [
+      "Training accessories in Armenia",
+      "Training accessories",
+      "Accessories for training at home and in the gym, including resistance bands in several strengths. Free delivery throughout Armenia.",
+    ],
+  },
+};
+// The default category is served at /catalog.
+const listingPath = (locale, slug) =>
+  slug === "sports-nutrition"
+    ? `/${locale}/catalog`
+    : `/${locale}/catalog/${slug}`;
+
 const aboutNavigationLabel = {
   hy: "Մեր մասին",
   ru: "О нас",
@@ -676,7 +728,7 @@ async function main() {
                 (link) => [link.getAttribute("href"), text(link)],
               ),
               categories.map(([categorySlug, categoryName]) => [
-                `/${locale}/catalog/${categorySlug}`,
+                listingPath(locale, categorySlug),
                 categoryName,
               ]),
               "navigation contains only API-published roots and children",
@@ -700,20 +752,34 @@ async function main() {
               ),
               categories
                 .filter(([categorySlug]) => categorySlug !== slug)
-                .map(([categorySlug]) => `/${locale}/catalog/${categorySlug}`),
+                .map(([categorySlug]) => listingPath(locale, categorySlug)),
             );
             assert.equal(
               document
                 .querySelector('.category-navigation a[aria-current="page"]')
                 ?.getAttribute("href"),
-              `/${locale}/catalog/${slug}`,
+              listingPath(locale, slug),
             );
+            const [seoTitle, seoHeading, seoDescription] =
+              listingSeo[locale][slug];
+            assert.equal(
+              document.querySelectorAll("app-catalog-page h1").length,
+              1,
+            );
+            assert.equal(
+              text(document.querySelector("app-catalog-page h1")),
+              seoHeading,
+            );
+            // An admin description wins; otherwise the built-in search copy.
             metadata(
               document,
-              `${name} — ${seoCopy[locale].armenia} | ATHLON`,
-              `${description} ${seoCopy[locale].delivery}`,
+              `${seoTitle} | ATHLON`,
+              description === copy.fallback
+                ? seoDescription
+                : `${description} ${seoCopy[locale].delivery}`,
             );
-            discovery(document, `/${locale}/catalog/${slug}`);
+            // /catalog/sports-nutrition canonicalises to /catalog.
+            discovery(document, listingPath(locale, slug));
             assert.ok(
               structuredData(document).some(
                 (entry) => entry["@type"] === "BreadcrumbList",
@@ -746,7 +812,7 @@ async function main() {
           );
           metadata(
             document,
-            `${copy.child} — ${seoCopy[locale].armenia} | ATHLON`,
+            `${listingSeo[locale].protein[0]} | ATHLON`,
             `${copy.childDescription} ${seoCopy[locale].delivery}`,
           );
           discovery(
@@ -813,7 +879,7 @@ async function main() {
           discovery(document, `/${locale}/catalog/protein?page=2`);
           assert.equal(
             document.title,
-            `${copy.child} — ${seoCopy[locale].armenia} — ${seoCopy[locale].page} 2 | ATHLON`,
+            `${listingSeo[locale].protein[0]} — ${seoCopy[locale].page} 2 | ATHLON`,
           );
           assert.equal(document.querySelectorAll("app-product-card").length, 1);
           assert.ok(
@@ -984,6 +1050,15 @@ async function main() {
         initialDocument(home, "app-home-page", (document) => {
           assert.equal(
             text(document.querySelector(".store-guide h2")),
+            {
+              hy: "ATHLON — սպորտային սննդի առցանց խանութ",
+              ru: "ATHLON — интернет-магазин спортивного питания",
+              en: "ATHLON — online sports nutrition shop",
+            }[locale],
+          );
+          // The H1 leads with the search keyword.
+          assert.equal(
+            text(document.querySelector(".hero-copy h1 .hero-keyword")),
             {
               hy: "Սպորտային սնունդ Հայաստանում",
               ru: "Спортивное питание в Армении",

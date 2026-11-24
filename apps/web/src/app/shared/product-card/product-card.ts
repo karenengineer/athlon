@@ -5,6 +5,7 @@ import { RouterLink } from "@angular/router";
 import { Product } from "../../core/api/catalog.models";
 import { BasketService } from "../../core/basket/basket.service";
 import { I18nService } from "../../core/i18n/i18n.service";
+import { imageAlt } from "../../core/seo/image-alt";
 
 @Component({
   selector: "app-product-card",
@@ -39,6 +40,13 @@ export class ProductCard {
       this.product().images[0]?.cardUrl ??
       "/placeholders/product-placeholder.svg"
     );
+  }
+
+  imageAlt(): string {
+    const image =
+      this.product().images.find((item) => item.primary) ??
+      this.product().images[0];
+    return imageAlt(image?.alt, this.product().name, this.i18n.locale());
   }
 
   availabilityLabel(): string {
