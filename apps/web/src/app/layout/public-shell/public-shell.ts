@@ -82,12 +82,6 @@ import { Header } from "../header/header";
     .floating-basket.is-hidden {
       display: none;
     }
-    /* Desktop shows the basket in the header instead. */
-    @media (min-width: 861px) {
-      .floating-basket {
-        display: none;
-      }
-    }
     .floating-basket svg {
       width: 28px;
       height: 28px;
