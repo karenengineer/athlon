@@ -86,6 +86,57 @@ describe("ProductPage basket availability", () => {
     );
   }
 
+  it.each([
+    ["en", "Write to Instagram for ordering", "or call"],
+    ["hy", "Գրել Instagram‑ում՝ պատվիրելու համար", "կամ զանգահարեք"],
+    ["ru", "Написать в Instagram для заказа", "или позвоните"],
+  ] as const)(
+    "offers Instagram and phone ordering for resistance bands in %s",
+    (locale, button, call) => {
+      const fixture = TestBed.createComponent(ProductPage);
+      const page = fixture.componentInstance;
+      page.i18n.setLocale(locale);
+      page.product.set({
+        ...product,
+        category: { slug: "resistance-bands", name: "Bands" },
+      });
+      page.state.set("ready");
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.querySelector(".basket-cta")).toBeNull();
+      const instagram = root.querySelector<HTMLAnchorElement>(
+        '[data-testid="band-instagram-order"]',
+      )!;
+      expect(instagram.textContent?.trim()).toBe(button);
+      expect(instagram.href).toBe(
+        "https://www.instagram.com/athlon.sports.nutrition/",
+      );
+      expect(instagram.target).toBe("_blank");
+      expect(instagram.rel).toBe("noopener noreferrer");
+      const phone = root.querySelector<HTMLAnchorElement>(
+        '[data-testid="band-phone-order"] a',
+      )!;
+      expect(phone.getAttribute("href")).toBe("tel:+37441448855");
+      expect(phone.textContent?.trim()).toBe("041 44 88 55");
+      expect(
+        root.querySelector('[data-testid="band-phone-order"]')?.textContent,
+      ).toContain(call);
+    },
+  );
+
+  it("keeps the basket button and no Instagram order button for other products", () => {
+    const fixture = TestBed.createComponent(ProductPage);
+    fixture.componentInstance.product.set(product);
+    fixture.componentInstance.state.set("ready");
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector(".basket-cta")).not.toBeNull();
+    expect(
+      root.querySelector('[data-testid="band-instagram-order"]'),
+    ).toBeNull();
+    expect(root.querySelector('[data-testid="band-phone-order"]')).toBeNull();
+  });
+
   describe("gallery swipe", () => {
     const pictures = [0, 1, 2].map((index) => ({
       id: `image-${index}`,

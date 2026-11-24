@@ -97,6 +97,8 @@ type Copy = {
   searchResults: string;
   productsFound: string;
   checkAvailability: string;
+  bandOrderInstagram: string;
+  bandOrderCall: string;
   relatedProducts: string;
   backToCatalog: string;
   notFoundTitle: string;
@@ -277,6 +279,8 @@ const copy: Record<Locale, Copy> = {
     searchResults: "Результаты поиска",
     productsFound: "товаров",
     checkAvailability: "Уточнить наличие",
+    bandOrderInstagram: "Написать в Instagram для заказа",
+    bandOrderCall: "или позвоните",
     relatedProducts: "Похожие товары",
     backToCatalog: "Вернуться в каталог",
     notFoundTitle: "Страница не найдена",
@@ -473,6 +477,8 @@ const copy: Record<Locale, Copy> = {
     searchResults: "Որոնման արդյունքներ",
     productsFound: "ապրանք",
     checkAvailability: "Ճշտել առկայությունը",
+    bandOrderInstagram: "Գրել Instagram‑ում՝ պատվիրելու համար",
+    bandOrderCall: "կամ զանգահարեք",
     relatedProducts: "Նմանատիպ ապրանքներ",
     backToCatalog: "Վերադառնալ կատալոգ",
     notFoundTitle: "Էջը չի գտնվել",
@@ -669,6 +675,8 @@ const copy: Record<Locale, Copy> = {
     searchResults: "Search results",
     productsFound: "products",
     checkAvailability: "Check availability",
+    bandOrderInstagram: "Write to Instagram for ordering",
+    bandOrderCall: "or call",
     relatedProducts: "Related products",
     backToCatalog: "Back to catalog",
     notFoundTitle: "Page not found",
