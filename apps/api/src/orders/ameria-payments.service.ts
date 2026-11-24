@@ -165,25 +165,30 @@ export function interpretPaymentDetails(
     attempt.now.getTime() - attempt.createdAt.getTime() >
     PAYMENT_EXPIRES_AFTER_MS;
   const sameOrder =
-    details.ResponseCode === "00" &&
     details.Currency === AMERIA_CURRENCY_AMD &&
     String(details.OrderID) === attempt.ameriaOrderId &&
     details.Opaque === attempt.reference &&
     amountEquals(details.Amount, attempt.expectedAmount);
-  if (!sameOrder) {
+  const orderStatus = String(details.OrderStatus);
+
+  // A declined card (wrong CVV, insufficient funds, ...) is reported with
+  // OrderStatus 6 and the decline reason as ResponseCode, never "00". It moves
+  // no money, so it can fail the attempt without a success response code.
+  if (sameOrder && orderStatus === "6") {
+    return { status: "FAILED", providerStatus: "payment_declined" };
+  }
+  if (!sameOrder || details.ResponseCode !== "00") {
     return expired
       ? { status: "EXPIRED", providerStatus: "NOT_CONFIRMED_BEFORE_TIMEOUT" }
       : { status: "PENDING" };
   }
 
-  switch (String(details.OrderStatus)) {
+  switch (orderStatus) {
     case "2":
       return amountEquals(details.DepositedAmount, attempt.expectedAmount) &&
         details.PaymentState === "payment_deposited"
         ? { status: "PAID", providerStatus: "payment_deposited" }
         : { status: "PENDING" };
-    case "6":
-      return { status: "FAILED", providerStatus: "payment_declined" };
     case "3":
       return { status: "CANCELLED", providerStatus: "payment_void" };
     case "4":
