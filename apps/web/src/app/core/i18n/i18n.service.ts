@@ -16,6 +16,11 @@ type Copy = {
   paymentReturnBackToBasket: string;
   paymentReturnContinue: string;
   paymentReturnRecheck: string;
+  livePaymentCheck: string;
+  livePaymentRetry: string;
+  livePaymentRetryReady: string;
+  livePaymentNotFound: string;
+  livePaymentBasketChanged: string;
   paymentSuccessTitle: string;
   paymentSuccessChecking: string;
   paymentSuccessMockMessage: string;
@@ -190,6 +195,14 @@ const copy: Record<Locale, Copy> = {
     paymentReturnBackToBasket: "Вернуться в корзину",
     paymentReturnContinue: "Продолжить покупки",
     paymentReturnRecheck: "Проверить снова",
+    livePaymentCheck: "Проверить статус платежа",
+    livePaymentRetry: "Попробовать снова",
+    livePaymentRetryReady:
+      "Банк подтвердил, что платёж не прошёл. Вы можете попробовать снова.",
+    livePaymentNotFound:
+      "Платёж ещё не зарегистрирован. Можно повторно отправить этот заказ.",
+    livePaymentBasketChanged:
+      "Корзина изменилась после начала оплаты. Сначала проверьте статус платежа.",
     paymentSuccessRecheckUnverified:
       "Ранее тестовая оплата была подтверждена. Последнюю проверку завершить не удалось. Повторно платить не нужно.",
     paymentSuccessMethod: "Банковская карта",
@@ -386,6 +399,14 @@ const copy: Record<Locale, Copy> = {
     paymentReturnBackToBasket: "Վերադառնալ զամբյուղ",
     paymentReturnContinue: "Շարունակել գնումները",
     paymentReturnRecheck: "Ստուգել կրկին",
+    livePaymentCheck: "Ստուգել վճարման կարգավիճակը",
+    livePaymentRetry: "Փորձել կրկին",
+    livePaymentRetryReady:
+      "Բանկը հաստատեց, որ վճարումը չի կատարվել։ Կարող եք կրկին փորձել։",
+    livePaymentNotFound:
+      "Վճարումը դեռ չի գրանցվել։ Կարող եք կրկին ուղարկել այս պատվերը։",
+    livePaymentBasketChanged:
+      "Զամբյուղը փոխվել է վճարումը սկսելուց հետո։ Նախ ստուգեք վճարման կարգավիճակը։",
     paymentSuccessRecheckUnverified:
       "Թեստային վճարումը նախկինում հաստատվել է։ Վերջին ստուգումը չհաջողվեց ավարտել։ Կրկին մի վճարեք։",
     paymentSuccessMethod: "Բանկային քարտ",
@@ -582,6 +603,14 @@ const copy: Record<Locale, Copy> = {
     paymentReturnBackToBasket: "Back to basket",
     paymentReturnContinue: "Continue shopping",
     paymentReturnRecheck: "Check again",
+    livePaymentCheck: "Check payment status",
+    livePaymentRetry: "Try again",
+    livePaymentRetryReady:
+      "The bank confirmed the payment did not go through. You can try again.",
+    livePaymentNotFound:
+      "No payment is recorded yet. You can submit this checkout again.",
+    livePaymentBasketChanged:
+      "Your basket changed after the payment started. Check the payment status first.",
     paymentSuccessRecheckUnverified:
       "Test payment was previously confirmed. The latest check could not be verified. Do not pay again.",
     paymentSuccessMethod: "Bank card",

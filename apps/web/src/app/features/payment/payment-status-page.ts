@@ -14,6 +14,7 @@ import {
 } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { BasketService } from "../../core/basket/basket.service";
+import { clearPaidLiveCardCheckout } from "../../core/basket/live-card-checkout";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { createPageMetadata } from "../../core/seo/page-metadata";
 
@@ -196,6 +197,7 @@ export class PaymentStatusPage {
         if (view === "PAID" && !this.basketCleared) {
           this.basketCleared = true;
           this.basket.clear();
+          clearPaidLiveCardCheckout(this.reference());
         }
       });
   }

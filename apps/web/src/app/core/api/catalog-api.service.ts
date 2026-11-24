@@ -5,6 +5,7 @@ import { API_BASE_URL } from "./api-base-url";
 import {
   Brand,
   Category,
+  CheckoutStatusResponse,
   CreateOrderRequest,
   CreateOrderResponse,
   CreateReviewRequest,
@@ -85,6 +86,14 @@ export class CatalogApiService {
     }
     return this.http.get<PaymentStatusResponse>(
       `${this.baseUrl}/public/orders/${encodeURIComponent(orderReference)}/payment-status`,
+      { transferCache: false },
+    );
+  }
+
+  checkoutStatus(idempotencyKey: string): Observable<CheckoutStatusResponse> {
+    return this.http.get<CheckoutStatusResponse>(
+      `${this.baseUrl}/public/orders/checkout-status`,
+      { headers: { "Idempotency-Key": idempotencyKey }, transferCache: false },
     );
   }
 }

@@ -140,6 +140,7 @@ describe("AmeriaPaymentsService", () => {
   const persistence = {
     findCardOrderForVerification: jest.fn(),
     applyVerifiedPaymentStatus: jest.fn(),
+    hasVerifiedUnpaidAttempt: jest.fn(),
   };
   const service = new AmeriaPaymentsService(
     client as never,
@@ -257,6 +258,131 @@ describe("AmeriaPaymentsService", () => {
     expect(result.paymentStatus).toBe("PENDING");
     expect(persistence.applyVerifiedPaymentStatus).not.toHaveBeenCalled();
   });
+
+  it.each([
+    [6, "FAILED", "payment_declined"],
+    [3, "CANCELLED", "payment_void"],
+  ])(
+    "allows a retry after confirming bank status %s",
+    async (code, status, state) => {
+      persistence.findCardOrderForVerification.mockResolvedValue(storedOrder());
+      client.getPaymentDetails.mockResolvedValue({
+        ...deposited,
+        OrderStatus: code,
+        PaymentState: state,
+        DepositedAmount: 0,
+      });
+      persistence.applyVerifiedPaymentStatus.mockResolvedValue({
+        changed: true,
+      });
+      persistence.hasVerifiedUnpaidAttempt.mockResolvedValue(true);
+
+      await expect(
+        service.verifyAndApplyStatus(reference),
+      ).resolves.toMatchObject({
+        paymentStatus: status,
+        retryAllowed: true,
+      });
+      expect(persistence.hasVerifiedUnpaidAttempt).toHaveBeenCalledWith({
+        orderId: "order-id",
+        paymentAttemptId: "attempt-id",
+        status,
+        providerStatus: state,
+      });
+    },
+  );
+
+  it("allows a retry when the fresh unpaid status was already persisted", async () => {
+    persistence.findCardOrderForVerification.mockResolvedValue(
+      storedOrder({ status: "FAILED", providerStatus: "payment_declined" }),
+    );
+    client.getPaymentDetails.mockResolvedValue({
+      ...deposited,
+      OrderStatus: 6,
+      PaymentState: "payment_declined",
+      DepositedAmount: 0,
+    });
+    persistence.applyVerifiedPaymentStatus.mockResolvedValue({
+      changed: false,
+    });
+    persistence.hasVerifiedUnpaidAttempt.mockResolvedValue(true);
+
+    await expect(
+      service.verifyAndApplyStatus(reference),
+    ).resolves.toMatchObject({
+      paymentStatus: "FAILED",
+      retryAllowed: true,
+    });
+  });
+
+  it("does not allow a retry when a bank-confirmed deposit won the update race", async () => {
+    persistence.findCardOrderForVerification
+      .mockResolvedValueOnce(storedOrder())
+      .mockResolvedValueOnce(
+        storedOrder({ status: "PAID", providerStatus: "payment_deposited" }),
+      );
+    client.getPaymentDetails.mockResolvedValue({
+      ...deposited,
+      OrderStatus: 6,
+      PaymentState: "payment_declined",
+      DepositedAmount: 0,
+    });
+    persistence.applyVerifiedPaymentStatus.mockResolvedValue({
+      changed: false,
+    });
+    persistence.hasVerifiedUnpaidAttempt.mockResolvedValue(false);
+
+    await expect(service.verifyAndApplyStatus(reference)).resolves.toEqual({
+      orderReference: reference,
+      paymentStatus: "PAID",
+      locale: "HY",
+    });
+  });
+
+  it("does not allow a retry when a void followed a payment confirmation", async () => {
+    persistence.findCardOrderForVerification.mockResolvedValue(storedOrder());
+    client.getPaymentDetails.mockResolvedValue({
+      ...deposited,
+      OrderStatus: 3,
+      PaymentState: "payment_void",
+      DepositedAmount: 0,
+    });
+    persistence.applyVerifiedPaymentStatus.mockResolvedValue({ changed: true });
+    persistence.hasVerifiedUnpaidAttempt.mockResolvedValue(false);
+
+    await expect(service.verifyAndApplyStatus(reference)).resolves.toEqual({
+      orderReference: reference,
+      paymentStatus: "CANCELLED",
+      locale: "HY",
+    });
+    expect(persistence.hasVerifiedUnpaidAttempt).toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ OrderStatus: 4 }, "CANCELLED"],
+    [{ OrderStatus: 6, PaymentState: "payment_declined" }, "FAILED"],
+    [{ OrderStatus: 6, DepositedAmount: 0 }, "FAILED"],
+    [{ OrderStatus: 0, DepositedAmount: 0 }, "EXPIRED"],
+    [{ OrderID: 123 }, "EXPIRED"],
+  ])(
+    "does not authorize retry for uncertain or previously paid bank data (%j)",
+    async (override, status) => {
+      persistence.findCardOrderForVerification.mockResolvedValue(
+        storedOrder({ createdAt: old }),
+      );
+      client.getPaymentDetails.mockResolvedValue({ ...deposited, ...override });
+      persistence.applyVerifiedPaymentStatus.mockResolvedValue({
+        changed: true,
+      });
+
+      await expect(service.verifyAndApplyStatus(reference)).resolves.toEqual({
+        orderReference: reference,
+        paymentStatus: status,
+        locale: "HY",
+      });
+      expect(persistence.hasVerifiedUnpaidAttempt).not.toHaveBeenCalled();
+    },
+  );
 
   it("does not reveal whether a reference belongs to a cash order", async () => {
     persistence.findCardOrderForVerification.mockResolvedValue({

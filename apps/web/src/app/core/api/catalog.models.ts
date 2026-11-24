@@ -119,7 +119,12 @@ export interface PaymentStatusResponse {
   orderReference: string;
   paymentStatus: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "EXPIRED";
   locale: "HY" | "RU" | "EN";
+  retryAllowed?: true;
 }
+
+export type CheckoutStatusResponse =
+  | PaymentStatusResponse
+  | { paymentStatus: "NOT_FOUND" };
 
 export interface ProductReview {
   id: string;
