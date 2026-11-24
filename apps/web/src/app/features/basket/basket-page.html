@@ -130,16 +130,43 @@
           </strong>
         </div>
         <div class="basket-item-actions">
-          <label>
-            <span>{{ i18n.t("quantity") }}</span>
-            <input
-              type="number"
-              min="1"
-              [disabled]="submitting()"
-              [value]="item.quantity"
-              (change)="update(item.id, $any($event.target).value)"
-            />
-          </label>
+          <div class="quantity-field">
+            <span [id]="'qty-label-' + item.id">{{ i18n.t("quantity") }}</span>
+            <div class="basket-stepper">
+              <button
+                type="button"
+                class="stepper-button"
+                data-testid="basket-decrement"
+                [attr.aria-label]="i18n.t('quantity') + ' −1'"
+                [disabled]="submitting() || item.quantity <= 1"
+                (click)="step(item.id, item.quantity - 1)"
+              >
+                −
+              </button>
+              <input
+                class="stepper-input"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="99"
+                [attr.aria-labelledby]="'qty-label-' + item.id"
+                [disabled]="submitting()"
+                [value]="item.quantity"
+                (change)="setQuantityFromInput(item.id, item.quantity, $event)"
+                (keydown.enter)="setQuantityFromInput(item.id, item.quantity, $event)"
+              />
+              <button
+                type="button"
+                class="stepper-button"
+                data-testid="basket-increment"
+                [attr.aria-label]="i18n.t('quantity') + ' +1'"
+                [disabled]="submitting() || item.quantity >= 99"
+                (click)="step(item.id, item.quantity + 1)"
+              >
+                +
+              </button>
+            </div>
+          </div>
           <button
             type="button"
             [disabled]="submitting()"

@@ -80,7 +80,7 @@ h1 {
   color: #202024;
 }
 
-.basket-item label {
+.basket-item .quantity-field {
   display: grid;
   flex: 0 1 220px;
   gap: 5px;
@@ -89,12 +89,71 @@ h1 {
   font-weight: 800;
 }
 
-.basket-item input {
+.basket-stepper {
+  display: grid;
+  grid-template-columns: 44px minmax(36px, 1fr) 44px;
   min-height: 44px;
-  width: 100%;
+  overflow: hidden;
   border: 1px solid #d5d5d9;
-  border-radius: 8px;
-  padding: 0 10px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.basket-item .stepper-button {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: #171719;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.basket-item .stepper-button:disabled {
+  color: #b9b9be;
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .basket-item .stepper-button:not(:disabled):hover {
+    color: #fff;
+    background: #171719;
+  }
+}
+
+.basket-item .stepper-button:not(:disabled):active {
+  background: #e8e8eb;
+}
+
+.stepper-input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-inline: 1px solid #ececef;
+  padding: 0;
+  color: #171719;
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  text-align: center;
+  appearance: textfield;
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.stepper-button:focus-visible,
+.stepper-input:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #171719;
+  outline-offset: -2px;
 }
 
 .basket-item-actions {
@@ -379,9 +438,9 @@ h1 {
     gap: 10px;
   }
 
-  .basket-item-actions label {
-    flex: 0 1 110px;
-    min-width: 82px;
+  .basket-item-actions .quantity-field {
+    flex: 0 1 150px;
+    min-width: 128px;
   }
 
   .basket-item-actions button {
