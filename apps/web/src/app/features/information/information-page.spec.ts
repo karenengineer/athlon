@@ -205,19 +205,19 @@ describe("Localized information pages", () => {
     [
       "hy",
       "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից",
-      "Առցանց քարտային վճարում",
+      "կանխիկ կամ քարտով՝ առաքիչին",
       "Նշեք պատվերի համարը և ձեր հարցը",
     ],
     [
       "ru",
       "Бесплатная доставка по всей Армении независимо от суммы заказа",
-      "Оплата картой онлайн",
+      "наличными или картой курьеру",
       "Укажите номер заказа и ваш вопрос",
     ],
     [
       "en",
       "Free delivery throughout Armenia, regardless of order value",
-      "Online card payment",
+      "cash or card to the courier",
       "Include your order reference and question",
     ],
   ])(

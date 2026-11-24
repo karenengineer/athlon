@@ -5,7 +5,6 @@ import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { configureApplication } from "../src/bootstrap";
 import { PrismaService } from "../src/database/prisma.service";
-import { CARD_PAYMENT_INITIALIZER } from "../src/orders/orders.service";
 import { OrderPersistenceService } from "../src/orders/order-persistence.service";
 
 describe("Public orders", () => {
@@ -21,47 +20,6 @@ describe("Public orders", () => {
     currency: "AMD",
     translations: [{ locale: "HY", name: "Պրոտեին" }],
   };
-  const checkoutUrl = "https://payments.example.test/checkout/1";
-  const orderReference = "ATH-1234ABCD1234ABCD1234ABCD1234ABCD";
-  const paidOrder = {
-    id: "order-test-id",
-    reference: orderReference,
-    locale: "HY",
-    customerName: "Անի",
-    customerEmail: "ani@example.com",
-    customerPhone: "091123456",
-    deliveryAddress: "Երևան",
-    total: "48000",
-    items: [
-      {
-        sku: "SKU-ONE",
-        name: "Պրոտեին",
-        quantity: 2,
-        unitPrice: "24000",
-        lineTotal: "48000",
-      },
-    ],
-    notifications: [
-      {
-        id: "e2e-merchant-notification",
-        status: "PENDING",
-        recipientType: "MERCHANT",
-        eventType: "PAYMENT_CONFIRMED",
-      },
-      {
-        id: "e2e-customer-notification",
-        status: "PENDING",
-        recipientType: "CUSTOMER",
-        eventType: "PAYMENT_CONFIRMED",
-      },
-    ],
-  };
-  const payment = {
-    isEnabled: false,
-    isTrustedCheckoutUrl: (url: string) => url === checkoutUrl,
-    initialize: jest.fn(),
-    verifyAndApplyStatus: jest.fn(),
-  };
   const prisma = {
     product: {
       findMany: jest.fn(),
@@ -73,8 +31,6 @@ describe("Public orders", () => {
   const persistence = {
     findByIdempotencyKey: jest.fn().mockResolvedValue(null),
     createPendingOrder: jest.fn(),
-    nextAmeriaOrderId: jest.fn().mockResolvedValue("1760000000001"),
-    findOrderWithNotifications: jest.fn().mockResolvedValue(paidOrder),
     createMerchantTelegramNotification: jest.fn(),
     markInitializationFailed: jest.fn().mockResolvedValue(undefined),
     recordProviderPaymentId: jest.fn().mockResolvedValue(undefined),
@@ -83,23 +39,7 @@ describe("Public orders", () => {
     markNotificationFailed: jest.fn().mockResolvedValue(undefined),
   };
 
-  function mockConfirmedPayment() {
-    payment.isEnabled = true;
-    payment.verifyAndApplyStatus.mockResolvedValueOnce({
-      orderReference,
-      paymentStatus: "PAID",
-      locale: "HY",
-      newlyPaidOrderId: paidOrder.id,
-    });
-  }
-
   beforeEach(async () => {
-    payment.isEnabled = false;
-    payment.initialize.mockReset().mockResolvedValue({
-      providerPaymentId: "fixture-payment",
-      checkoutUrl,
-    });
-    payment.verifyAndApplyStatus.mockReset();
     process.env.RESEND_API_KEY = "test-only-key";
     process.env.ORDER_FROM_EMAIL = "orders@example.test";
     process.env.ORDER_TELEGRAM_BOT_TOKEN = "";
@@ -122,9 +62,7 @@ describe("Public orders", () => {
             order: {
               id: "order-test-id",
               reference: input.reference,
-              paymentAttempts: [
-                { id: "payment-attempt", ameriaOrderId: "1760000000001" },
-              ],
+              paymentAttempts: [],
               locale: input.locale,
               customerName: input.customerName,
               customerEmail: input.customerEmail,
@@ -132,6 +70,18 @@ describe("Public orders", () => {
               deliveryAddress: input.deliveryAddress,
               total: input.total,
               items: input.items,
+              notifications: [
+                {
+                  id: "e2e-merchant-notification",
+                  status: "PENDING",
+                  recipientType: "MERCHANT",
+                },
+                {
+                  id: "e2e-customer-notification",
+                  status: "PENDING",
+                  recipientType: "CUSTOMER",
+                },
+              ],
             },
           }),
       );
@@ -141,8 +91,6 @@ describe("Public orders", () => {
       .useValue(prisma)
       .overrideProvider(OrderPersistenceService)
       .useValue(persistence)
-      .overrideProvider(CARD_PAYMENT_INITIALIZER)
-      .useValue(payment)
       .compile();
     app = configureApplication(moduleRef.createNestApplication());
     await app.init();
@@ -161,14 +109,12 @@ describe("Public orders", () => {
     global.fetch = originalFetch;
   });
 
-  it("accepts a priced card basket and returns the hosted checkout", async () => {
-    payment.isEnabled = true;
+  it("accepts a valid basket and sends an order notification", async () => {
     await request(app.getHttpServer())
       .post("/api/v1/public/orders")
       .set("Idempotency-Key", "e2e-order-0001")
       .send({
         locale: "hy",
-        paymentMethod: "CARD",
         customer: {
           name: "Անի",
           email: "ani@example.com",
@@ -186,24 +132,11 @@ describe("Public orders", () => {
       .expect(201)
       .expect(({ body }) => {
         expect(body).toEqual({
-          kind: "CARD_PAYMENT_PENDING",
+          kind: "COD_ACCEPTED",
           accepted: true,
           orderReference: expect.any(String),
-          paymentStatus: "PENDING",
-          checkoutUrl,
         });
       });
-
-    expect(payment.initialize).toHaveBeenCalledTimes(1);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("sends both emails after the bank confirms the card payment", async () => {
-    mockConfirmedPayment();
-    await request(app.getHttpServer())
-      .get(`/api/v1/public/orders/${orderReference}/payment-status`)
-      .expect(200)
-      .expect({ orderReference, paymentStatus: "PAID", locale: "HY" });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -239,8 +172,7 @@ describe("Public orders", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("sends configured Telegram alongside both emails for a confirmed payment", async () => {
-    mockConfirmedPayment();
+  it("sends configured Telegram alongside both emails for an accepted order", async () => {
     const token = "123456:e2e-order-test";
     const chatId = "-1001234567890";
     const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
@@ -255,12 +187,28 @@ describe("Public orders", () => {
     );
 
     await request(app.getHttpServer())
-      .get(`/api/v1/public/orders/${orderReference}/payment-status`)
-      .expect(200);
+      .post("/api/v1/public/orders")
+      .set("Idempotency-Key", "e2e-order-telegram")
+      .send({
+        locale: "hy",
+        customer: {
+          name: "Անի",
+          email: "ani@example.com",
+          phone: "+374 91 123456",
+          address: "Երևան, Աբովյան 1",
+        },
+        items: [
+          { productId: product.id, quantity: 2, expectedUnitPrice: "24000" },
+        ],
+      })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ kind: "COD_ACCEPTED", accepted: true });
+      });
 
     expect(persistence.createMerchantTelegramNotification).toHaveBeenCalledWith(
       "order-test-id",
-      "PAYMENT_CONFIRMED",
+      "ORDER_ACCEPTED",
     );
     expect(persistence.markNotificationSent).toHaveBeenCalledWith(
       "e2e-telegram-notification",
@@ -296,32 +244,6 @@ describe("Public orders", () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
-
-  it.each(["CASH_ON_DELIVERY", undefined] as const)(
-    "rejects new %s orders at the public endpoint",
-    async (paymentMethod) => {
-      payment.isEnabled = true;
-      await request(app.getHttpServer())
-        .post("/api/v1/public/orders")
-        .set("Idempotency-Key", "e2e-cod-disabled")
-        .send({
-          locale: "hy",
-          paymentMethod,
-          customer: {
-            name: "Անի",
-            email: "ani@example.com",
-            phone: "091123456",
-            address: "Երևան",
-          },
-          items: [
-            { productId: product.id, quantity: 1, expectedUnitPrice: "24000" },
-          ],
-        })
-        .expect(400);
-      expect(persistence.createPendingOrder).not.toHaveBeenCalled();
-      expect(payment.initialize).not.toHaveBeenCalled();
-    },
-  );
 
   it("rejects card payment while Ameria merchant setup is not verified", async () => {
     await request(app.getHttpServer())
@@ -374,13 +296,11 @@ describe("Public orders", () => {
   });
 
   it("rejects a stale basket price without sending an email", async () => {
-    payment.isEnabled = true;
     await request(app.getHttpServer())
       .post("/api/v1/public/orders")
       .set("Idempotency-Key", "e2e-order-stale-0002")
       .send({
         locale: "hy",
-        paymentMethod: "CARD",
         customer: {
           name: "Անի",
           email: "ani@example.com",
@@ -424,8 +344,7 @@ describe("Public orders", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("keeps a card payment confirmed when its notification fails", async () => {
-    mockConfirmedPayment();
+  it("does not send an email if the transactional provider fails", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ message: "secret provider details" }), {
         status: 500,
@@ -433,17 +352,32 @@ describe("Public orders", () => {
     );
 
     await request(app.getHttpServer())
-      .get(`/api/v1/public/orders/${orderReference}/payment-status`)
-      .expect(200)
-      .expect({ orderReference, paymentStatus: "PAID", locale: "HY" });
-
-    expect(persistence.markNotificationFailed).toHaveBeenCalledWith(
-      "e2e-merchant-notification",
-    );
+      .post("/api/v1/public/orders")
+      .set("Idempotency-Key", "e2e-order-email-0004")
+      .send({
+        locale: "hy",
+        customer: {
+          name: "Անի",
+          email: "ani@example.com",
+          phone: "091123456",
+          address: "Երևան",
+        },
+        items: [
+          {
+            productId: product.id,
+            quantity: 1,
+            expectedUnitPrice: "24000",
+          },
+        ],
+      })
+      .expect(503)
+      .expect(({ body }) => {
+        expect(JSON.stringify(body)).not.toContain("secret provider details");
+        expect(JSON.stringify(body)).not.toContain("test-only-key");
+      });
   });
 
   it("rejects invalid products and does not contact the email provider", async () => {
-    payment.isEnabled = true;
     prisma.product.findMany.mockResolvedValueOnce([]);
 
     await request(app.getHttpServer())
@@ -451,7 +385,6 @@ describe("Public orders", () => {
       .set("Idempotency-Key", "e2e-order-product-0005")
       .send({
         locale: "hy",
-        paymentMethod: "CARD",
         customer: {
           name: "Անի",
           email: "ani@example.com",
@@ -472,12 +405,10 @@ describe("Public orders", () => {
   });
 
   it("rate limits repeated order submissions", async () => {
-    payment.isEnabled = true;
     const express = app.getHttpAdapter().getInstance() as Express;
     expect(express.get("trust proxy")).toBe(1);
     const payload = {
       locale: "hy",
-      paymentMethod: "CARD",
       customer: {
         name: "Անի",
         email: "ani@example.com",

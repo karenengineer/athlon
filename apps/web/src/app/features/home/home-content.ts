@@ -52,7 +52,7 @@ export const homeContent: Record<Locale, HomeContent> = {
     ],
     deliveryHeading: "Առաքում և կապ",
     delivery:
-      "Ընտրեք ապրանքը, ավելացրեք այն զամբյուղում և լրացրեք պատվերի տվյալները։ Առաքումը ողջ Հայաստանում անվճար է, իսկ վճարումը կատարվում է առցանց՝ բանկային քարտով։ Ապրանքների և պատվերների վերաբերյալ հարցերի դեպքում զանգահարեք 041 44 88 55 հեռախոսահամարով կամ գրեք athlonsportgoods@gmail.com հասցեին։",
+      "Ընտրեք ապրանքը, ավելացրեք այն զամբյուղում և լրացրեք պատվերի տվյալները։ Առաքումը ողջ Հայաստանում անվճար է, իսկ վճարումը կատարվում է առաքիչին՝ կանխիկ կամ քարտով։ Ապրանքների և պատվերների վերաբերյալ հարցերի դեպքում զանգահարեք 041 44 88 55 հեռախոսահամարով կամ գրեք athlonsportgoods@gmail.com հասցեին։",
   },
   ru: {
     heading: "ATHLON — интернет-магазин спортивного питания",
@@ -94,7 +94,7 @@ export const homeContent: Record<Locale, HomeContent> = {
     ],
     deliveryHeading: "Доставка и контакты",
     delivery:
-      "Выберите товар, добавьте его в корзину и заполните данные заказа. Доставка по всей Армении бесплатна, а заказ оплачивается банковской картой онлайн. По вопросам о товарах и заказах звоните по номеру 041 44 88 55 или пишите на athlonsportgoods@gmail.com.",
+      "Выберите товар, добавьте его в корзину и заполните данные заказа. Доставка по всей Армении бесплатна, а оплатить заказ можно курьеру наличными или картой. По вопросам о товарах и заказах звоните по номеру 041 44 88 55 или пишите на athlonsportgoods@gmail.com.",
   },
   en: {
     heading: "ATHLON — online sports nutrition shop",
@@ -136,6 +136,6 @@ export const homeContent: Record<Locale, HomeContent> = {
     ],
     deliveryHeading: "Delivery and contact",
     delivery:
-      "Choose a product, add it to your basket and fill in your order details. Delivery is free throughout Armenia, and you pay online by card. For questions about products and orders, call 041 44 88 55 or email athlonsportgoods@gmail.com.",
+      "Choose a product, add it to your basket and fill in your order details. Delivery is free throughout Armenia, and you pay the courier by cash or card. For questions about products and orders, call 041 44 88 55 or email athlonsportgoods@gmail.com.",
   },
 };

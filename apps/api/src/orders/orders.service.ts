@@ -18,6 +18,7 @@ import { OrderTelegramService } from "./order-telegram.service";
 import {
   CardPaymentInitializer,
   OrderEmailMessage,
+  OrderPaymentChoice,
   OrderSubmissionResult,
 } from "./orders.types";
 
@@ -54,6 +55,8 @@ export class OrdersService {
       );
     }
 
+    const paymentMethod: OrderPaymentChoice =
+      input.paymentMethod ?? "CASH_ON_DELIVERY";
     const locale = parseLocale(input.locale);
     const requestFingerprint = createOrderRequestFingerprint(input);
     const existingOrder =
@@ -84,11 +87,10 @@ export class OrdersService {
       }
       throw new ConflictException("This payment request cannot be resumed");
     }
-    if (input.paymentMethod !== "CARD") {
-      throw new BadRequestException("Pay on delivery is unavailable");
-    }
-    const paymentInitializer = this.paymentInitializer;
-    if (!paymentInitializer?.isEnabled) {
+    if (
+      paymentMethod === "CARD" &&
+      (!this.paymentInitializer || !this.paymentInitializer.isEnabled)
+    ) {
       throw new ServiceUnavailableException("Card payments are unavailable");
     }
 
@@ -109,6 +111,7 @@ export class OrdersService {
       products.map((product) => [product.id, product]),
     );
     let total = new Prisma.Decimal(0);
+    let hasUnpricedItems = false;
     const persistenceItems = input.items.map((requested) => {
       const product = productsById.get(requested.productId)!;
       if (product.availability !== "IN_STOCK") {
@@ -128,7 +131,7 @@ export class OrdersService {
       ) {
         throw new ConflictException("Basket prices changed. Review your order");
       }
-      if (unitPrice === null) {
+      if (paymentMethod === "CARD" && unitPrice === null) {
         throw new BadRequestException(
           "Card payment is unavailable for products without a listed price",
         );
@@ -136,15 +139,19 @@ export class OrdersService {
 
       const productName = selectTranslation(product.translations, locale)?.name;
       const name = productName?.trim() || product.sku;
-      const lineTotal = new Prisma.Decimal(unitPrice).mul(requested.quantity);
-      total = total.add(lineTotal);
+      const lineTotal =
+        unitPrice === null
+          ? null
+          : new Prisma.Decimal(unitPrice).mul(requested.quantity);
+      if (lineTotal === null) hasUnpricedItems = true;
+      else total = total.add(lineTotal);
 
       const item = {
         sku: product.sku,
         name,
         quantity: requested.quantity,
         unitPrice,
-        lineTotal: lineTotal.toString(),
+        lineTotal: lineTotal?.toString() ?? null,
       };
       return {
         productId: product.id,
@@ -153,7 +160,18 @@ export class OrdersService {
     });
 
     const orderReference = `ATH-${randomUUID().replaceAll("-", "").toUpperCase()}`;
-    const totalText = total.toString();
+    const totalText = hasUnpricedItems ? null : total.toString();
+    const paymentAttempt =
+      paymentMethod === "CARD"
+        ? {
+            provider: "AMERIABANK" as const,
+            status: "PENDING" as const,
+            ameriaOrderId: await this.persistence.nextAmeriaOrderId(),
+            requestIdempotencyKey: idempotencyKey,
+            expectedAmount: total.toString(),
+            currency: "AMD",
+          }
+        : undefined;
     const persisted = await this.persistence.createPendingOrder({
       reference: orderReference,
       idempotencyKey,
@@ -163,20 +181,23 @@ export class OrdersService {
       customerEmail: input.customer.email,
       customerPhone: input.customer.phone,
       deliveryAddress: input.customer.address,
-      paymentMethod: input.paymentMethod,
+      paymentMethod,
       currency: "AMD",
       total: totalText,
       items: persistenceItems,
-      paymentAttempt: {
-        provider: "AMERIABANK",
-        status: "PENDING",
-        ameriaOrderId: await this.persistence.nextAmeriaOrderId(),
-        requestIdempotencyKey: idempotencyKey,
-        expectedAmount: totalText,
-        currency: "AMD",
-      },
+      ...(paymentAttempt ? { paymentAttempt } : {}),
     });
     const order = persisted.order;
+
+    if (paymentMethod === "CASH_ON_DELIVERY") {
+      const message = orderEmailMessage(order);
+      await this.dispatchOrderNotifications(order, message, persisted.created);
+      return {
+        kind: "COD_ACCEPTED",
+        accepted: true,
+        orderReference: order.reference,
+      };
+    }
 
     if (!persisted.created) {
       // Another request may have initialized the same idempotency key between
@@ -199,10 +220,10 @@ export class OrdersService {
     }
 
     try {
-      const initialized = await paymentInitializer.initialize(order);
+      const initialized = await this.paymentInitializer!.initialize(order);
       if (
         !isValidHostedCheckoutUrl(initialized.checkoutUrl) ||
-        !paymentInitializer.isTrustedCheckoutUrl(initialized.checkoutUrl)
+        !this.paymentInitializer!.isTrustedCheckoutUrl(initialized.checkoutUrl)
       ) {
         throw new Error("Invalid hosted checkout URL");
       }
