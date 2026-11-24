@@ -75,6 +75,42 @@ describe("interpretPaymentDetails", () => {
     ).toBe("CANCELLED");
   });
 
+  it("fails a declined card even though the bank reports a non-00 response code", () => {
+    // Real live response for a wrong CVV: OrderStatus 6 with the decline code.
+    expect(
+      interpretPaymentDetails(
+        {
+          ...deposited,
+          ResponseCode: "0341017",
+          OrderStatus: 6,
+          DepositedAmount: 0,
+          PaymentState: "payment_declined",
+        },
+        attemptFacts,
+      ),
+    ).toEqual({ status: "FAILED", providerStatus: "payment_declined" });
+    expect(
+      interpretPaymentDetails(
+        { ...deposited, ResponseCode: "0341017", OrderStatus: "6" },
+        attemptFacts,
+      ).status,
+    ).toBe("FAILED");
+  });
+
+  it.each([
+    ["another order id", { OrderID: 410000002 }],
+    ["another reference", { Opaque: "ATH-FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" }],
+    ["another amount", { Amount: 10 }],
+    ["another currency", { Currency: "840" }],
+  ])("does not fail a declined report for %s", (_label, override) => {
+    expect(
+      interpretPaymentDetails(
+        { ...deposited, ResponseCode: "0341017", OrderStatus: 6, ...override },
+        attemptFacts,
+      ).status,
+    ).toBe("PENDING");
+  });
+
   it("expires a payment that never completed after the bank timeout", () => {
     expect(
       interpretPaymentDetails({ ...deposited, OrderStatus: 0 }, attemptFacts)
