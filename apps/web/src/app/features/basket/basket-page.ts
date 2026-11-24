@@ -1,16 +1,35 @@
 import { CurrencyPipe } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import {
+  afterNextRender,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { createPageMetadata } from "../../core/seo/page-metadata";
 import { catchError, Observable, of } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
-import { Product } from "../../core/api/catalog.models";
+import { CreateOrderRequest, Product } from "../../core/api/catalog.models";
 import {
   BasketService,
   isBasketEligible,
 } from "../../core/basket/basket.service";
+import {
+  canRetryCardPayment,
+  cardOrderReferencePattern,
+  CHECKOUT_IDEMPOTENCY_KEY,
+  CHECKOUT_PAYMENT_METHOD_KEY,
+  finishRetriedCashCheckout,
+  LiveCardCheckout,
+  nextCardCheckoutKey,
+  readLiveCardCheckout,
+  saveLiveCardCheckout,
+  settleLiveCardCheckout,
+} from "../../core/basket/live-card-checkout";
 import { I18nService } from "../../core/i18n/i18n.service";
 import {
   CardPaymentTestApiService,
@@ -33,6 +52,7 @@ import { BasketSuggestions } from "./basket-suggestions";
   imports: [BasketSuggestions, CurrencyPipe, RouterLink],
   templateUrl: "./basket-page.html",
   styleUrl: "./basket-page.scss",
+  host: { "(window:pageshow)": "restoreLiveCheckout()" },
 })
 export class BasketPage {
   readonly basket = inject(BasketService);
@@ -44,6 +64,15 @@ export class BasketPage {
   readonly validationAttempted = signal(false);
   readonly privacyAccepted = signal(false);
   readonly cardPaymentsEnabled = signal(false);
+  readonly liveCheckout = signal<LiveCardCheckout | null>(null);
+  readonly livePaymentState = signal<
+    "PENDING" | "CHECKING" | "ERROR" | "RETRY" | "NOT_FOUND" | "PAID"
+  >("PENDING");
+  readonly checkoutBlocked = computed(
+    () =>
+      this.liveCheckout()?.phase === "pending" &&
+      this.livePaymentState() !== "NOT_FOUND",
+  );
   private readonly route = inject(ActivatedRoute);
   readonly cardPaymentTestMode =
     this.route.snapshot.data["cardPaymentTestMode"] === true;
@@ -90,6 +119,7 @@ export class BasketPage {
       else this.loadTestConfig();
       return;
     }
+    afterNextRender(() => this.restoreLiveCheckout());
     this.api
       .settings()
       .pipe(
@@ -99,6 +129,116 @@ export class BasketPage {
       .subscribe((settings) =>
         this.cardPaymentsEnabled.set(settings.cardPaymentsEnabled === true),
       );
+  }
+
+  restoreLiveCheckout(): void {
+    if (this.cardPaymentTestMode || this.submitting()) return;
+    this.paymentPending.set(false);
+    const saved = readLiveCardCheckout();
+    const current = this.liveCheckout();
+    if (
+      current?.key === saved?.key &&
+      current?.phase === saved?.phase &&
+      current?.reference === saved?.reference
+    ) {
+      return;
+    }
+    this.liveCheckout.set(saved);
+    this.livePaymentState.set("PENDING");
+    if (saved) this.paymentMethod.set("CARD");
+    // The return page may already have settled this checkout.
+    if (!saved && current) this.clearIdempotencyKey();
+    // Coming back from the bank (or via Back) asks the server straight away,
+    // so a declined or never-started payment does not leave checkout locked.
+    if (saved?.phase === "pending") this.checkLivePayment();
+  }
+
+  checkLivePayment(): void {
+    const checkout = this.liveCheckout();
+    if (
+      checkout?.phase !== "pending" ||
+      this.livePaymentState() === "CHECKING" ||
+      this.submitting()
+    )
+      return;
+    this.paymentPending.set(false);
+    this.livePaymentState.set("CHECKING");
+    const request = checkout.reference
+      ? this.api.paymentStatus(checkout.reference)
+      : this.api.checkoutStatus(checkout.key);
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (response) => {
+        if (this.liveCheckout() !== checkout) return;
+        if (response.paymentStatus === "NOT_FOUND" && !checkout.reference) {
+          this.paymentMethod.set("CARD");
+          this.livePaymentState.set("NOT_FOUND");
+          return;
+        }
+        if (
+          response.paymentStatus === "NOT_FOUND" ||
+          !cardOrderReferencePattern.test(response.orderReference) ||
+          (checkout.reference && response.orderReference !== checkout.reference)
+        ) {
+          this.livePaymentState.set("ERROR");
+          return;
+        }
+        const verified = { ...checkout, reference: response.orderReference };
+        if (!saveLiveCardCheckout(verified)) {
+          this.livePaymentState.set("ERROR");
+          return;
+        }
+        this.liveCheckout.set(verified);
+        if (response.paymentStatus === "PAID") {
+          if (
+            settleLiveCardCheckout(this.basket, verified, verified.reference)
+          ) {
+            this.clearIdempotencyKey();
+            void this.router.navigate([
+              "/",
+              this.i18n.locale(),
+              "payment",
+              verified.reference,
+            ]);
+          }
+          this.livePaymentState.set("PAID");
+          return;
+        }
+        this.livePaymentState.set(
+          canRetryCardPayment(response) ? "RETRY" : "PENDING",
+        );
+      },
+      error: () => {
+        if (this.liveCheckout() === checkout)
+          this.livePaymentState.set("ERROR");
+      },
+    });
+  }
+
+  async retryLivePayment(): Promise<void> {
+    const checkout = this.liveCheckout();
+    if (!checkout?.reference || this.livePaymentState() !== "RETRY") return;
+    this.livePaymentState.set("CHECKING");
+    try {
+      const key = await nextCardCheckoutKey(checkout);
+      if (this.liveCheckout() !== checkout) return;
+      const next: LiveCardCheckout = {
+        key,
+        reference: null,
+        items: [],
+        phase: "ready",
+      };
+      if (!saveLiveCardCheckout(next)) {
+        this.livePaymentState.set("ERROR");
+        return;
+      }
+      this.liveCheckout.set(next);
+      this.livePaymentState.set("PENDING");
+      this.paymentMethod.set("CARD");
+      savePaymentMethod("CARD");
+      this.orderError.set("");
+    } catch {
+      this.livePaymentState.set("ERROR");
+    }
   }
 
   unlockSandbox(event: SubmitEvent): void {
@@ -229,6 +369,7 @@ export class BasketPage {
 
   submitOrder(event: SubmitEvent): void {
     event.preventDefault();
+    if (this.checkoutBlocked()) return;
     this.orderError.set("");
     this.orderSuccess.set(false);
     this.paymentPending.set(false);
@@ -278,30 +419,75 @@ export class BasketPage {
       return;
     }
 
+    const checkout = this.liveCheckout();
+    const paymentMethod = this.paymentMethod();
+    if (paymentMethod === "CARD" && !this.cardPaymentsEnabled()) return;
+    if (checkout?.phase === "pending" && paymentMethod !== "CARD") return;
     if (!this.idempotencyKey) {
       this.idempotencyKey = createIdempotencyKey();
       saveIdempotencyKey(this.idempotencyKey);
+    }
+    const key = checkout?.key ?? this.idempotencyKey;
+    const items: CreateOrderRequest["items"] = this.basket
+      .items()
+      .map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+        expectedUnitPrice: item.price,
+      }));
+    if (paymentMethod === "CARD") {
+      const snapshot = items.map(({ productId, quantity }) => ({
+        productId,
+        quantity,
+      }));
+      if (
+        checkout?.phase === "pending" &&
+        checkout.items.length > 0 &&
+        (checkout.items.length !== snapshot.length ||
+          !checkout.items.every((previous) =>
+            snapshot.some(
+              (item) =>
+                item.productId === previous.productId &&
+                item.quantity === previous.quantity,
+            ),
+          ))
+      ) {
+        this.orderError.set(this.i18n.t("livePaymentBasketChanged"));
+        return;
+      }
+      const pending: LiveCardCheckout = {
+        key,
+        reference: null,
+        items: checkout?.phase === "pending" ? checkout.items : snapshot,
+        phase: "pending",
+      };
+      if (!saveLiveCardCheckout(pending)) {
+        this.orderError.set(this.i18n.t("orderFailure"));
+        return;
+      }
+      this.liveCheckout.set(pending);
+      this.livePaymentState.set("PENDING");
     }
     this.submitting.set(true);
     this.api
       .submitOrder(
         {
           locale: this.i18n.locale(),
-          paymentMethod: this.paymentMethod(),
+          paymentMethod,
           customer: { name, email, phone, address },
-          items: this.basket.items().map((item) => ({
-            productId: item.id,
-            quantity: item.quantity,
-            expectedUnitPrice: item.price,
-          })),
+          items,
         },
-        this.idempotencyKey,
+        key,
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
           if (response?.kind === "CARD_PAYMENT_PENDING") {
+            const pending = this.liveCheckout();
             if (
+              !pending ||
+              pending.key !== key ||
+              !cardOrderReferencePattern.test(response.orderReference) ||
               response.paymentStatus !== "PENDING" ||
               !isSecureCheckoutUrl(response.checkoutUrl)
             ) {
@@ -309,15 +495,30 @@ export class BasketPage {
               this.submitting.set(false);
               return;
             }
+            const tracked = { ...pending, reference: response.orderReference };
+            if (!saveLiveCardCheckout(tracked)) {
+              this.orderError.set(this.i18n.t("orderFailure"));
+              this.submitting.set(false);
+              return;
+            }
+            this.liveCheckout.set(tracked);
             this.paymentPending.set(true);
             this.submitting.set(false);
             this.redirectToCheckout(response.checkoutUrl);
             return;
           }
-          if (response?.kind !== "COD_ACCEPTED" || response.accepted !== true) {
+          if (
+            paymentMethod !== "CASH_ON_DELIVERY" ||
+            response?.kind !== "COD_ACCEPTED" ||
+            response.accepted !== true
+          ) {
             this.orderError.set(this.i18n.t("orderFailure"));
             this.submitting.set(false);
             return;
+          }
+          if (checkout?.phase === "ready") {
+            finishRetriedCashCheckout(checkout);
+            this.liveCheckout.set(null);
           }
           this.basket.clear();
           this.clearIdempotencyKey();
@@ -339,7 +540,7 @@ export class BasketPage {
         error: (error: unknown) => {
           const isConflict =
             error instanceof HttpErrorResponse && error.status === 409;
-          if (isConflict) this.clearIdempotencyKey();
+          if (isConflict && !this.liveCheckout()) this.clearIdempotencyKey();
           const key = isConflict ? "orderConflict" : "orderFailure";
           this.orderError.set(this.i18n.t(key));
           this.submitting.set(false);
@@ -352,6 +553,7 @@ export class BasketPage {
       this.paymentMethod.set("CARD");
       return;
     }
+    if (this.liveCheckout()?.phase === "pending") return;
     if (value === "CARD" && this.cardPaymentsEnabled()) {
       this.paymentMethod.set("CARD");
       savePaymentMethod("CARD");
@@ -678,8 +880,6 @@ function isSandboxCheckoutUrl(value: string, locale: string): boolean {
 }
 
 const CUSTOMER_DRAFT_KEY = "athlon_checkout_customer_v1";
-const IDEMPOTENCY_KEY = "athlon_checkout_idempotency_v1";
-const PAYMENT_METHOD_KEY = "athlon_checkout_payment_method_v1";
 
 function loadCustomerDraft() {
   const empty = { name: "", email: "", phone: "", address: "" };
@@ -726,7 +926,7 @@ function clearCustomerDraft(): void {
 function loadPaymentMethod(): "CARD" | "CASH_ON_DELIVERY" {
   if (typeof window === "undefined") return "CASH_ON_DELIVERY";
   try {
-    return window.sessionStorage.getItem(PAYMENT_METHOD_KEY) === "CARD"
+    return window.sessionStorage.getItem(CHECKOUT_PAYMENT_METHOD_KEY) === "CARD"
       ? "CARD"
       : "CASH_ON_DELIVERY";
   } catch {
@@ -737,7 +937,7 @@ function loadPaymentMethod(): "CARD" | "CASH_ON_DELIVERY" {
 function savePaymentMethod(value: "CARD" | "CASH_ON_DELIVERY"): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(PAYMENT_METHOD_KEY, value);
+    window.sessionStorage.setItem(CHECKOUT_PAYMENT_METHOD_KEY, value);
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }
@@ -746,7 +946,7 @@ function savePaymentMethod(value: "CARD" | "CASH_ON_DELIVERY"): void {
 function clearPaymentMethodDraft(): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.removeItem(PAYMENT_METHOD_KEY);
+    window.sessionStorage.removeItem(CHECKOUT_PAYMENT_METHOD_KEY);
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }
@@ -755,7 +955,7 @@ function clearPaymentMethodDraft(): void {
 function loadIdempotencyKey(): string {
   if (typeof window === "undefined") return "";
   try {
-    const value = window.sessionStorage.getItem(IDEMPOTENCY_KEY) ?? "";
+    const value = window.sessionStorage.getItem(CHECKOUT_IDEMPOTENCY_KEY) ?? "";
     return /^[A-Za-z0-9._:-]{8,120}$/.test(value) ? value : "";
   } catch {
     return "";
@@ -765,7 +965,7 @@ function loadIdempotencyKey(): string {
 function saveIdempotencyKey(value: string): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(IDEMPOTENCY_KEY, value);
+    window.sessionStorage.setItem(CHECKOUT_IDEMPOTENCY_KEY, value);
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }
@@ -774,7 +974,7 @@ function saveIdempotencyKey(value: string): void {
 function clearStoredIdempotencyKey(): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.removeItem(IDEMPOTENCY_KEY);
+    window.sessionStorage.removeItem(CHECKOUT_IDEMPOTENCY_KEY);
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }

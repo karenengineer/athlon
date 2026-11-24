@@ -98,6 +98,32 @@ describe("PaymentStatusPage", () => {
     expect(TestBed.inject(BasketService).totalQuantity()).toBe(0);
   });
 
+  it("forgets the tracked card checkout once its payment is confirmed", () => {
+    sessionStorage.setItem(
+      "athlon_live_card_checkout_v1",
+      JSON.stringify({
+        key: "live-key-0001",
+        reference,
+        items: [{ productId: "p1", quantity: 1 }],
+        phase: "pending",
+      }),
+    );
+    sessionStorage.setItem("athlon_checkout_idempotency_v1", "live-key-0001");
+    vi.useFakeTimers();
+    const fixture = setup();
+    vi.advanceTimersByTime(0);
+    http
+      .expectOne((req) => req.url.endsWith(statusUrl))
+      .flush({
+        orderReference: reference,
+        paymentStatus: "PAID",
+        locale: "EN",
+      });
+    fixture.detectChanges();
+    expect(sessionStorage.getItem("athlon_live_card_checkout_v1")).toBeNull();
+    expect(sessionStorage.getItem("athlon_checkout_idempotency_v1")).toBeNull();
+  });
+
   it("keeps the basket and offers a retry when the payment failed", () => {
     vi.useFakeTimers();
     const fixture = setup();

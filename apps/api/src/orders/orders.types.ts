@@ -59,6 +59,8 @@ export interface VerifiedPaymentStatus {
   orderReference: string;
   paymentStatus: CardPaymentStatus;
   locale: "HY" | "RU" | "EN";
+  /** Set only after a fresh bank response confirms a terminal unpaid attempt. */
+  retryAllowed?: true;
   /** Set only on the call that moved the order to PAID. Never sent to clients. */
   newlyPaidOrderId?: string;
 }

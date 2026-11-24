@@ -503,6 +503,9 @@ describe("BasketPage", () => {
       request.url.endsWith("/public/orders"),
     );
     expect(req.request.body.paymentMethod).toBe("CARD");
+    expect(sessionStorage.getItem("athlon_live_card_checkout_v1")).toContain(
+      req.request.headers.get("Idempotency-Key"),
+    );
     req.flush({
       kind: "CARD_PAYMENT_PENDING",
       accepted: true,
@@ -516,9 +519,55 @@ describe("BasketPage", () => {
       "https://bank.example.test/checkout/1",
     );
     expect(basket.items()).toHaveLength(1);
+    expect(sessionStorage.getItem("athlon_live_card_checkout_v1")).toContain(
+      "ATH-1234ABCD1234ABCD1234ABCD1234ABCD",
+    );
+  });
+
+  it("keeps an unresolved payment locked on Back until the bank verifies the attempt ended unpaid", () => {
+    const reference = "ATH-1234ABCD1234ABCD1234ABCD1234ABCD";
+    sessionStorage.setItem("athlon_checkout_payment_method_v1", "CARD");
+    sessionStorage.setItem(
+      "athlon_checkout_idempotency_v1",
+      "ab00beef-0000-4000-8a00-ab00beef0000",
+    );
+    const { fixture } = createBasketFixture(true);
+    fixture.componentInstance.i18n.setLocale("en");
+    fixture.detectChanges();
+    const page = fixture.nativeElement as HTMLElement;
+    const check = () =>
+      page.querySelector<HTMLButtonElement>("#live-payment-check")!;
+    expect(check().textContent).toContain("Check payment status");
     expect(
-      fixture.nativeElement.querySelector('[role="status"]').textContent,
-    ).toContain("Opening the bank’s secure payment page");
+      page.querySelector<HTMLButtonElement>(".order-button")!.disabled,
+    ).toBe(true);
+    check().click();
+    const lookup = http.expectOne("/api/v1/public/orders/checkout-status");
+    expect(lookup.request.headers.get("Idempotency-Key")).toBe(
+      "ab00beef-0000-4000-8a00-ab00beef0000",
+    );
+    lookup.flush({
+      orderReference: reference,
+      paymentStatus: "EXPIRED",
+      locale: "EN",
+    });
+    fixture.detectChanges();
+    expect(page.querySelector("#live-payment-retry")).toBeNull();
+    expect(
+      page.querySelector<HTMLButtonElement>(".order-button")!.disabled,
+    ).toBe(true);
+    check().click();
+    http.expectOne(`/api/v1/public/orders/${reference}/payment-status`).flush({
+      orderReference: reference,
+      paymentStatus: "FAILED",
+      locale: "EN",
+      retryAllowed: true,
+    });
+    fixture.detectChanges();
+    expect(page.querySelector("#live-payment-retry")?.textContent).toContain(
+      "Try again",
+    );
+    http.expectNone((request) => request.method === "POST");
   });
 
   it("does not submit a form with blank required fields", () => {
@@ -821,6 +870,12 @@ describe("BasketPage", () => {
     const recreated = TestBed.createComponent(BasketPage);
     recreated.detectChanges();
     flushSettings(true);
+    recreated.detectChanges();
+    // The unresolved card checkout is checked with the server first; checkout
+    // unlocks only after it confirms no order exists for the saved key.
+    const lookup = http.expectOne("/api/v1/public/orders/checkout-status");
+    expect(lookup.request.headers.get("Idempotency-Key")).toBe(key);
+    lookup.flush({ paymentStatus: "NOT_FOUND" });
     recreated.detectChanges();
     const recreatedForm = recreated.nativeElement.querySelector(
       "form",
