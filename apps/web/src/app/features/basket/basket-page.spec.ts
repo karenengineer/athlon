@@ -524,50 +524,84 @@ describe("BasketPage", () => {
     );
   });
 
-  it("keeps an unresolved payment locked on Back until the bank verifies the attempt ended unpaid", () => {
-    const reference = "ATH-1234ABCD1234ABCD1234ABCD1234ABCD";
+  it("drops an unfinished card payment on Back and unlocks checkout with a new key", () => {
     sessionStorage.setItem("athlon_checkout_payment_method_v1", "CARD");
     sessionStorage.setItem(
       "athlon_checkout_idempotency_v1",
       "ab00beef-0000-4000-8a00-ab00beef0000",
     );
-    const { fixture } = createBasketFixture(true);
+    const { fixture, basket } = createBasketFixture(true);
+    const navigate = vi.spyOn(TestBed.inject(Router), "navigate");
     fixture.componentInstance.i18n.setLocale("en");
     fixture.detectChanges();
     const page = fixture.nativeElement as HTMLElement;
-    const check = () =>
-      page.querySelector<HTMLButtonElement>("#live-payment-check")!;
-    expect(check().textContent).toContain("Check payment status");
+
+    expect(page.querySelector("#live-payment-check")).toBeNull();
     expect(
       page.querySelector<HTMLButtonElement>(".order-button")!.disabled,
-    ).toBe(true);
-    check().click();
+    ).toBe(false);
+    expect(sessionStorage.getItem("athlon_checkout_idempotency_v1")).toBeNull();
+    expect(sessionStorage.getItem("athlon_live_card_checkout_v1")).toBeNull();
+    expect(basket.items()).toHaveLength(1);
+
+    // A quiet background check only matters if that attempt was in fact paid.
     const lookup = http.expectOne("/api/v1/public/orders/checkout-status");
     expect(lookup.request.headers.get("Idempotency-Key")).toBe(
       "ab00beef-0000-4000-8a00-ab00beef0000",
     );
     lookup.flush({
-      orderReference: reference,
-      paymentStatus: "EXPIRED",
+      orderReference: "ATH-1234ABCD1234ABCD1234ABCD1234ABCD",
+      paymentStatus: "PENDING",
       locale: "EN",
     });
     fixture.detectChanges();
-    expect(page.querySelector("#live-payment-retry")).toBeNull();
-    expect(
-      page.querySelector<HTMLButtonElement>(".order-button")!.disabled,
-    ).toBe(true);
-    check().click();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(page.querySelector("#live-payment-check")).toBeNull();
+
+    const form = page.querySelector("form") as HTMLFormElement;
+    fillOrderForm(form, {
+      customerName: "Ani",
+      customerEmail: "ani@example.com",
+      customerPhone: "+374 91 123456",
+      deliveryAddress: "Yerevan",
+    });
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+    const order = http.expectOne((request) =>
+      request.url.endsWith("/public/orders"),
+    );
+    expect(order.request.body.paymentMethod).toBe("CARD");
+    expect(order.request.headers.get("Idempotency-Key")).not.toBe(
+      "ab00beef-0000-4000-8a00-ab00beef0000",
+    );
+    order.flush({}, { status: 503, statusText: "Unavailable" });
+  });
+
+  it("shows the success page when the dropped attempt was in fact paid", () => {
+    const reference = "ATH-1234ABCD1234ABCD1234ABCD1234ABCD";
+    sessionStorage.setItem(
+      "athlon_live_card_checkout_v1",
+      JSON.stringify({
+        key: "ab00beef-0000-4000-8a00-ab00beef0000",
+        reference,
+        items: [],
+        phase: "pending",
+      }),
+    );
+    const { fixture } = createBasketFixture(true);
+    const navigate = vi
+      .spyOn(TestBed.inject(Router), "navigate")
+      .mockResolvedValue(true);
+    fixture.componentInstance.i18n.setLocale("en");
+    fixture.detectChanges();
+
     http.expectOne(`/api/v1/public/orders/${reference}/payment-status`).flush({
       orderReference: reference,
-      paymentStatus: "FAILED",
+      paymentStatus: "PAID",
       locale: "EN",
-      retryAllowed: true,
     });
-    fixture.detectChanges();
-    expect(page.querySelector("#live-payment-retry")?.textContent).toContain(
-      "Try again",
-    );
-    http.expectNone((request) => request.method === "POST");
+    expect(navigate).toHaveBeenCalledWith(["/", "en", "payment", reference]);
   });
 
   it("does not submit a form with blank required fields", () => {
@@ -843,7 +877,7 @@ describe("BasketPage", () => {
     retry.flush({}, { status: 503, statusText: "Unavailable" });
   });
 
-  it("restores the selected card method and request key after page recreation", () => {
+  it("restores the selected card method with a fresh request key after page recreation", () => {
     const { fixture } = createBasketFixture(true);
     const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
     const cardRadio = form.querySelector<HTMLInputElement>(
@@ -871,8 +905,8 @@ describe("BasketPage", () => {
     recreated.detectChanges();
     flushSettings(true);
     recreated.detectChanges();
-    // The unresolved card checkout is checked with the server first; checkout
-    // unlocks only after it confirms no order exists for the saved key.
+    // The unfinished card checkout is dropped; a quiet lookup only redirects
+    // if it was paid, and the next card order uses a new key.
     const lookup = http.expectOne("/api/v1/public/orders/checkout-status");
     expect(lookup.request.headers.get("Idempotency-Key")).toBe(key);
     lookup.flush({ paymentStatus: "NOT_FOUND" });
@@ -892,7 +926,7 @@ describe("BasketPage", () => {
       request.url.endsWith("/public/orders"),
     );
 
-    expect(retry.request.headers.get("Idempotency-Key")).toBe(key);
+    expect(retry.request.headers.get("Idempotency-Key")).not.toBe(key);
     expect(retry.request.body.paymentMethod).toBe("CARD");
     retry.flush({}, { status: 503, statusText: "Unavailable" });
   });
