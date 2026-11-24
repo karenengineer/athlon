@@ -7,7 +7,7 @@ import {
   Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import { createHash, randomInt, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Prisma } from "../generated/prisma/client";
 import { parseLocale, selectTranslation } from "../common/localization/locale";
 import { PrismaService } from "../database/prisma.service";
@@ -17,6 +17,7 @@ import { OrderPersistenceService } from "./order-persistence.service";
 import { OrderTelegramService } from "./order-telegram.service";
 import {
   CardPaymentInitializer,
+  OrderEmailMessage,
   OrderPaymentChoice,
   OrderSubmissionResult,
 } from "./orders.types";
@@ -161,7 +162,7 @@ export class OrdersService {
         ? {
             provider: "AMERIABANK" as const,
             status: "PENDING" as const,
-            ameriaOrderId: createAmeriaOrderId(),
+            ameriaOrderId: await this.persistence.nextAmeriaOrderId(),
             requestIdempotencyKey: idempotencyKey,
             expectedAmount: total.toString(),
             currency: "AMD",
@@ -254,7 +255,59 @@ export class OrdersService {
         "Ameriabank payment verification is not configured",
       );
     }
-    return this.paymentInitializer.verifyAndApplyStatus(orderReference);
+    const verified =
+      await this.paymentInitializer.verifyAndApplyStatus(orderReference);
+    if (verified.newlyPaidOrderId) {
+      await this.dispatchPaymentConfirmed(verified.newlyPaidOrderId);
+    }
+    return {
+      orderReference: verified.orderReference,
+      paymentStatus: verified.paymentStatus,
+      locale: verified.locale,
+    };
+  }
+
+  /**
+   * Verify card orders whose shopper never came back from the bank page, so a
+   * paid order is never left PAYMENT_PENDING. Errors are per-order and quiet.
+   */
+  async reconcilePendingCardPayments(now = new Date()): Promise<number> {
+    if (!this.paymentInitializer?.isEnabled) return 0;
+    const pending = await this.persistence.findPendingCardOrderReferences({
+      createdBefore: new Date(now.getTime() - 2 * 60_000),
+      createdAfter: new Date(now.getTime() - 72 * 60 * 60_000),
+      limit: 25,
+    });
+    let checked = 0;
+    for (const { reference } of pending) {
+      try {
+        await this.paymentStatus(reference);
+        checked += 1;
+      } catch {
+        this.logger.warn("Could not reconcile a pending card payment");
+      }
+    }
+    return checked;
+  }
+
+  /** Runs once, on the request that moved the order to PAID. */
+  private async dispatchPaymentConfirmed(orderId: string): Promise<void> {
+    try {
+      const order = await this.persistence.findOrderWithNotifications(orderId);
+      if (!order) return;
+      const notifications = order.notifications.filter(
+        (notification) => notification.eventType === "PAYMENT_CONFIRMED",
+      );
+      await this.dispatchOrderNotifications(
+        { id: order.id, notifications },
+        { ...orderEmailMessage(order), paidByCard: true },
+        true,
+        "PAYMENT_CONFIRMED",
+      );
+    } catch {
+      // The payment is recorded; failed intents stay FAILED/PENDING for ops.
+      this.logger.warn("Could not deliver payment confirmation notifications");
+    }
   }
 
   private recoverCardCheckout(order: {
@@ -291,8 +344,9 @@ export class OrdersService {
 
   private async dispatchOrderNotifications(
     order: { id: string; notifications?: NotificationState[] },
-    message: ReturnType<typeof orderEmailMessage>,
+    message: OrderEmailMessage,
     createTelegramIntent = false,
+    eventType: "ORDER_ACCEPTED" | "PAYMENT_CONFIRMED" = "ORDER_ACCEPTED",
   ): Promise<void> {
     const notifications = order.notifications ?? [];
     const telegramDelivery = this.dispatchTelegramNotification(
@@ -302,6 +356,7 @@ export class OrdersService {
       ),
       message,
       createTelegramIntent,
+      eventType,
     );
     try {
       await this.dispatchOrderEmails(notifications, message);
@@ -312,7 +367,7 @@ export class OrdersService {
 
   private async dispatchOrderEmails(
     notifications: NotificationState[],
-    message: ReturnType<typeof orderEmailMessage>,
+    message: OrderEmailMessage,
   ): Promise<void> {
     for (const notification of notifications) {
       if (
@@ -344,8 +399,9 @@ export class OrdersService {
   private async dispatchTelegramNotification(
     orderId: string,
     notification: NotificationState | undefined,
-    message: ReturnType<typeof orderEmailMessage>,
+    message: OrderEmailMessage,
     createIntent: boolean,
+    eventType: "ORDER_ACCEPTED" | "PAYMENT_CONFIRMED",
   ): Promise<void> {
     try {
       if (!this.telegram?.isEnabled || notification?.status === "SENT") return;
@@ -354,7 +410,10 @@ export class OrdersService {
       const intent =
         notification ??
         (createIntent
-          ? await this.persistence.createMerchantTelegramNotification(orderId)
+          ? await this.persistence.createMerchantTelegramNotification(
+              orderId,
+              eventType,
+            )
           : undefined);
       if (!intent) return;
 
@@ -388,7 +447,7 @@ function orderEmailMessage(order: {
     unitPrice: { toString(): string } | string | null;
     lineTotal: { toString(): string } | string | null;
   }>;
-}) {
+}): OrderEmailMessage {
   return {
     orderReference: order.reference,
     locale: order.locale.toLowerCase() as "hy" | "ru" | "en",
@@ -407,10 +466,6 @@ function orderEmailMessage(order: {
     })),
     total: order.total?.toString() ?? null,
   };
-}
-
-function createAmeriaOrderId(): string {
-  return `${Date.now()}${randomInt(0, 1_000_000).toString().padStart(6, "0")}`;
 }
 
 function createOrderRequestFingerprint(input: CreateOrderDto): string {

@@ -15,6 +15,8 @@ export interface OrderEmailMessage {
   customer: { name: string; email: string; phone: string; address: string };
   items: OrderEmailItem[];
   total: string | null;
+  /** True only after the bank has confirmed the card payment server-side. */
+  paidByCard?: boolean;
 }
 
 export interface CardPaymentInitialization {
@@ -33,11 +35,7 @@ export interface CardPaymentInitializer {
     total: { toString(): string } | null;
     paymentAttempts: Array<{ id: string; ameriaOrderId: string }>;
   }): Promise<CardPaymentInitialization>;
-  verifyAndApplyStatus(orderReference: string): Promise<{
-    orderReference: string;
-    paymentStatus: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "EXPIRED";
-    locale: "HY" | "RU" | "EN";
-  }>;
+  verifyAndApplyStatus(orderReference: string): Promise<VerifiedPaymentStatus>;
 }
 
 export type OrderSubmissionResult =
@@ -49,3 +47,18 @@ export type OrderSubmissionResult =
       paymentStatus: "PENDING";
       checkoutUrl: string;
     };
+
+export type CardPaymentStatus =
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+export interface VerifiedPaymentStatus {
+  orderReference: string;
+  paymentStatus: CardPaymentStatus;
+  locale: "HY" | "RU" | "EN";
+  /** Set only on the call that moved the order to PAID. Never sent to clients. */
+  newlyPaidOrderId?: string;
+}

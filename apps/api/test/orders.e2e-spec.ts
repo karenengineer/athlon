@@ -208,6 +208,7 @@ describe("Public orders", () => {
 
     expect(persistence.createMerchantTelegramNotification).toHaveBeenCalledWith(
       "order-test-id",
+      "ORDER_ACCEPTED",
     );
     expect(persistence.markNotificationSent).toHaveBeenCalledWith(
       "e2e-telegram-notification",

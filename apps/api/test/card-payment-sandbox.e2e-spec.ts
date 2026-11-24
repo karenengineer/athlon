@@ -12,7 +12,6 @@ import {
   Prisma,
 } from "../src/generated/prisma/client";
 import { AmeriaSandboxClient } from "../src/orders/ameria-sandbox.client";
-import { AMERIA_PAYMENT_FLOW_READY } from "../src/orders/ameria-vpos.client";
 
 const base = "/api/v1/public/card-payment-test";
 const origin = "https://athlon.am";
@@ -219,7 +218,6 @@ describe("Guest Ameria sandbox HTTP flow (bank mocked)", () => {
     expect(verified.body.status).toBe("SUCCEEDED");
     expect(bank.details).toHaveBeenCalledWith("fixture-bank-payment");
     expect(orderCreate).not.toHaveBeenCalled();
-    expect(AMERIA_PAYMENT_FLOW_READY).toBe(false);
     await request(app.getHttpServer())
       .post("/api/v1/public/orders")
       .set("Idempotency-Key", "isolated-normal-card-disabled")

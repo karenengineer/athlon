@@ -15,6 +15,7 @@ import { AmeriaSandboxClient } from "./ameria-sandbox.client";
 import { CardPaymentSandboxService } from "./card-payment-sandbox.service";
 import { AdminSandboxPaymentsController } from "./admin-sandbox-payments.controller";
 import { AdminSandboxPaymentsService } from "./admin-sandbox-payments.service";
+import { CardPaymentReconcilerService } from "./card-payment-reconciler.service";
 
 @Module({
   controllers: [
@@ -35,6 +36,7 @@ import { AdminSandboxPaymentsService } from "./admin-sandbox-payments.service";
     OrderTelegramService,
     AmeriaVposClient,
     AmeriaPaymentsService,
+    CardPaymentReconcilerService,
     {
       provide: CARD_PAYMENT_INITIALIZER,
       useExisting: AmeriaPaymentsService,

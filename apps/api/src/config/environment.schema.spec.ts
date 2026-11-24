@@ -168,8 +168,21 @@ describe("environmentSchema", () => {
       AMERIA_MERCHANT_ID: "merchant-test-id",
       AMERIA_USERNAME: "test-username",
       AMERIA_PASSWORD: "test-password",
+      AMERIA_RETURN_ORIGIN: "https://athlon.am",
     });
     expect(configured.error).toBeUndefined();
+
+    const withoutReturnOrigin = environmentSchema.validate({
+      ...configured.value,
+      AMERIA_RETURN_ORIGIN: undefined,
+    });
+    expect(withoutReturnOrigin.error).toBeDefined();
+
+    const foreignReturnOrigin = environmentSchema.validate({
+      ...configured.value,
+      AMERIA_RETURN_ORIGIN: "https://athlon.am.evil.example",
+    });
+    expect(foreignReturnOrigin.error).toBeDefined();
   });
 
   it("rejects non-HTTPS or credential-bearing Ameria endpoints", () => {

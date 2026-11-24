@@ -86,6 +86,7 @@ describe("OrdersService", () => {
     recordNotificationAttempt,
     markNotificationSent,
     markNotificationFailed,
+    nextAmeriaOrderId: jest.fn(() => Promise.resolve("410000001")),
   } as unknown as OrderPersistenceService;
   const paymentInitializer = {
     initialize: initializePayment,
@@ -429,6 +430,7 @@ describe("OrdersService", () => {
     });
     expect(createMerchantTelegramNotification).toHaveBeenCalledWith(
       persistedOrder.id,
+      "ORDER_ACCEPTED",
     );
     expect(sendTelegram).toHaveBeenCalledWith(
       expect.objectContaining({

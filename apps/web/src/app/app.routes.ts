@@ -101,6 +101,13 @@ export const routes: Routes = [
             (module) => module.BasketPage,
           ),
       },
+      {
+        path: "payment/:reference",
+        loadComponent: () =>
+          import("./features/payment/payment-status-page").then(
+            (module) => module.PaymentStatusPage,
+          ),
+      },
       ...informationPageIds.map((page) => ({
         path: page,
         data: { informationPage: page },
