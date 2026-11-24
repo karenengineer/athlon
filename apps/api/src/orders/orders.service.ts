@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
@@ -23,6 +24,7 @@ import {
 } from "./orders.types";
 
 export const CARD_PAYMENT_INITIALIZER = Symbol("CARD_PAYMENT_INITIALIZER");
+const idempotencyKeyPattern = /^[A-Za-z0-9._:-]{8,120}$/;
 
 interface NotificationState {
   id: string;
@@ -49,7 +51,7 @@ export class OrdersService {
     input: CreateOrderDto,
     idempotencyKey: string,
   ): Promise<OrderSubmissionResult> {
-    if (!/^[A-Za-z0-9._:-]{8,120}$/.test(idempotencyKey)) {
+    if (!idempotencyKeyPattern.test(idempotencyKey)) {
       throw new BadRequestException(
         "A valid Idempotency-Key header is required",
       );
@@ -250,6 +252,21 @@ export class OrdersService {
     }
   }
 
+  async checkoutStatus(idempotencyKey: string) {
+    if (!idempotencyKeyPattern.test(idempotencyKey)) {
+      throw new BadRequestException(
+        "A valid Idempotency-Key header is required",
+      );
+    }
+    const checkout =
+      await this.persistence.findCheckoutByIdempotencyKey(idempotencyKey);
+    if (!checkout) return { paymentStatus: "NOT_FOUND" as const };
+    if (checkout.paymentMethod !== "CARD") {
+      throw new NotFoundException("Order not found");
+    }
+    return this.paymentStatus(checkout.reference);
+  }
+
   async paymentStatus(orderReference: string) {
     if (!/^ATH-[A-F0-9]{32}$/.test(orderReference)) {
       throw new BadRequestException("Invalid order reference");
@@ -268,6 +285,7 @@ export class OrdersService {
       orderReference: verified.orderReference,
       paymentStatus: verified.paymentStatus,
       locale: verified.locale,
+      ...(verified.retryAllowed ? { retryAllowed: true as const } : {}),
     };
   }
 

@@ -28,6 +28,14 @@ export class OrdersController {
     return this.orders.submit(input, idempotencyKey ?? "");
   }
 
+  @Get("checkout-status")
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Header("Cache-Control", "no-store")
+  checkoutStatus(@Headers("idempotency-key") idempotencyKey?: string) {
+    return this.orders.checkoutStatus(idempotencyKey ?? "");
+  }
+
   @Get(":reference/payment-status")
   @UseGuards(ThrottlerGuard)
   // The bank return page polls every 4 s for about two minutes.
