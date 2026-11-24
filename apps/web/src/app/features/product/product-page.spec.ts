@@ -232,12 +232,46 @@ describe("ProductPage basket availability", () => {
     page.product.set(product);
     page.state.set("ready");
     fixture.detectChanges();
-    const button = fixture.nativeElement.querySelector(
-      ".basket-cta",
-    ) as HTMLButtonElement;
+    const root = fixture.nativeElement as HTMLElement;
+    const button = root.querySelector(".basket-cta") as HTMLButtonElement;
     expect(button.disabled).toBe(false);
     button.click();
-    button.click();
-    expect(TestBed.inject(BasketService).totalQuantity()).toBe(2);
+    fixture.detectChanges();
+    const basket = TestBed.inject(BasketService);
+    expect(basket.totalQuantity()).toBe(1);
+
+    // Once in the basket the button becomes a − [qty] + stepper.
+    expect(root.querySelector(".basket-cta")).toBeNull();
+    const input = root.querySelector<HTMLInputElement>(
+      "[data-testid='product-quantity-input']",
+    )!;
+    expect(input.value).toBe("1");
+    root
+      .querySelector<HTMLButtonElement>("[data-testid='product-increment']")!
+      .click();
+    fixture.detectChanges();
+    expect(basket.totalQuantity()).toBe(2);
+    expect(input.value).toBe("2");
+
+    input.value = "5";
+    input.dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    expect(basket.totalQuantity()).toBe(5);
+
+    input.value = "abc";
+    input.dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    expect(basket.totalQuantity()).toBe(5);
+    expect(input.value).toBe("5");
+
+    input.value = "1";
+    input.dispatchEvent(new Event("change"));
+    fixture.detectChanges();
+    root
+      .querySelector<HTMLButtonElement>("[data-testid='product-decrement']")!
+      .click();
+    fixture.detectChanges();
+    expect(basket.totalQuantity()).toBe(0);
+    expect(root.querySelector(".basket-cta")).not.toBeNull();
   });
 });

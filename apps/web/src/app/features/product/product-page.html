@@ -62,11 +62,45 @@
         } @else { <strong>{{ i18n.t("contactPrice") }}</strong> }
         <span>{{ availabilityLabel() }}</span>
       </div>
-      @if (isBasketEligible(item)) {
+      @if (isBasketEligible(item)) { @if (quantityInBasket() > 0) {
+      <div class="basket-stepper" data-testid="product-quantity">
+        <button
+          type="button"
+          class="stepper-button"
+          data-testid="product-decrement"
+          [attr.aria-label]="i18n.t('quantity') + ' −1'"
+          (click)="changeQuantity(quantityInBasket() - 1)"
+        >
+          −
+        </button>
+        <input
+          id="product-quantity-input"
+          class="stepper-input"
+          data-testid="product-quantity-input"
+          type="number"
+          inputmode="numeric"
+          min="0"
+          max="99"
+          [attr.aria-label]="i18n.t('quantity')"
+          [value]="quantityInBasket()"
+          (change)="setQuantityFromInput($event)"
+          (keydown.enter)="setQuantityFromInput($event)"
+        />
+        <button
+          type="button"
+          class="stepper-button"
+          data-testid="product-increment"
+          [attr.aria-label]="i18n.t('quantity') + ' +1'"
+          (click)="changeQuantity(quantityInBasket() + 1)"
+        >
+          +
+        </button>
+      </div>
+      } @else {
       <button type="button" class="basket-cta" (click)="addToBasket()">
-        {{ inBasket() ? i18n.t("inBasket") : i18n.t("addToBasket") }}
+        {{ i18n.t("addToBasket") }}
       </button>
-      } @else if (item.category.slug === resistanceBandsCategory) {
+      } } @else if (item.category.slug === resistanceBandsCategory) {
       <a
         class="instagram-order-cta"
         data-testid="band-instagram-order"
