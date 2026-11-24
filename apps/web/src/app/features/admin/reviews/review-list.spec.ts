@@ -18,6 +18,7 @@ const page = (status: "PENDING" | "APPROVED"): AdminReviewList => ({
       status,
       moderatedAt: null,
       createdAt: "2026-11-20T10:00:00.000Z",
+      orderReference: "ATH-0001",
       product: { slug: "whey", name: "Շիճուկ" },
     },
   ],

@@ -102,6 +102,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "review/:token",
+        loadComponent: () =>
+          import("./features/review/review-invitation-page").then(
+            (module) => module.ReviewInvitationPage,
+          ),
+      },
+      {
         path: "payment/:reference",
         loadComponent: () =>
           import("./features/payment/payment-status-page").then(

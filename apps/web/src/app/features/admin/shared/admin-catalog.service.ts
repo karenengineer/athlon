@@ -16,6 +16,9 @@ import {
   AdminProductWrite,
   AdminImage,
   AdminImageInput,
+  AdminOrderFilter,
+  AdminOrderList,
+  AdminReviewEmailResult,
   AdminReviewList,
   AdminReviewStatus,
 } from "./admin-api.types";
@@ -46,6 +49,27 @@ export class AdminCatalogService {
   }
   deleteCategory(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/categories/${id}`);
+  }
+  listOrders(filter: AdminOrderFilter, page = 1): Observable<AdminOrderList> {
+    const params = new HttpParams().set("filter", filter).set("page", page);
+    return this.http.get<AdminOrderList>(`${this.base}/orders`, { params });
+  }
+  markOrderDelivered(id: string): Observable<{
+    deliveredAt: string;
+    reviewEmail: AdminReviewEmailResult | null;
+  }> {
+    return this.http.post<{
+      deliveredAt: string;
+      reviewEmail: AdminReviewEmailResult | null;
+    }>(`${this.base}/orders/${id}/delivered`, {});
+  }
+  resendReviewEmail(
+    id: string,
+  ): Observable<{ reviewEmail: AdminReviewEmailResult }> {
+    return this.http.post<{ reviewEmail: AdminReviewEmailResult }>(
+      `${this.base}/orders/${id}/review-email`,
+      {},
+    );
   }
   listReviews(
     status: AdminReviewStatus | "",

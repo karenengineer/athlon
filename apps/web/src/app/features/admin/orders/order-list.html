@@ -1,0 +1,125 @@
+<div class="heading">
+  <h1>{{ i18n.translate("orders") }}</h1>
+</div>
+<p>{{ i18n.translate("ordersHint") }}</p>
+<div class="filters" role="group" [attr.aria-label]="i18n.translate('orders')">
+  @for (option of filters; track option.key) {
+  <button
+    type="button"
+    [attr.aria-pressed]="filter() === option.filter"
+    (click)="setFilter(option.filter)"
+  >
+    {{ i18n.translate(option.key) }} @if (option.filter === "TO_DELIVER" &&
+    list()?.meta?.toDeliver) { ({{ list()!.meta.toDeliver }}) }
+  </button>
+  }
+</div>
+@if (failed()) {
+<p role="alert">
+  {{ i18n.translate("error") }}
+  <button type="button" (click)="load()">{{ i18n.translate("retry") }}</button>
+</p>
+} @if (loading() && !list()) {
+<p role="status">{{ i18n.translate("loading") }}</p>
+} @else if (list(); as result) { @if (result.items.length === 0) {
+<p>{{ i18n.translate("noOrders") }}</p>
+} @else {
+<ul class="orders">
+  @for (order of result.items; track order.id) {
+  <li class="order" data-testid="admin-order">
+    <div class="order-head">
+      <b>{{ order.reference }}</b>
+      <small
+        >{{ order.createdAt | date: "dd.MM.yyyy HH:mm" }} · {{
+        i18n.translate(order.paymentMethod === "CARD" ? "orderCard" :
+        "orderCash") }} · {{ order.status }}</small
+      >
+    </div>
+    <div class="order-body">
+      <div>
+        <small>{{ i18n.translate("orderCustomer") }}</small>
+        <p>
+          {{ order.customerName }}<br />
+          <a [href]="'tel:' + order.customerPhone">{{ order.customerPhone }}</a
+          ><br />
+          {{ order.customerEmail }}<br />
+          {{ order.deliveryAddress }}
+        </p>
+      </div>
+      <div>
+        <small>{{ i18n.translate("orderItems") }}</small>
+        <ul class="order-items">
+          @for (item of order.items; track $index) {
+          <li>{{ item.name }} × {{ item.quantity }}</li>
+          }
+        </ul>
+        @if (order.total !== null) {
+        <p>
+          <small>{{ i18n.translate("orderTotal") }}</small>
+          <b>{{ +order.total | number: "1.0-0" }} {{ order.currency }}</b>
+        </p>
+        }
+      </div>
+    </div>
+    <div class="order-actions">
+      @if (order.deliveredAt) {
+      <span class="delivered"
+        >✓ {{ i18n.translate("deliveredOn") }} {{ order.deliveredAt | date:
+        "dd.MM.yyyy" }}</span
+      >
+      @if (order.reviewEmailSentAt) {
+      <small
+        >{{ i18n.translate("reviewEmailSent") }}: {{ order.reviewEmailSentAt |
+        date: "dd.MM.yyyy HH:mm" }} · {{ i18n.translate("orderReviewsReceived")
+        }}: {{ order.reviewCount }}</small
+      >
+      }
+      <button
+        type="button"
+        data-resend
+        [disabled]="busy() === order.id"
+        (click)="resend(order)"
+      >
+        {{ i18n.translate("resendReviewEmail") }}
+      </button>
+      } @else if (order.canDeliver) {
+      <button
+        type="button"
+        class="primary"
+        data-deliver
+        [disabled]="busy() === order.id"
+        (click)="markDelivered(order)"
+      >
+        {{ i18n.translate("markDelivered") }}
+      </button>
+      } @if (noticeKey(order); as key) {
+      <p class="notice" [class.warn]="key !== 'reviewEmailSent'" role="status">
+        {{ i18n.translate(key) }}
+      </p>
+      }
+    </div>
+  </li>
+  }
+</ul>
+@if (result.meta.totalPages > 1) {
+<nav class="pagination" aria-label="Pagination">
+  <button
+    type="button"
+    [disabled]="result.meta.page <= 1"
+    (click)="goTo(result.meta.page - 1)"
+  >
+    {{ i18n.translate("previous") }}
+  </button>
+  <span
+    >{{ i18n.translate("page") }} {{ result.meta.page }} / {{
+    result.meta.totalPages }}</span
+  >
+  <button
+    type="button"
+    [disabled]="result.meta.page >= result.meta.totalPages"
+    (click)="goTo(result.meta.page + 1)"
+  >
+    {{ i18n.translate("next") }}
+  </button>
+</nav>
+} } }

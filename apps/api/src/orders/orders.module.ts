@@ -1,4 +1,7 @@
 import { Module } from "@nestjs/common";
+import { ReviewsModule } from "../reviews/reviews.module";
+import { AdminOrdersController } from "./admin-orders.controller";
+import { AdminOrdersService } from "./admin-orders.service";
 import { OrderEmailService } from "./order-email.service";
 import { OrderPersistenceService } from "./order-persistence.service";
 import { OrderTelegramService } from "./order-telegram.service";
@@ -18,12 +21,15 @@ import { AdminSandboxPaymentsService } from "./admin-sandbox-payments.service";
 import { CardPaymentReconcilerService } from "./card-payment-reconciler.service";
 
 @Module({
+  imports: [ReviewsModule],
   controllers: [
+    AdminOrdersController,
     OrdersController,
     CardPaymentTestController,
     AdminSandboxPaymentsController,
   ],
   providers: [
+    AdminOrdersService,
     OrdersService,
     CardPaymentTestService,
     CardPaymentTestGuestContextService,

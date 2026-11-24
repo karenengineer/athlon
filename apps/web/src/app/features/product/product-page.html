@@ -159,7 +159,7 @@
 </section>
 
 @if (state() === "ready" && product(); as item) {
-<app-product-reviews [slug]="item.slug" [reviews]="reviews()" />
+<app-product-reviews [reviews]="reviews()" />
 } @if (relatedProducts().length) {
 <section class="related page-width" data-testid="related-products">
   <header>

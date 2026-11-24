@@ -13,6 +13,16 @@ export const serverRoutes: ServerRoute[] = [
     headers: { "X-Robots-Tag": "noindex, nofollow" },
   },
   {
+    // Personal review link from the delivery email: never rendered on the
+    // server, cached or indexed.
+    path: ":locale/review/:token",
+    renderMode: RenderMode.Client,
+    headers: {
+      "X-Robots-Tag": "noindex, nofollow",
+      "Referrer-Policy": "no-referrer",
+    },
+  },
+  {
     path: "admin",
     renderMode: RenderMode.Client,
     headers: { "X-Robots-Tag": "noindex, nofollow" },

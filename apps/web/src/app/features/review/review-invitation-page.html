@@ -1,0 +1,91 @@
+<section class="review-invite page-width" aria-labelledby="review-invite-title">
+  <h1 id="review-invite-title">{{ copy().title }}</h1>
+  @switch (state()) { @case ("LOADING") {
+  <p role="status">{{ copy().loading }}</p>
+  } @case ("NOT_FOUND") {
+  <p class="message" role="alert">{{ copy().notFound }}</p>
+  } @case ("EXPIRED") {
+  <p class="message" role="alert">{{ copy().expired }}</p>
+  } @case ("ERROR") {
+  <p class="message" role="alert">{{ copy().error }}</p>
+  } @default {
+  <p class="intro">{{ copy().intro }}</p>
+  <label class="name-field" for="review-author">
+    <span>{{ copy().name }}</span>
+    <input
+      id="review-author"
+      autocomplete="given-name"
+      maxlength="80"
+      [value]="authorName()"
+      [attr.aria-invalid]="nameInvalid()"
+      (input)="authorName.set($any($event.target).value)"
+    />
+  </label>
+  @if (allDone()) {
+  <p class="notice" role="status">{{ copy().allDone }}</p>
+  }
+  <ul class="items">
+    @for (item of invitation()?.items ?? []; track item.productId) {
+    <li class="item" data-testid="review-item">
+      <div class="product">
+        @if (item.imageUrl) {
+        <img [src]="item.imageUrl" alt="" width="72" height="72" />
+        }
+        <h2>
+          @if (item.slug) {
+          <a [routerLink]="['/', i18n.locale(), 'product', item.slug]"
+            >{{ item.name }}</a
+          >
+          } @else { {{ item.name }} }
+        </h2>
+      </div>
+      @if (item.reviewed || form(item).state === "duplicate") {
+      <p class="done">✓ {{ copy().alreadyReviewed }}</p>
+      } @else if (form(item).state === "sent") {
+      <p class="notice" role="status">{{ copy().thanks }}</p>
+      } @else {
+      <form class="review-form" novalidate (submit)="submit(item, $event)">
+        <fieldset>
+          <legend>{{ copy().rating }}</legend>
+          <div class="rating-options">
+            @for (value of ratings; track value) {
+            <label>
+              <input
+                type="radio"
+                [name]="'rating-' + item.productId"
+                [value]="value"
+                [checked]="form(item).rating === value"
+                (change)="patch(item, { rating: value })"
+              />
+              <span aria-hidden="true">{{ starsText(value) }}</span>
+              <span class="visually-hidden">{{ copy().stars(value) }}</span>
+            </label>
+            }
+          </div>
+        </fieldset>
+        <label [for]="'review-body-' + item.productId">{{ copy().text }}</label>
+        <textarea
+          [id]="'review-body-' + item.productId"
+          rows="4"
+          maxlength="2000"
+          [value]="form(item).body"
+          [attr.aria-invalid]="form(item).touched && bodyInvalid(item)"
+          [attr.aria-describedby]="'review-hint-' + item.productId"
+          (input)="patch(item, { body: $any($event.target).value })"
+        ></textarea>
+        <small [id]="'review-hint-' + item.productId"
+          >{{ copy().textHint }}</small
+        >
+        @if (form(item).state === "error") {
+        <p class="error" role="alert">{{ copy().error }}</p>
+        }
+        <button type="submit" [disabled]="form(item).state === 'sending'">
+          {{ form(item).state === "sending" ? copy().sending : copy().submit }}
+        </button>
+      </form>
+      }
+    </li>
+    }
+  </ul>
+  } }
+</section>

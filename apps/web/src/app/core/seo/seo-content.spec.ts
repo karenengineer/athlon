@@ -28,6 +28,7 @@ const reviews: ProductReviews = {
     rating: 5,
     body: "Great",
     locale: "hy" as const,
+    verified: true,
     createdAt: "2026-11-20T10:00:00.000Z",
   })),
 };

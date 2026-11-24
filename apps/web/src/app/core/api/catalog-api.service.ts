@@ -8,14 +8,17 @@ import {
   CheckoutStatusResponse,
   CreateOrderRequest,
   CreateOrderResponse,
-  CreateReviewRequest,
+  InvitedReviewRequest,
   Product,
   ProductPageResponse,
   ProductQuery,
   ProductReviews,
   PaymentStatusResponse,
   PublicSettings,
+  ReviewInvitation,
 } from "./catalog.models";
+
+export const reviewTokenPattern = /^[A-Za-z0-9_-]{43}$/;
 
 @Injectable({ providedIn: "root" })
 export class CatalogApiService {
@@ -58,9 +61,28 @@ export class CatalogApiService {
     );
   }
 
-  submitReview(slug: string, review: CreateReviewRequest): Observable<unknown> {
+  reviewInvitation(
+    token: string,
+    locale: string,
+  ): Observable<ReviewInvitation> {
+    if (!reviewTokenPattern.test(token)) {
+      return throwError(() => new Error("Invalid review link"));
+    }
+    return this.http.get<ReviewInvitation>(
+      `${this.baseUrl}/public/review-invitations/${token}`,
+      { params: { locale }, transferCache: false },
+    );
+  }
+
+  submitInvitedReview(
+    token: string,
+    review: InvitedReviewRequest,
+  ): Observable<unknown> {
+    if (!reviewTokenPattern.test(token)) {
+      return throwError(() => new Error("Invalid review link"));
+    }
     return this.http.post(
-      `${this.baseUrl}/products/${encodeURIComponent(slug)}/reviews`,
+      `${this.baseUrl}/public/review-invitations/${token}/reviews`,
       review,
     );
   }

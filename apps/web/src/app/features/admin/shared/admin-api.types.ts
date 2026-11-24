@@ -129,6 +129,8 @@ export interface AdminReview {
   status: AdminReviewStatus;
   moderatedAt: string | null;
   createdAt: string;
+  /** Set for reviews written through a delivered order's review link. */
+  orderReference: string | null;
   product: { slug: string; name: string };
 }
 
@@ -140,5 +142,39 @@ export interface AdminReviewList {
     total: number;
     totalPages: number;
     pending: number;
+  };
+}
+
+export type AdminOrderFilter = "TO_DELIVER" | "DELIVERED" | "ALL";
+export type AdminReviewEmailResult = "SENT" | "FAILED" | "NO_PRODUCTS";
+
+export interface AdminOrder {
+  id: string;
+  reference: string;
+  createdAt: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  deliveryAddress: string;
+  paymentMethod: "CASH_ON_DELIVERY" | "CARD";
+  status: string;
+  total: string | null;
+  currency: string;
+  deliveredAt: string | null;
+  canDeliver: boolean;
+  reviewEmailSentAt: string | null;
+  reviewEmailCount: number;
+  reviewCount: number;
+  items: { name: string; sku: string; quantity: number }[];
+}
+
+export interface AdminOrderList {
+  items: AdminOrder[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    toDeliver: number;
   };
 }
