@@ -725,6 +725,9 @@ describe("ATHLON public application", () => {
       .expectOne((request) => request.url.endsWith("/public/settings"))
       .flush({ whatsapp: "+37499111222" });
     http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
+    http
       .expectOne(
         (request) =>
           request.url.endsWith("/products") &&
@@ -770,6 +773,9 @@ describe("ATHLON public application", () => {
       .expectOne((request) => request.url.endsWith("/public/settings"))
       .flush({});
     http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
+    http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({
         items: [],
@@ -790,6 +796,9 @@ describe("ATHLON public application", () => {
     http
       .expectOne((request) => request.url.endsWith("/public/settings"))
       .flush({});
+    http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
     http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({

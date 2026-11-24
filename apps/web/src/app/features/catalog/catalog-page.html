@@ -194,9 +194,9 @@
   } @if (relatedGuides().length) {
   <nav class="category-guides" [attr.aria-label]="guidesCopy().related">
     <h2>{{ guidesCopy().related }}</h2>
-    @for (guide of relatedGuides(); track guide[0]) {
-    <a [routerLink]="['/', i18n.locale(), 'guides', guide[0]]"
-      >{{ guide[1].copy[i18n.locale()].heading }}</a
+    @for (guide of relatedGuides(); track guide.slug) {
+    <a [routerLink]="['/', i18n.locale(), 'guides', guide.slug]"
+      >{{ guide.link.heading[i18n.locale()] }}</a
     >
     }
   </nav>

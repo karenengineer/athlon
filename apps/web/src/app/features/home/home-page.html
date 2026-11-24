@@ -10,7 +10,13 @@
     </div>
     <div class="hero-visual">
       <img
-        src="/brand/athlon-hero-wide.jpeg"
+        src="/brand/athlon-hero-1280.webp"
+        srcset="
+          /brand/athlon-hero-640.webp   640w,
+          /brand/athlon-hero-1280.webp 1280w
+        "
+        sizes="(max-width: 860px) 100vw, 50vw"
+        fetchpriority="high"
         width="1280"
         height="634"
         [alt]="i18n.t('heroImageAlt')"
@@ -123,6 +129,16 @@
     }
     <h3>{{ text.deliveryHeading }}</h3>
     <p>{{ text.delivery }}</p>
+    <h3>{{ guideLinks().heading }}</h3>
+    <ul data-testid="home-guides">
+      @for (guide of guideLinks().items; track guide.slug) {
+      <li>
+        <a [routerLink]="['/', i18n.locale(), 'guides', guide.slug]"
+          >{{ guide.heading }}</a
+        >
+      </li>
+      }
+    </ul>
   </div>
 </section>
 }

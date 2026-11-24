@@ -14,11 +14,17 @@ import {
   switchMap,
 } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
-import { Product, PublicSettings } from "../../core/api/catalog.models";
+import {
+  Product,
+  ProductReviews as ProductReviewsData,
+  PublicSettings,
+} from "../../core/api/catalog.models";
+import { ProductReviews } from "./product-reviews";
 import { BasketService } from "../../core/basket/basket.service";
-import { I18nService } from "../../core/i18n/i18n.service";
+import { I18nService, Locale } from "../../core/i18n/i18n.service";
 import { imageAlt } from "../../core/seo/image-alt";
 import { localizeCharacteristicValue } from "./characteristic-values";
+import { guidesForCategory } from "../guides/guide-index";
 import { StatusPanel } from "../../shared/status-panel/status-panel";
 import {
   createPageMetadata,
@@ -34,7 +40,13 @@ import {
 
 @Component({
   selector: "app-product-page",
-  imports: [CurrencyPipe, KeyValuePipe, RouterLink, StatusPanel],
+  imports: [
+    CurrencyPipe,
+    KeyValuePipe,
+    RouterLink,
+    StatusPanel,
+    ProductReviews,
+  ],
   templateUrl: "./product-page.html",
   styleUrl: "./product-page.scss",
 })
@@ -45,9 +57,20 @@ export class ProductPage {
   );
   readonly product = signal<Product | null>(null);
   readonly relatedProducts = signal<Product[]>([]);
+  readonly reviews = signal<ProductReviewsData | null>(null);
   readonly settings = signal<PublicSettings>({});
   readonly selectedImage = signal(0);
   readonly basket = inject(BasketService);
+
+  /** The guide for the product's category, linked from the product page. */
+  guideFor(
+    category: string | null | undefined,
+  ): { slug: string; heading: string } | null {
+    const [match] = guidesForCategory(category);
+    return match
+      ? { slug: match.slug, heading: match.link.heading[this.i18n.locale()] }
+      : null;
+  }
 
   altFor(alt: string | null | undefined, name: string): string {
     return imageAlt(alt, name, this.i18n.locale());
@@ -96,38 +119,13 @@ export class ProductPage {
     this.state.set("loading");
     this.selectedImage.set(0);
     this.relatedProducts.set([]);
+    this.reviews.set(null);
     this.loadSubscription = this.api
       .product(slug, locale)
       .pipe(
         switchMap((product) => {
           this.product.set(product);
-          this.metadata.set({
-            title: `${product.name} — ${seoCopy[currentLocale].armenia} | ATHLON`,
-            description: localProductDescription(product, currentLocale),
-            locale: currentLocale,
-            path: ["product", product.slug],
-            type: "product",
-            image:
-              product.images.find((image) => image.primary)?.detailUrl ??
-              product.images[0]?.detailUrl,
-            jsonLd: [
-              productSchema(product, currentLocale),
-              breadcrumbSchema([
-                {
-                  name: this.i18n.t("home"),
-                  url: publicPageUrl(currentLocale),
-                },
-                {
-                  name: this.i18n.t("catalog"),
-                  url: publicPageUrl(currentLocale, ["catalog"]),
-                },
-                {
-                  name: product.name,
-                  url: publicPageUrl(currentLocale, ["product", product.slug]),
-                },
-              ]),
-            ],
-          });
+          this.setProductMetadata(product, currentLocale, null);
           this.selectedImage.set(
             Math.max(
               0,
@@ -137,6 +135,9 @@ export class ProductPage {
           this.state.set("ready");
           return forkJoin({
             settings: this.api.settings().pipe(catchError(() => of({}))),
+            reviews: this.api
+              .reviews(product.slug)
+              .pipe(catchError(() => of(null))),
             related: this.api
               .products({
                 locale,
@@ -158,8 +159,12 @@ export class ProductPage {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: ({ settings, related }) => {
+        next: ({ settings, related, reviews }) => {
           this.settings.set(settings);
+          this.reviews.set(reviews);
+          const loaded = this.product();
+          if (loaded && reviews?.summary.count)
+            this.setProductMetadata(loaded, currentLocale, reviews);
           this.relatedProducts.set(
             related.items
               .filter((item) => item.id !== this.product()?.id)
@@ -180,6 +185,37 @@ export class ProductPage {
           this.state.set(missing ? "not-found" : "error");
         },
       });
+  }
+
+  private setProductMetadata(
+    product: Product,
+    locale: Locale,
+    reviews: ProductReviewsData | null,
+  ): void {
+    this.metadata.set({
+      title: `${product.name} — ${seoCopy[locale].armenia} | ATHLON`,
+      description: localProductDescription(product, locale),
+      locale,
+      path: ["product", product.slug],
+      type: "product",
+      image:
+        product.images.find((image) => image.primary)?.detailUrl ??
+        product.images[0]?.detailUrl,
+      jsonLd: [
+        productSchema(product, locale, reviews),
+        breadcrumbSchema([
+          { name: this.i18n.t("home"), url: publicPageUrl(locale) },
+          {
+            name: this.i18n.t("catalog"),
+            url: publicPageUrl(locale, ["catalog"]),
+          },
+          {
+            name: product.name,
+            url: publicPageUrl(locale, ["product", product.slug]),
+          },
+        ]),
+      ],
+    });
   }
 
   image(): string {

@@ -7,6 +7,7 @@ import { HealthModule } from "./health/health.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { BrandsModule } from "./brands/brands.module";
 import { ProductsModule } from "./products/products.module";
+import { ReviewsModule } from "./reviews/reviews.module";
 import { SiteSettingsModule } from "./site-settings/site-settings.module";
 import { AuthModule } from "./auth/auth.module";
 import { MediaModule } from "./media/media.module";
@@ -27,6 +28,7 @@ import { SeoModule } from "./seo/seo.module";
     CategoriesModule,
     BrandsModule,
     ProductsModule,
+    ReviewsModule,
     SiteSettingsModule,
     AuthModule,
     MediaModule,

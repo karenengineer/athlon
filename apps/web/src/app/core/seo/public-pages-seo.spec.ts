@@ -124,6 +124,9 @@ describe("Public page SEO navigation", () => {
       .expectOne((request) => request.url.endsWith(`/products/${value.slug}`))
       .flush(value);
     http.expectOne((request) => request.url.endsWith("/settings")).flush({});
+    http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
     flushProducts();
     fixture.detectChanges();
   }
@@ -263,6 +266,9 @@ describe("Public page SEO navigation", () => {
         .expectOne((request) => request.url.endsWith("/settings"))
         .flush({}, { status: 503, statusText: "Unavailable" });
       http
+        .expectOne((request) => request.url.endsWith("/reviews"))
+        .flush({ summary: { count: 0, average: null }, items: [] });
+      http
         .expectOne((request) => request.url.endsWith("/products"))
         .flush({}, { status: 503, statusText: "Unavailable" });
       expect(response.status).toBe(200);
@@ -347,6 +353,41 @@ describe("Public page SEO navigation", () => {
     expect(response.status).toBe(503);
     expect(noindex()).toBe("noindex, follow");
   });
+  it("adds the approved-review rating to the product schema", async () => {
+    await visit("/en/product/whey");
+    http
+      .expectOne((request) => request.url.endsWith("/products/whey"))
+      .flush(product);
+    http.expectOne((request) => request.url.endsWith("/settings")).flush({});
+    http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({
+        summary: { count: 2, average: 4.5 },
+        items: [
+          {
+            id: "r1",
+            authorName: "Aram",
+            rating: 5,
+            body: "Great taste.",
+            locale: "hy",
+            createdAt: "2026-11-20T10:00:00.000Z",
+          },
+        ],
+      });
+    flushProducts();
+    fixture.detectChanges();
+    const schema = schemas().find((value) => value["@type"] === "Product");
+    expect(schema.aggregateRating).toMatchObject({
+      ratingValue: 4.5,
+      reviewCount: 2,
+    });
+    expect(schema.review).toHaveLength(1);
+    expect(
+      fixture.nativeElement.querySelector("app-product-reviews .review-list li")
+        .textContent,
+    ).toContain("Great taste.");
+  });
+
   it("marks basket noindex and clears public schema and alternates", async () => {
     await visit("/en");
     flushProducts();

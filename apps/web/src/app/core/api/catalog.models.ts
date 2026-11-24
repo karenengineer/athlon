@@ -120,3 +120,27 @@ export interface PaymentStatusResponse {
   paymentStatus: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "EXPIRED";
   locale: "HY" | "RU" | "EN";
 }
+
+export interface ProductReview {
+  id: string;
+  authorName: string;
+  rating: number;
+  body: string;
+  locale: "hy" | "ru" | "en";
+  createdAt: string;
+}
+
+export interface ProductReviews {
+  /** Approved reviews only; average is null when there are none. */
+  summary: { count: number; average: number | null };
+  items: ProductReview[];
+}
+
+export interface CreateReviewRequest {
+  authorName: string;
+  rating: number;
+  body: string;
+  locale: string;
+  /** Honeypot field; real visitors never fill it. */
+  website?: string;
+}

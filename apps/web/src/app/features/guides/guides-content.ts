@@ -1,3 +1,8 @@
+/**
+ * Full article copy. Imported only by the lazily loaded guide page; links,
+ * headings and categories live in guide-index.ts so pages that link to guides
+ * do not ship article text in the initial bundle.
+ */
 import { Locale } from "../../core/i18n/i18n.service";
 import { GuideSlug } from "./guide-slugs";
 
@@ -9,76 +14,23 @@ export interface GuideSection {
 export interface Guide {
   /** Page title without the "| ATHLON" suffix. */
   title: string;
-  heading: string;
   description: string;
   introduction: string;
   sections: readonly GuideSection[];
 }
 
 export interface GuideEntry {
-  /** Catalog category the guide links to, and is linked from. */
-  category: string;
   copy: Record<Locale, Guide>;
 }
 
-export const guidesCopy: Record<
-  Locale,
-  {
-    title: string;
-    heading: string;
-    description: string;
-    introduction: string;
-    readMore: string;
-    related: string;
-    shop: string;
-    all: string;
-  }
+const originalGuides: Omit<
+  Record<GuideSlug, GuideEntry>,
+  "gainer-guide" | "bcaa-amino-acids-guide" | "l-carnitine-guide"
 > = {
-  hy: {
-    title: "Սպորտային սննդի ուղեցույցներ",
-    heading: "Ուղեցույցներ",
-    description:
-      "Ինչպես ընտրել պրոտեին, կրեատին և նախամարզումային համալիր, ինչպես տարբերել օրիգինալ ապրանքը կեղծից։ Գործնական խորհուրդներ ATHLON-ից։",
-    introduction:
-      "Գործնական խորհուրդներ սպորտային սննդի ընտրության և օգտագործման վերաբերյալ։ Դրանք չեն փոխարինում բժշկի խորհրդատվությանը։",
-    readMore: "Կարդալ",
-    related: "Օգտակար հոդվածներ",
-    shop: "Դիտել ապրանքները",
-    all: "Բոլոր ուղեցույցները",
-  },
-  ru: {
-    title: "Статьи о спортивном питании",
-    heading: "Полезные статьи",
-    description:
-      "Как выбрать протеин, креатин и предтренировочный комплекс и как отличить оригинал от подделки. Практические советы от ATHLON.",
-    introduction:
-      "Практические советы по выбору и приёму спортивного питания. Они не заменяют консультацию врача.",
-    readMore: "Читать",
-    related: "Полезные статьи",
-    shop: "Смотреть товары",
-    all: "Все статьи",
-  },
-  en: {
-    title: "Sports nutrition guides",
-    heading: "Guides",
-    description:
-      "How to choose protein, creatine and pre-workout, and how to tell original supplements from fakes. Practical advice from ATHLON.",
-    introduction:
-      "Practical advice on choosing and using sports nutrition. It doesn't replace advice from a doctor.",
-    readMore: "Read",
-    related: "Helpful guides",
-    shop: "Shop the products",
-    all: "All guides",
-  },
-};
-
-export const guides: Record<GuideSlug, GuideEntry> = {
   "how-to-choose-protein": {
-    category: "protein",
     copy: {
       hy: {
         title: "Ինչպես ընտրել պրոտեին․ ուղեցույց սկսնակների համար",
-        heading: "Ինչպես ընտրել պրոտեին",
         description:
           "Շիճուկային կոնցենտրատ, իզոլատ թե գեյներ․ ինչին նայել պիտակի վրա, ինչպես հաշվել մեկ չափաբաժնի գինը և ինչպես ընդունել պրոտեինը։",
         introduction:
@@ -119,7 +71,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       },
       ru: {
         title: "Как выбрать протеин: гид для начинающих",
-        heading: "Как выбрать протеин",
         description:
           "Сывороточный концентрат, изолят или гейнер: на что смотреть на этикетке, как посчитать цену порции и как принимать протеин.",
         introduction:
@@ -160,7 +111,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       },
       en: {
         title: "How to choose protein powder: a beginner's guide",
-        heading: "How to choose protein powder",
         description:
           "Whey concentrate, isolate or mass gainer: what to check on the label, how to work out price per serving and how to take protein.",
         introduction:
@@ -202,11 +152,9 @@ export const guides: Record<GuideSlug, GuideEntry> = {
     },
   },
   "creatine-guide": {
-    category: "creatine",
     copy: {
       hy: {
         title: "Կրեատին․ ինչ է, ինչպես և երբ ընդունել",
-        heading: "Կրեատին․ ինչպես և երբ ընդունել",
         description:
           "Ինչ է կրեատին մոնոհիդրատը, որքան ընդունել, պետք է արդյոք բեռնման փուլը և ինչ է իրականում տեղի ունենում ջրի պահման հետ։",
         introduction:
@@ -246,7 +194,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       },
       ru: {
         title: "Креатин: что это, как и когда принимать",
-        heading: "Креатин: как и когда принимать",
         description:
           "Что такое креатин моногидрат, сколько принимать, нужна ли загрузка и что на самом деле происходит с задержкой воды.",
         introduction:
@@ -286,7 +233,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       },
       en: {
         title: "Creatine: what it is, how and when to take it",
-        heading: "Creatine: how and when to take it",
         description:
           "What creatine monohydrate is, how much to take, whether you need a loading phase and what water retention really means.",
         introduction:
@@ -327,12 +273,10 @@ export const guides: Record<GuideSlug, GuideEntry> = {
     },
   },
   "pre-workout-guide": {
-    category: "pre-workout",
     copy: {
       hy: {
         title:
           "Նախամարզումային համալիր (pre-workout)․ ինչպես ընտրել և ընդունել",
-        heading: "Նախամարզումային համալիր․ ինչպես ընտրել և ընդունել",
         description:
           "Ինչ է պարունակում pre-workout-ը, որքան կոֆեին է անվտանգ, երբ ընդունել և ում պետք է նախապես խորհրդակցել բժշկի հետ։",
         introduction:
@@ -373,7 +317,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       ru: {
         title:
           "Предтренировочный комплекс (pre-workout): как выбрать и принимать",
-        heading: "Предтренировочный комплекс: как выбрать и принимать",
         description:
           "Что входит в pre-workout, сколько кофеина безопасно, когда принимать и кому стоит сначала проконсультироваться с врачом.",
         introduction:
@@ -413,7 +356,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       },
       en: {
         title: "Pre-workout: how to choose and take it",
-        heading: "Pre-workout: how to choose and take it",
         description:
           "What goes into a pre-workout, how much caffeine is safe, when to take it and who should talk to a doctor first.",
         introduction:
@@ -454,11 +396,9 @@ export const guides: Record<GuideSlug, GuideEntry> = {
     },
   },
   "original-vs-fake-supplements": {
-    category: "sports-nutrition",
     copy: {
       hy: {
         title: "Ինչպես տարբերել օրիգինալ սպորտային սնունդը կեղծից",
-        heading: "Ինչպես տարբերել օրիգինալ սպորտային սնունդը կեղծից",
         description:
           "Ինչ ստուգել փաթեթի, պիտակի, ապրանքի և վաճառողի վրա, որպեսզի չգնեք կեղծ պրոտեին կամ կրեատին։",
         introduction:
@@ -498,7 +438,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       },
       ru: {
         title: "Как отличить оригинальное спортивное питание от подделки",
-        heading: "Как отличить оригинальное спортивное питание от подделки",
         description:
           "Что проверить на упаковке, этикетке, в самом продукте и у продавца, чтобы не купить поддельный протеин или креатин.",
         introduction:
@@ -538,7 +477,6 @@ export const guides: Record<GuideSlug, GuideEntry> = {
       },
       en: {
         title: "How to tell original sports supplements from fakes",
-        heading: "How to tell original sports supplements from fakes",
         description:
           "What to check on the packaging, the label, the product itself and the seller so you don't buy fake protein or creatine.",
         introduction:
@@ -580,14 +518,376 @@ export const guides: Record<GuideSlug, GuideEntry> = {
   },
 };
 
-export function guidesForCategory(
-  category: string | null | undefined,
-): GuideSlugAndEntry[] {
-  return category
-    ? (Object.entries(guides) as GuideSlugAndEntry[]).filter(
-        ([, entry]) => entry.category === category,
-      )
-    : [];
-}
+const newGuides: Pick<
+  Record<GuideSlug, GuideEntry>,
+  "gainer-guide" | "bcaa-amino-acids-guide" | "l-carnitine-guide"
+> = {
+  "gainer-guide": {
+    copy: {
+      hy: {
+        title: "Գեյներ․ ինչ է, ում է պետք և ինչպես ընդունել",
+        description:
+          "Ինչով է գեյները տարբերվում պրոտեինից, ում է այն օգնում քաշ հավաքել, ինչպես ընդունել և ինչին ուշադրություն դարձնել պիտակի վրա։",
+        introduction:
+          "Գեյները սպիտակուցի և ածխաջրերի խառնուրդ է, որն օգնում է ստանալ ավելի շատ կալորիա։ Պատմում ենք, թե ում է այն պետք և ինչպես օգտագործել։",
+        sections: [
+          {
+            heading: "Գեյներ թե պրոտեին",
+            paragraphs: [
+              "Պրոտեինը հիմնականում սպիտակուց է, իսկ գեյներում սպիտակուցից բացի շատ ածխաջրեր կան, ուստի մեկ չափաբաժինը շատ ավելի կալորիական է։ Եթե ձեր նպատակը քաշ հավաքելն է, իսկ սովորական սննդով բավարար կալորիա ստանալը դժվար է, գեյները հարմար լուծում է։",
+            ],
+          },
+          {
+            heading: "Ում է այն պետք",
+            paragraphs: [
+              "Գեյները նախատեսված է նրանց համար, ովքեր դժվարությամբ են քաշ հավաքում։ Այն նիհարելու համար չէ, և եթե արդեն հեշտությամբ եք քաշ հավաքում, ավելի լավ է ընտրել պրոտեին։ Քաշ հավաքելու համար ընդհանուր կալորիաների ավելցուկն է կարևոր, ոչ թե կոնկրետ հավելումը։",
+            ],
+          },
+          {
+            heading: "Ինչպես ընդունել",
+            paragraphs: [
+              "Որոշ գեյների մեկ ամբողջական չափաբաժինը կարող է գերազանցել 1000 կկալ-ը, ուստի նախ ստուգեք պիտակը։ Կարելի է սկսել կես չափաբաժնից կամ օրական չափաբաժինը բաժանել երկու մասի, օրինակ՝ մարզումից հետո և սննդի միջև։ Հետևեք փաթեթի ցուցումներին։",
+            ],
+          },
+          {
+            heading: "Ինչին նայել պիտակի վրա",
+            paragraphs: [
+              "Կալորիաներ, սպիտակուց և ածխաջրեր մեկ չափաբաժնում, շաքարի քանակը և չափաբաժինների թիվը փաթեթում։ Շաքարախտի կամ այլ առողջական խնդիրների դեպքում նախապես խորհրդակցեք բժշկի հետ։",
+            ],
+          },
+          {
+            heading: "Գեյներ ATHLON-ում",
+            paragraphs: [
+              "Մեր կատալոգում կան Optimum Nutrition Serious Mass՝ վանիլի և շոկոլադի համերով, և Trec Mass XXL Gainer։",
+            ],
+          },
+        ],
+      },
+      ru: {
+        title: "Гейнер: что это, кому нужен и как принимать",
+        description:
+          "Чем гейнер отличается от протеина, кому он помогает набрать вес, как его принимать и на что смотреть на этикетке.",
+        introduction:
+          "Гейнер — это смесь белка и углеводов, которая помогает получить больше калорий. Рассказываем, кому он нужен и как его использовать.",
+        sections: [
+          {
+            heading: "Гейнер или протеин",
+            paragraphs: [
+              "Протеин — это в основном белок, а в гейнере кроме белка много углеводов, поэтому одна порция гораздо калорийнее. Если ваша цель — набрать вес, а получить достаточно калорий из обычной еды сложно, гейнер будет удобным решением.",
+            ],
+          },
+          {
+            heading: "Кому он нужен",
+            paragraphs: [
+              "Гейнер рассчитан на тех, кому трудно набирать вес. Он не для похудения, и если вы и так легко набираете вес, лучше выбрать протеин. Для набора веса важен общий избыток калорий, а не конкретная добавка.",
+            ],
+          },
+          {
+            heading: "Как принимать",
+            paragraphs: [
+              "Полная порция некоторых гейнеров может превышать 1000 ккал, поэтому сначала проверьте этикетку. Можно начать с половины порции или разделить дневную порцию на два приёма — например, после тренировки и между приёмами пищи. Следуйте инструкции на упаковке.",
+            ],
+          },
+          {
+            heading: "На что смотреть на этикетке",
+            paragraphs: [
+              "Калории, белки и углеводы в порции, количество сахара и число порций в упаковке. При диабете или других проблемах со здоровьем сначала проконсультируйтесь с врачом.",
+            ],
+          },
+          {
+            heading: "Гейнеры в ATHLON",
+            paragraphs: [
+              "В нашем каталоге есть Optimum Nutrition Serious Mass со вкусом ванили и шоколада и Trec Mass XXL Gainer.",
+            ],
+          },
+        ],
+      },
+      en: {
+        title: "Mass gainer: what it is, who needs it and how to take it",
+        description:
+          "How a mass gainer differs from protein, who it helps gain weight, how to take it and what to check on the label.",
+        introduction:
+          "A mass gainer combines protein and carbohydrates to help you get more calories. Here is who needs one and how to use it.",
+        sections: [
+          {
+            heading: "Gainer or protein",
+            paragraphs: [
+              "Protein powder is mostly protein, while a gainer adds a lot of carbohydrates, so one serving has far more calories. If your goal is to gain weight and it's hard to eat enough calories from regular food, a gainer is a convenient option.",
+            ],
+          },
+          {
+            heading: "Who needs it",
+            paragraphs: [
+              "A gainer is meant for people who find it hard to gain weight. It isn't for weight loss, and if you already gain weight easily, protein is the better choice. What drives weight gain is an overall calorie surplus, not any particular supplement.",
+            ],
+          },
+          {
+            heading: "How to take it",
+            paragraphs: [
+              "A full serving of some gainers can exceed 1,000 kcal, so check the label first. You can start with half a serving or split the daily serving in two, for example after training and between meals. Follow the directions on the package.",
+            ],
+          },
+          {
+            heading: "What to check on the label",
+            paragraphs: [
+              "Calories, protein and carbohydrates per serving, the amount of sugar and the number of servings per pack. If you have diabetes or another health condition, talk to a doctor first.",
+            ],
+          },
+          {
+            heading: "Gainers at ATHLON",
+            paragraphs: [
+              "Our catalog includes Optimum Nutrition Serious Mass in vanilla and chocolate, and Trec Mass XXL Gainer.",
+            ],
+          },
+        ],
+      },
+    },
+  },
+  "bcaa-amino-acids-guide": {
+    copy: {
+      hy: {
+        title: "BCAA և ամինաթթուներ․ արդյոք պետք են և ինչպես ընդունել",
+        description:
+          "Ինչ են BCAA-ները, երբ են դրանք իմաստ ունենում, եթե արդեն պրոտեին եք ընդունում, և ինչին ուշադրություն դարձնել ամինաթթուային համալիրներում։",
+        introduction:
+          "BCAA-ները և ամինաթթուային համալիրները տարածված են մարզվողների շրջանում։ Պատմում ենք, թե երբ են դրանք օգտակար և երբ՝ ոչ։",
+        sections: [
+          {
+            heading: "Ինչ են BCAA-ները",
+            paragraphs: [
+              "BCAA-ն երեք ամինաթթու է՝ լեյցին, իզոլեյցին և վալին։ Դրանք կան սպիտակուցով հարուստ ամեն սննդում՝ մսի, ձվի, կաթնամթերքի մեջ, ինչպես նաև շիճուկային պրոտեինում։",
+            ],
+          },
+          {
+            heading: "Պե՞տք են արդյոք, եթե պրոտեին եք ընդունում",
+            paragraphs: [
+              "Եթե օրվա ընթացքում բավարար սպիտակուց եք ստանում սննդից կամ պրոտեինից, առանձին BCAA-ների լրացուցիչ օգուտը սահմանափակ է։ Դրանք կարող են հարմար լինել երկար մարզումների ժամանակ, քաղցով մարզվելիս կամ պարզապես որպես համով ըմպելիք ջրի փոխարեն։",
+            ],
+          },
+          {
+            heading: "Ամինաթթուային համալիրներ կոֆեինով",
+            paragraphs: [
+              "Որոշ համալիրներ, օրինակ՝ Optimum Nutrition Amino Energy-ն, ամինաթթուներից բացի պարունակում են կոֆեին։ Ստուգեք պիտակը, հաշվի առեք օրվա ընթացքում ստացած ամբողջ կոֆեինը և մի ընդունեք երեկոյան ուշ։",
+            ],
+          },
+          {
+            heading: "Ինչպես ընդունել",
+            paragraphs: [
+              "Սովորաբար՝ մարզումից առաջ կամ մարզման ընթացքում՝ ջրի մեջ խառնված։ Հետևեք փաթեթի ցուցումներին, իսկ առողջական խնդիրների կամ հղիության դեպքում նախապես խորհրդակցեք բժշկի հետ։",
+            ],
+          },
+          {
+            heading: "ATHLON-ում",
+            paragraphs: [
+              "Մեր կատալոգում կան Optimum Nutrition Amino Energy՝ տարբեր համերով, և Trec BCAA High Speed։",
+            ],
+          },
+        ],
+      },
+      ru: {
+        title: "BCAA и аминокислоты: нужны ли и как принимать",
+        description:
+          "Что такое BCAA, когда они имеют смысл, если вы уже пьёте протеин, и на что обратить внимание в аминокислотных комплексах.",
+        introduction:
+          "BCAA и аминокислотные комплексы популярны среди тренирующихся. Рассказываем, когда они полезны, а когда нет.",
+        sections: [
+          {
+            heading: "Что такое BCAA",
+            paragraphs: [
+              "BCAA — это три аминокислоты: лейцин, изолейцин и валин. Они есть во всех продуктах, богатых белком: мясе, яйцах, молочных продуктах, а также в сывороточном протеине.",
+            ],
+          },
+          {
+            heading: "Нужны ли они, если вы пьёте протеин",
+            paragraphs: [
+              "Если вы получаете достаточно белка из еды или протеина, дополнительная польза отдельных BCAA ограничена. Они могут быть удобны во время длинных тренировок, при тренировках натощак или просто как вкусный напиток вместо воды.",
+            ],
+          },
+          {
+            heading: "Аминокислотные комплексы с кофеином",
+            paragraphs: [
+              "Некоторые комплексы, например Optimum Nutrition Amino Energy, кроме аминокислот содержат кофеин. Проверьте этикетку, учитывайте весь кофеин за день и не принимайте поздно вечером.",
+            ],
+          },
+          {
+            heading: "Как принимать",
+            paragraphs: [
+              "Обычно перед тренировкой или во время неё, размешав в воде. Следуйте инструкции на упаковке, а при проблемах со здоровьем или беременности сначала проконсультируйтесь с врачом.",
+            ],
+          },
+          {
+            heading: "В ATHLON",
+            paragraphs: [
+              "В нашем каталоге есть Optimum Nutrition Amino Energy разных вкусов и Trec BCAA High Speed.",
+            ],
+          },
+        ],
+      },
+      en: {
+        title: "BCAA and amino acids: do you need them and how to take them",
+        description:
+          "What BCAAs are, when they make sense if you already take protein, and what to look for in amino acid blends.",
+        introduction:
+          "BCAAs and amino acid blends are popular with people who train. Here is when they help and when they don't.",
+        sections: [
+          {
+            heading: "What BCAAs are",
+            paragraphs: [
+              "BCAAs are three amino acids: leucine, isoleucine and valine. They are present in all protein-rich food, such as meat, eggs and dairy, and in whey protein.",
+            ],
+          },
+          {
+            heading: "Do you need them if you take protein",
+            paragraphs: [
+              "If you get enough protein from food or protein powder, separate BCAAs add limited benefit. They can be handy during long sessions, when training on an empty stomach, or simply as a flavored drink instead of water.",
+            ],
+          },
+          {
+            heading: "Amino blends with caffeine",
+            paragraphs: [
+              "Some blends, such as Optimum Nutrition Amino Energy, contain caffeine as well as amino acids. Check the label, count all the caffeine you have in a day and avoid it late in the evening.",
+            ],
+          },
+          {
+            heading: "How to take them",
+            paragraphs: [
+              "Usually before or during training, mixed with water. Follow the directions on the package, and if you have a health condition or are pregnant, talk to a doctor first.",
+            ],
+          },
+          {
+            heading: "At ATHLON",
+            paragraphs: [
+              "Our catalog includes Optimum Nutrition Amino Energy in several flavors and Trec BCAA High Speed.",
+            ],
+          },
+        ],
+      },
+    },
+  },
+  "l-carnitine-guide": {
+    copy: {
+      hy: {
+        title: "L-կարնիտին․ ինչ է այն անում և ինչ չի անում",
+        description:
+          "Ինչ է L-կարնիտինը, արդյոք այն օգնում է նիհարել, ինչ ձևեր կան (հեղուկ, պատիճներ) և ինչպես ընդունել։",
+        introduction:
+          "L-կարնիտինը հաճախ գովազդվում է որպես «ճարպայրիչ»։ Պատմում ենք, թե իրականում ինչ կարելի է ակնկալել։",
+        sections: [
+          {
+            heading: "Ինչ է L-կարնիտինը",
+            paragraphs: [
+              "L-կարնիտինը օրգանիզմում արտադրվող և մսի մեջ պարունակվող միացություն է, որը մասնակցում է ճարպաթթուները բջիջների «էներգետիկ կայաններ» տեղափոխելուն։",
+            ],
+          },
+          {
+            heading: "Արդյո՞ք այն օգնում է նիհարել",
+            paragraphs: [
+              "Առողջ մարդկանց մոտ L-կարնիտինի ազդեցությունը քաշի վրա, ըստ հետազոտությունների, փոքր է կամ բացակայում է։ Այն ինքնին ճարպ չի այրում․ քաշը նվազում է կալորիաների դեֆիցիտի, սննդակարգի և շարժման շնորհիվ։ Եթե որոշել եք օգտագործել, համարեք այն լրացում, ոչ թե լուծում։",
+            ],
+          },
+          {
+            heading: "Հեղուկ թե պատիճներ",
+            paragraphs: [
+              "Հեղուկ ձևը հարմար է ընդունել մարզումից առաջ, իսկ պատիճները՝ հեշտ է տեղափոխել։ Համեմատեք L-կարնիտինի քանակը մեկ չափաբաժնում և մեկ չափաբաժնի գինը։",
+            ],
+          },
+          {
+            heading: "Ինչպես ընդունել և ում խորհրդակցել բժշկի հետ",
+            paragraphs: [
+              "Հետևեք փաթեթի ցուցումներին և մի գերազանցեք նշված չափաբաժինը։ Վահանաձև գեղձի, երիկամների հիվանդությունների, դեղորայք ընդունելու կամ հղիության դեպքում նախապես խորհրդակցեք բժշկի հետ։",
+            ],
+          },
+          {
+            heading: "L-կարնիտին ATHLON-ում",
+            paragraphs: [
+              "Մեր կատալոգում կան Trec L-Carnitine 3000՝ հեղուկ ձևով, և Trec L-Carnitine Complex։",
+            ],
+          },
+        ],
+      },
+      ru: {
+        title: "L-карнитин: что он делает и чего не делает",
+        description:
+          "Что такое L-карнитин, помогает ли он похудеть, какие бывают формы (жидкий, капсулы) и как его принимать.",
+        introduction:
+          "L-карнитин часто рекламируют как «жиросжигатель». Рассказываем, чего от него можно ожидать на самом деле.",
+        sections: [
+          {
+            heading: "Что такое L-карнитин",
+            paragraphs: [
+              "L-карнитин — вещество, которое вырабатывается в организме и содержится в мясе. Он участвует в переносе жирных кислот в «энергетические станции» клеток.",
+            ],
+          },
+          {
+            heading: "Помогает ли он похудеть",
+            paragraphs: [
+              "По данным исследований, у здоровых людей влияние L-карнитина на вес небольшое или отсутствует. Сам по себе он жир не сжигает: вес снижается за счёт дефицита калорий, питания и движения. Если вы решили его принимать, считайте его дополнением, а не решением.",
+            ],
+          },
+          {
+            heading: "Жидкий или капсулы",
+            paragraphs: [
+              "Жидкую форму удобно принимать перед тренировкой, а капсулы легко брать с собой. Сравнивайте количество L-карнитина в порции и цену порции.",
+            ],
+          },
+          {
+            heading: "Как принимать и кому нужен врач",
+            paragraphs: [
+              "Следуйте инструкции на упаковке и не превышайте указанную порцию. При заболеваниях щитовидной железы или почек, приёме лекарств или беременности сначала проконсультируйтесь с врачом.",
+            ],
+          },
+          {
+            heading: "L-карнитин в ATHLON",
+            paragraphs: [
+              "В нашем каталоге есть жидкий Trec L-Carnitine 3000 и Trec L-Carnitine Complex.",
+            ],
+          },
+        ],
+      },
+      en: {
+        title: "L-carnitine: what it does and doesn't do",
+        description:
+          "What L-carnitine is, whether it helps with weight loss, which forms exist (liquid, capsules) and how to take it.",
+        introduction:
+          "L-carnitine is often marketed as a fat burner. Here is what you can realistically expect from it.",
+        sections: [
+          {
+            heading: "What L-carnitine is",
+            paragraphs: [
+              "L-carnitine is a compound your body makes and that is found in meat. It helps carry fatty acids into the cells' energy-producing mitochondria.",
+            ],
+          },
+          {
+            heading: "Does it help with weight loss",
+            paragraphs: [
+              "In healthy people, research shows a small effect on weight or none at all. It doesn't burn fat by itself: weight comes down through a calorie deficit, diet and activity. If you decide to take it, treat it as an extra, not the solution.",
+            ],
+          },
+          {
+            heading: "Liquid or capsules",
+            paragraphs: [
+              "The liquid form is easy to take before training, while capsules are easy to carry. Compare the amount of L-carnitine per serving and the price per serving.",
+            ],
+          },
+          {
+            heading: "How to take it and who should see a doctor",
+            paragraphs: [
+              "Follow the directions on the package and don't exceed the stated serving. If you have a thyroid or kidney condition, take medication or are pregnant, talk to a doctor first.",
+            ],
+          },
+          {
+            heading: "L-carnitine at ATHLON",
+            paragraphs: [
+              "Our catalog includes Trec L-Carnitine 3000 liquid and Trec L-Carnitine Complex.",
+            ],
+          },
+        ],
+      },
+    },
+  },
+};
 
-export type GuideSlugAndEntry = [GuideSlug, GuideEntry];
+export const guides: Record<GuideSlug, GuideEntry> = {
+  ...originalGuides,
+  ...newGuides,
+};

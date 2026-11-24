@@ -276,7 +276,7 @@ describe("real crawler endpoints", () => {
   it("accepts empty published inventory and enforces URL/XML bounds without truncation", () => {
     expect([
       ...renderSitemap({ products: [], categories: [] }).matchAll(/<loc>/g),
-    ]).toHaveLength(39); // 8 static pages + 5 guide pages, × 3 locales
+    ]).toHaveLength(48); // 8 static pages + guides index + 7 guides, × 3 locales
     expect(() =>
       renderSitemap({
         products: Array.from({ length: 16661 }, (_, index) => ({

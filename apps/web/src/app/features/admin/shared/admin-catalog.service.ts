@@ -16,6 +16,8 @@ import {
   AdminProductWrite,
   AdminImage,
   AdminImageInput,
+  AdminReviewList,
+  AdminReviewStatus,
 } from "./admin-api.types";
 
 @Injectable({ providedIn: "root" })
@@ -44,6 +46,20 @@ export class AdminCatalogService {
   }
   deleteCategory(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/categories/${id}`);
+  }
+  listReviews(
+    status: AdminReviewStatus | "",
+    page = 1,
+  ): Observable<AdminReviewList> {
+    let params = new HttpParams().set("page", page).set("pageSize", 24);
+    if (status) params = params.set("status", status);
+    return this.http.get<AdminReviewList>(`${this.base}/reviews`, { params });
+  }
+  moderateReview(id: string, status: AdminReviewStatus): Observable<unknown> {
+    return this.http.patch(`${this.base}/reviews/${id}`, { status });
+  }
+  deleteReview(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/reviews/${id}`);
   }
   listBrands(query: AdminListQuery = {}): Observable<AdminList<AdminBrand>> {
     return this.list("brands", query);

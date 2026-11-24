@@ -300,6 +300,9 @@ describe("Localized information pages", () => {
       });
     http.expectOne((request) => request.url.endsWith("/settings")).flush({});
     http
+      .expectOne((request) => request.url.endsWith("/reviews"))
+      .flush({ summary: { count: 0, average: null }, items: [] });
+    http
       .expectOne((request) => request.url.endsWith("/products"))
       .flush({
         items: [],
