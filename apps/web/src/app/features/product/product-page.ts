@@ -23,7 +23,13 @@ import { ProductReviews } from "./product-reviews";
 import {
   BasketService,
   isBasketEligible,
+  resistanceBandsCategory,
 } from "../../core/basket/basket.service";
+import {
+  INSTAGRAM_PROFILE_URL,
+  ORDER_PHONE_DISPLAY,
+  ORDER_PHONE_HREF,
+} from "../../core/social-links";
 import { I18nService, Locale } from "../../core/i18n/i18n.service";
 import { imageAlt } from "../../core/seo/image-alt";
 import { localizeCharacteristicValue } from "./characteristic-values";
@@ -55,6 +61,10 @@ import {
 })
 export class ProductPage {
   readonly isBasketEligible = isBasketEligible;
+  readonly resistanceBandsCategory = resistanceBandsCategory;
+  readonly instagramUrl = INSTAGRAM_PROFILE_URL;
+  readonly orderPhoneDisplay = ORDER_PHONE_DISPLAY;
+  readonly orderPhoneHref = ORDER_PHONE_HREF;
   readonly i18n = inject(I18nService);
   readonly state = signal<"loading" | "ready" | "error" | "not-found">(
     "loading",
