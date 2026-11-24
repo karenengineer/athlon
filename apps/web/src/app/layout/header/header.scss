@@ -150,6 +150,58 @@ nav a:hover {
   background: #2a2a2d;
 }
 
+.header-basket {
+  position: relative;
+  min-height: 44px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 0 12px;
+  border-radius: 999px;
+  color: #111113;
+  background: #fff;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.header-basket:hover,
+.header-basket.active {
+  background: #e6e6e9;
+}
+
+.header-basket:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.header-basket svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.header-basket-count {
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #111113;
+  font-size: 0.72rem;
+}
+
 .mobile-language {
   display: none;
 }
@@ -181,7 +233,8 @@ nav a:hover {
 
   .header-content nav,
   .header-content .search,
-  .languages {
+  .languages,
+  .header-basket {
     display: none;
   }
 
