@@ -1,43 +1,27 @@
 import { Locale } from "../../core/i18n/i18n.service";
 
-export const reviewsCopy: Record<
-  Locale,
-  {
-    title: string;
-    empty: string;
-    count: (count: number) => string;
-    write: string;
-    name: string;
-    rating: string;
-    text: string;
-    textHint: string;
-    submit: string;
-    sending: string;
-    thanks: string;
-    error: string;
-    tooMany: string;
-    stars: (rating: number) => string;
-  }
-> = {
+export interface ReviewsCopy {
+  title: string;
+  empty: string;
+  count: (count: number) => string;
+  verified: string;
+  onlyBuyers: string;
+  stars: (rating: number) => string;
+}
+
+export const reviewsCopy: Record<Locale, ReviewsCopy> = {
   hy: {
     title: "Կարծիքներ",
-    empty: "Դեռ կարծիքներ չկան։ Եղեք առաջինը։",
+    empty: "Դեռ կարծիքներ չկան։",
     count: (count) => `${count} կարծիք`,
-    write: "Թողնել կարծիք",
-    name: "Անուն",
-    rating: "Գնահատական",
-    text: "Կարծիք",
-    textHint: "Առնվազն 10 նիշ",
-    submit: "Ուղարկել",
-    sending: "Ուղարկվում է…",
-    thanks: "Շնորհակալություն։ Ձեր կարծիքը կհրապարակվի ստուգումից հետո։",
-    error: "Չհաջողվեց ուղարկել։ Փորձեք կրկին։",
-    tooMany: "Չափազանց շատ փորձեր։ Փորձեք մեկ րոպեից։",
+    verified: "Հաստատված գնում",
+    onlyBuyers:
+      "Կարծիք կարող են թողնել միայն այս ապրանքը գնած հաճախորդները։ Պատվերը ստանալուց հետո մենք ձեզ էլ. փոստով կուղարկենք անձնական հղում։",
     stars: (rating) => `${rating} աստղ 5-ից`,
   },
   ru: {
     title: "Отзывы",
-    empty: "Отзывов пока нет. Будьте первым.",
+    empty: "Отзывов пока нет.",
     count: (count) => {
       const mod10 = count % 10;
       const mod100 = count % 100;
@@ -49,32 +33,18 @@ export const reviewsCopy: Record<
             : "отзывов";
       return `${count} ${word}`;
     },
-    write: "Оставить отзыв",
-    name: "Имя",
-    rating: "Оценка",
-    text: "Отзыв",
-    textHint: "Не менее 10 символов",
-    submit: "Отправить",
-    sending: "Отправка…",
-    thanks: "Спасибо! Отзыв появится после проверки.",
-    error: "Не удалось отправить. Попробуйте ещё раз.",
-    tooMany: "Слишком много попыток. Попробуйте через минуту.",
+    verified: "Подтверждённая покупка",
+    onlyBuyers:
+      "Отзыв могут оставить только покупатели этого товара. После получения заказа мы пришлём вам персональную ссылку на почту.",
     stars: (rating) => `${rating} из 5 звёзд`,
   },
   en: {
     title: "Reviews",
-    empty: "No reviews yet. Be the first.",
+    empty: "No reviews yet.",
     count: (count) => `${count} ${count === 1 ? "review" : "reviews"}`,
-    write: "Write a review",
-    name: "Name",
-    rating: "Rating",
-    text: "Review",
-    textHint: "At least 10 characters",
-    submit: "Submit",
-    sending: "Sending…",
-    thanks: "Thank you! Your review will appear after moderation.",
-    error: "Couldn't send your review. Please try again.",
-    tooMany: "Too many attempts. Please try again in a minute.",
+    verified: "Verified purchase",
+    onlyBuyers:
+      "Only customers who bought this product can review it. After your order is delivered, we email you a personal review link.",
     stars: (rating) => `${rating} out of 5 stars`,
   },
 };

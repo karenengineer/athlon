@@ -132,6 +132,8 @@ export interface ProductReview {
   rating: number;
   body: string;
   locale: "hy" | "ru" | "en";
+  /** Written through a delivered order's review link. */
+  verified: boolean;
   createdAt: string;
 }
 
@@ -141,11 +143,27 @@ export interface ProductReviews {
   items: ProductReview[];
 }
 
-export interface CreateReviewRequest {
+/** A review sent through the buyer's personal link after delivery. */
+export interface InvitedReviewRequest {
+  productId: string;
   authorName: string;
   rating: number;
   body: string;
   locale: string;
-  /** Honeypot field; real visitors never fill it. */
-  website?: string;
+}
+
+export interface ReviewInvitationItem {
+  productId: string;
+  /** Null when the product is no longer published. */
+  slug: string | null;
+  name: string;
+  imageUrl: string | null;
+  reviewed: boolean;
+}
+
+export interface ReviewInvitation {
+  authorName: string;
+  locale: "hy" | "ru" | "en";
+  expiresAt: string;
+  items: ReviewInvitationItem[];
 }

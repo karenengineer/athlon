@@ -438,10 +438,30 @@ model Order {
   items              OrderItem[]
   paymentAttempts    PaymentAttempt[]
   notifications      OrderNotification[]
+  /// Set by an admin once the customer has received the order. Only then can
+  /// the customer be invited to review what they bought.
+  deliveredAt        DateTime?
+  reviewInvitation   ReviewInvitation?
+  reviews            ProductReview[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
   @@index([status, createdAt])
+  @@index([deliveredAt])
+}
+
+/// One review link per delivered order, emailed to the buyer. Only the SHA-256
+/// of the token is stored; resending rotates it, so older links stop working.
+model ReviewInvitation {
+  id        String    @id @default(uuid()) @db.Uuid
+  orderId   String    @unique @db.Uuid
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime
+  sentAt    DateTime?
+  sendCount Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model OrderItem {
@@ -554,10 +574,14 @@ model ProductReview {
   rating      Int          @db.SmallInt
   body        String       @db.VarChar(2000)
   status      ReviewStatus @default(PENDING)
+  /// The delivered order that entitled the author to review this product.
+  orderId     String?      @db.Uuid
+  order       Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
   moderatedAt DateTime?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+  @@unique([orderId, productId])
   @@index([productId, status, createdAt])
   @@index([status, createdAt])
 }

@@ -21,6 +21,7 @@ export class AdminShell {
     { key: "products", path: "/admin/products" },
     { key: "categories", path: "/admin/categories" },
     { key: "brands", path: "/admin/brands" },
+    { key: "orders", path: "/admin/orders" },
     { key: "reviews", path: "/admin/reviews" },
     { key: "sandboxPayments", path: "/admin/sandbox-payments" },
   ];

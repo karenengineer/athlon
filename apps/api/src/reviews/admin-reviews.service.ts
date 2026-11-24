@@ -12,6 +12,7 @@ const select = {
   status: true,
   moderatedAt: true,
   createdAt: true,
+  order: { select: { reference: true } },
   product: {
     select: {
       slug: true,
@@ -47,6 +48,7 @@ export class AdminReviewsService {
         status: item.status,
         moderatedAt: item.moderatedAt?.toISOString() ?? null,
         createdAt: item.createdAt.toISOString(),
+        orderReference: item.order?.reference ?? null,
         product: {
           slug: item.product.slug,
           name:

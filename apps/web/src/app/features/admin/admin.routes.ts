@@ -96,6 +96,11 @@ export const adminRoutes: Routes = [
               ),
           },
           {
+            path: "orders",
+            loadComponent: () =>
+              import("./orders/order-list").then((module) => module.OrderList),
+          },
+          {
             path: "reviews",
             loadComponent: () =>
               import("./reviews/review-list").then(

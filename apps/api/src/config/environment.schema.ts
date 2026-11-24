@@ -52,6 +52,11 @@ export const environmentSchema = Joi.object({
     .email()
     .empty("")
     .default("orders@athlonsport.am"),
+  // Storefront origin used in links emailed to customers (review links).
+  PUBLIC_SITE_ORIGIN: Joi.string()
+    .uri({ scheme: ["https", "http"] })
+    .empty("")
+    .default("https://athlon.am"),
   ORDER_TELEGRAM_BOT_TOKEN: orderTelegramSetting(/^\d+:[A-Za-z0-9_-]+$/),
   ORDER_TELEGRAM_CHAT_ID: orderTelegramSetting(/^-?[1-9]\d{0,15}$/),
   AMERIA_PAYMENTS_ENABLED: Joi.boolean().default(false),

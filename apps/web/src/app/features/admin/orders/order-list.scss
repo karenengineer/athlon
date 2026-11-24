@@ -1,0 +1,67 @@
+.orders {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.order {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.4rem;
+  background: white;
+  overflow-wrap: anywhere;
+}
+.order-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  align-items: baseline;
+}
+.order-head small,
+.order-body small,
+.order-actions small {
+  color: #666;
+}
+.order-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem 1.5rem;
+}
+.order-body p {
+  margin: 0.25rem 0 0;
+  line-height: 1.45;
+}
+.order-items {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+}
+.order-actions .primary {
+  border-color: #171719;
+  color: white;
+  background: #171719;
+  font-weight: 700;
+}
+.delivered {
+  color: #1d6b39;
+  font-weight: 700;
+}
+.notice {
+  flex-basis: 100%;
+  margin: 0;
+  color: #1d6b39;
+}
+.notice.warn {
+  color: #a41622;
+}
+.order-body p small {
+  margin-right: 0.4rem;
+}

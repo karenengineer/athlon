@@ -59,14 +59,6 @@ describe("Product reviews", () => {
   });
 
   const server = () => app.getHttpServer();
-  let ip = 0;
-  // Each submission gets its own client address so the rate limit, tested
-  // separately below, does not leak between tests.
-  const submit = (slug: string, body: object, address = `203.0.113.${++ip}`) =>
-    request(server())
-      .post(`/api/v1/products/${slug}/reviews`)
-      .set("X-Forwarded-For", address)
-      .send(body);
   const valid = {
     authorName: "Aram",
     rating: 5,
@@ -82,6 +74,7 @@ describe("Product reviews", () => {
         rating: 5,
         body: "Great",
         locale: "HY",
+        orderId: "a1d2f6c0-5f37-4d55-9f0e-7f8a0c2b9e01",
         createdAt: new Date("2026-11-20T10:00:00Z"),
       },
     ]);
@@ -101,6 +94,7 @@ describe("Product reviews", () => {
           rating: 5,
           body: "Great",
           locale: "hy",
+          verified: true,
           createdAt: "2026-11-20T10:00:00.000Z",
         },
       ],
@@ -113,52 +107,14 @@ describe("Product reviews", () => {
 
   it("returns 404 for unknown or unpublished products", async () => {
     await request(server()).get("/api/v1/products/missing/reviews").expect(404);
-    await submit("missing", valid).expect(404);
+  });
+
+  it("has no anonymous review submission", async () => {
+    await request(server())
+      .post("/api/v1/products/whey/reviews")
+      .send(valid)
+      .expect(404);
     expect(prisma.productReview.create).not.toHaveBeenCalled();
-  });
-
-  it("stores a submitted review as pending", async () => {
-    await submit("whey", { ...valid, authorName: "  Aram  " })
-      .expect(202)
-      .expect({ status: "PENDING" });
-    expect(prisma.productReview.create).toHaveBeenCalledWith({
-      data: {
-        productId: "p1",
-        locale: "HY",
-        authorName: "Aram",
-        rating: 5,
-        body: valid.body,
-      },
-    });
-  });
-
-  it("silently drops honeypot submissions", async () => {
-    await submit("whey", { ...valid, website: "https://spam.example" }).expect(
-      202,
-    );
-    expect(prisma.productReview.create).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [{ rating: 0 }],
-    [{ rating: 6 }],
-    [{ rating: 4.5 }],
-    [{ body: "short" }],
-    [{ body: "x".repeat(2001) }],
-    [{ authorName: "A" }],
-    [{ locale: "de" }],
-    [{ status: "APPROVED" }],
-  ])("rejects invalid input %j", async (override) => {
-    await submit("whey", { ...valid, ...override }).expect(400);
-    expect(prisma.productReview.create).not.toHaveBeenCalled();
-  });
-
-  it("rate-limits submissions per client address", async () => {
-    const address = "198.51.100.7";
-    for (let attempt = 0; attempt < 3; attempt += 1)
-      await submit("whey", valid, address).expect(202);
-    await submit("whey", valid, address).expect(429);
-    expect(prisma.productReview.create).toHaveBeenCalledTimes(3);
   });
 
   it("requires admin auth and CSRF for moderation", async () => {
@@ -183,6 +139,7 @@ describe("Product reviews", () => {
         status: "PENDING",
         moderatedAt: null,
         createdAt: new Date("2026-11-20T10:00:00Z"),
+        order: { reference: "ATH-0001" },
         product: {
           slug: "whey",
           translations: [
@@ -201,6 +158,7 @@ describe("Product reviews", () => {
       id: reviewId,
       locale: "ru",
       status: "PENDING",
+      orderReference: "ATH-0001",
       product: { slug: "whey", name: "Շիճուկ" },
     });
     expect(list.body.meta).toMatchObject({ total: 1, pending: 1 });

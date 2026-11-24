@@ -54,6 +54,12 @@
       </td>
       <td>
         <b>{{ review.authorName }}</b>
+        @if (review.orderReference) {
+        <br /><small class="verified"
+          >✓ {{ i18n.translate("verifiedOrder") }} · {{ review.orderReference
+          }}</small
+        >
+        }
         <p>{{ review.body }}</p>
       </td>
       <td>
