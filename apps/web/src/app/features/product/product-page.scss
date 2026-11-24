@@ -176,6 +176,57 @@ h1 {
   cursor: not-allowed;
 }
 
+.instagram-order-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: 16px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  color: #fff;
+  background: #171719;
+  font-size: 0.84rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.instagram-order-cta:hover {
+  color: #fff;
+  background: #36363a;
+}
+
+.instagram-order-cta svg {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  vertical-align: -5px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.phone-order {
+  margin: 10px 0 0;
+  color: #55555c;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.phone-order a {
+  color: #171719;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
 .characteristics h2 {
   font-size: 1rem;
 }
@@ -294,6 +345,11 @@ h1 {
 }
 
 @media (max-width: 480px) {
+  .instagram-order-cta {
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+  }
+
   .related-grid {
     grid-template-columns: 1fr;
   }
