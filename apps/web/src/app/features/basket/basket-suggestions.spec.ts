@@ -166,6 +166,28 @@ describe("Basket product suggestions", () => {
     ).toBe(true);
   });
 
+  it("skips resistance bands and keeps other accessory suggestions", () => {
+    const creatine = product("current-creatine", "creatine");
+    TestBed.inject(BasketService).add(creatine);
+    render();
+
+    detail(creatine);
+    types().flush([
+      category("creatine"),
+      category("resistance-bands"),
+      category("training-accessories"),
+    ]);
+    http.expectNone(
+      (request) => request.params.get("category") === "resistance-bands",
+    );
+    suggestions("training-accessories").flush({
+      items: [product("shaker", "training-accessories", "Shaker")],
+    });
+
+    expect(section()?.textContent).toContain("Shaker");
+    expect(section()?.querySelector("li > button")).not.toBeNull();
+  });
+
   it("hides suggestions when all published types are in the basket", () => {
     TestBed.inject(BasketService).add(product("current-creatine", "creatine"));
     render();

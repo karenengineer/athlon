@@ -57,6 +57,57 @@ describe("BasketService", () => {
     },
   );
 
+  it("excludes resistance bands while allowing other training accessories", () => {
+    const basket = new BasketService();
+    basket.add({
+      ...product,
+      id: "band",
+      category: { slug: "resistance-bands", name: "Resistance bands" },
+    });
+    basket.add({
+      ...product,
+      id: "accessory",
+      category: { slug: "training-accessories", name: "Training accessories" },
+    });
+
+    expect(basket.items().map((item) => item.id)).toEqual(["accessory"]);
+  });
+
+  it.each(["legacy array", "v2"] as const)(
+    "drops a previously saved band in a %s basket",
+    (format) => {
+      const basket = new BasketService();
+      basket.add(product, 2);
+      const stored = JSON.parse(localStorage.getItem("athlon:basket:v1")!);
+      const items = [
+        ...stored.items,
+        {
+          ...stored.items[0],
+          id: "band",
+          slug: "purple-resistance-band-15-39-kg",
+          quantity: 1,
+        },
+      ];
+      localStorage.setItem(
+        "athlon:basket:v1",
+        JSON.stringify(
+          format === "legacy array"
+            ? items
+            : { ...stored, items, settledReferences: ["payment-1"] },
+        ),
+      );
+
+      const restored = new BasketService();
+      expect(restored.items().map((item) => item.id)).toEqual([product.id]);
+      expect(
+        restored.settlePayment("payment-1", [
+          { productId: product.id, quantity: 1 },
+        ]),
+      ).toBe(true);
+      expect(restored.totalQuantity()).toBe(format === "legacy array" ? 1 : 2);
+    },
+  );
+
   it("stores product quantities and restores them from localStorage", () => {
     const basket = TestBed.inject(BasketService);
 

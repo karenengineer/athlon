@@ -94,7 +94,7 @@
       <span data-testid="product-card-quantity-value"
         >{{ quantityInBasket() }}</span
       >
-      @if (product().availability === "IN_STOCK") {
+      @if (canAddToBasket()) {
       <button
         type="button"
         class="quantity-button"
@@ -106,7 +106,7 @@
       </button>
       }
     </div>
-    } @else if (product().availability === "IN_STOCK") {
+    } @else if (canAddToBasket()) {
     <button
       type="button"
       class="basket-button basket-button--icon"

@@ -20,7 +20,10 @@ import {
   PublicSettings,
 } from "../../core/api/catalog.models";
 import { ProductReviews } from "./product-reviews";
-import { BasketService } from "../../core/basket/basket.service";
+import {
+  BasketService,
+  isBasketEligible,
+} from "../../core/basket/basket.service";
 import { I18nService, Locale } from "../../core/i18n/i18n.service";
 import { imageAlt } from "../../core/seo/image-alt";
 import { localizeCharacteristicValue } from "./characteristic-values";
@@ -51,6 +54,7 @@ import {
   styleUrl: "./product-page.scss",
 })
 export class ProductPage {
+  readonly isBasketEligible = isBasketEligible;
   readonly i18n = inject(I18nService);
   readonly state = signal<"loading" | "ready" | "error" | "not-found">(
     "loading",
@@ -334,7 +338,7 @@ export class ProductPage {
 
   addToBasket(): void {
     const product = this.product();
-    if (product && product.availability === "IN_STOCK") {
+    if (product && isBasketEligible(product)) {
       this.basket.add(product);
     }
   }

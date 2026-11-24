@@ -16,7 +16,12 @@ import {
 } from "rxjs";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
 import { Product } from "../../core/api/catalog.models";
-import { BasketItem, BasketService } from "../../core/basket/basket.service";
+import {
+  BasketItem,
+  BasketService,
+  isBasketEligible,
+  resistanceBandsCategory,
+} from "../../core/basket/basket.service";
 import { I18nService, Locale } from "../../core/i18n/i18n.service";
 
 type BasketMember = Pick<BasketItem, "id" | "slug">;
@@ -125,7 +130,11 @@ export class BasketSuggestions {
                   type.children.length ? type.children : [type],
                 )
                 .map((type) => type.slug)
-                .filter((slug) => !excludedTypes.has(slug)),
+                .filter(
+                  (slug) =>
+                    !excludedTypes.has(slug) &&
+                    slug !== resistanceBandsCategory,
+                ),
             );
             const typesToQuery = [...new Set([...preferredTypes, ...eligible])]
               .filter((slug) => eligible.has(slug))
@@ -145,7 +154,7 @@ export class BasketSuggestions {
                     map(({ items }) =>
                       items.find(
                         (item) =>
-                          item.availability === "IN_STOCK" &&
+                          isBasketEligible(item) &&
                           item.category.slug === category &&
                           !basketIds.has(item.id),
                       ),
