@@ -177,9 +177,9 @@ const informationCopy = {
     ],
     delivery: [
       "Առաքում և վճարում",
-      "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Վճարեք կանխիկ կամ քարտով՝ առաքիչին, պատվերը ստանալիս։",
+      "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Վճարումը՝ առցանց բանկային քարտով, պատվերը ձևակերպելիս։",
       "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։",
-      "կանխիկ կամ քարտով՝ առաքիչին",
+      "Վճարեք բանկային քարտով պատվերը ձևակերպելիս՝ բանկի անվտանգ էջում։ Պատվերը հաստատվում է վճարումից հետո։",
     ],
     returns: [
       "Վերադարձ և փոխանակում",
@@ -215,9 +215,9 @@ const informationCopy = {
     ],
     delivery: [
       "Доставка и оплата",
-      "Бесплатная доставка по всей Армении независимо от суммы заказа. Оплата наличными или картой курьеру при получении.",
+      "Бесплатная доставка по всей Армении независимо от суммы заказа. Оплата онлайн банковской картой при оформлении заказа.",
       "Бесплатная доставка по всей Армении независимо от суммы заказа.",
-      "наличными или картой курьеру",
+      "Оплатите заказ банковской картой при оформлении — на защищённой странице банка. Заказ подтверждается после оплаты.",
     ],
     returns: [
       "Возврат и обмен",
@@ -253,9 +253,9 @@ const informationCopy = {
     ],
     delivery: [
       "Delivery and payment",
-      "Free delivery throughout Armenia, regardless of order value. Pay with cash or card to the courier on delivery.",
+      "Free delivery throughout Armenia, regardless of order value. Pay online by bank card when you place your order.",
       "Free delivery throughout Armenia, regardless of order value.",
-      "cash or card to the courier",
+      "Pay by bank card while placing your order, on the bank's secure page. Your order is confirmed once the payment goes through.",
     ],
     returns: [
       "Returns and exchanges",
