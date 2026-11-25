@@ -290,6 +290,16 @@
         </p>
         } @else {
         <p class="payment-note">{{ i18n.t("orderCardOnlyNote") }}</p>
+        <p class="payment-note" data-testid="order-alternatives">
+          {{ i18n.t("orderAltPrefix") }}<a [href]="orderPhoneHref"
+            >{{ orderPhoneDisplay }}</a
+          >{{ i18n.t("orderAltMiddle") }}<a
+            [href]="instagramUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Instagram</a
+          >{{ i18n.t("orderAltSuffix") }}
+        </p>
         }
         <div class="privacy-consent">
           <label for="order-privacy">

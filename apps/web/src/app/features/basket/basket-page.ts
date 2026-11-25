@@ -1,3 +1,8 @@
+import {
+  INSTAGRAM_PROFILE_URL,
+  ORDER_PHONE_DISPLAY,
+  ORDER_PHONE_HREF,
+} from "../../core/social-links";
 import { CurrencyPipe } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
 import {
@@ -95,6 +100,9 @@ export class BasketPage {
   readonly sandboxAttemptComplete = signal(false);
   private readonly cancellableSandboxReference = signal<string | null>(null);
   sandboxAccess = "";
+  readonly orderPhoneHref = ORDER_PHONE_HREF;
+  readonly orderPhoneDisplay = ORDER_PHONE_DISPLAY;
+  readonly instagramUrl = INSTAGRAM_PROFILE_URL;
   /** Customers pay online by card while ordering; there is no pay on delivery. */
   readonly paymentMethod = signal<"CARD">("CARD");
   readonly customer = this.cardPaymentTestMode

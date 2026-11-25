@@ -490,6 +490,20 @@ describe("BasketPage", () => {
       element.querySelector("[data-testid=card-only-payment]")?.textContent,
     ).toContain("Pay by bank card now");
     expect(element.textContent).toContain("on the bank's secure page");
+    const alternatives = element.querySelector(
+      "[data-testid=order-alternatives]",
+    )!;
+    expect(alternatives.textContent?.replace(/\s+/g, " ")).toContain(
+      "You can also order by calling 041 44 88 55 or by messaging us on Instagram.",
+    );
+    expect(
+      alternatives.querySelector('a[href="tel:+37441448855"]'),
+    ).not.toBeNull();
+    expect(
+      alternatives
+        .querySelector('a[href*="instagram.com"]')
+        ?.getAttribute("rel"),
+    ).toContain("noopener");
     expect(element.textContent).not.toMatch(/on delivery|courier/i);
   });
 

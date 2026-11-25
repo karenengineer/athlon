@@ -125,6 +125,9 @@ type Copy = {
   orderPaymentMethod: string;
   orderPayByCard: string;
   orderCardOnlyNote: string;
+  orderAltPrefix: string;
+  orderAltMiddle: string;
+  orderAltSuffix: string;
   cardPaymentsUnavailable: string;
   orderPaymentPending: string;
   orderPaymentConfirmed: string;
@@ -316,6 +319,9 @@ const copy: Record<Locale, Copy> = {
     orderPayByCard: "Оплатить банковской картой сейчас",
     orderCardOnlyNote:
       "Оплата при оформлении заказа на защищённой странице банка. Заказ подтверждается после оплаты.",
+    orderAltPrefix: "Также можно сделать заказ по телефону ",
+    orderAltMiddle: " или написав нам в ",
+    orderAltSuffix: ".",
     cardPaymentsUnavailable:
       "Онлайн-оплата временно недоступна. Чтобы сделать заказ, позвоните по номеру 041 44 88 55 или напишите нам в Instagram.",
     orderPaymentPending: "Открываем защищённую страницу оплаты банка…",
@@ -523,6 +529,9 @@ const copy: Record<Locale, Copy> = {
     orderPayByCard: "Վճարել բանկային քարտով հիմա",
     orderCardOnlyNote:
       "Վճարումը կատարվում է պատվերը ձևակերպելիս՝ բանկի անվտանգ էջում։ Պատվերը հաստատվում է վճարումից հետո։",
+    orderAltPrefix: "Կարող եք նաև պատվիրել՝ զանգահարելով ",
+    orderAltMiddle: " հեռախոսահամարով կամ գրելով մեզ ",
+    orderAltSuffix: "-ում։",
     cardPaymentsUnavailable:
       "Առցանց վճարումը ժամանակավորապես հասանելի չէ։ Պատվիրելու համար զանգահարեք 041 44 88 55 հեռախոսահամարով կամ գրեք մեզ Instagram-ում։",
     orderPaymentPending: "Բացում ենք բանկի անվտանգ վճարման էջը…",
@@ -731,6 +740,9 @@ const copy: Record<Locale, Copy> = {
     orderPayByCard: "Pay by bank card now",
     orderCardOnlyNote:
       "You pay while ordering, on the bank's secure page. Your order is confirmed once the payment goes through.",
+    orderAltPrefix: "You can also order by calling ",
+    orderAltMiddle: " or by messaging us on ",
+    orderAltSuffix: ".",
     cardPaymentsUnavailable:
       "Online payment is temporarily unavailable. To order, call 041 44 88 55 or message us on Instagram.",
     orderPaymentPending: "Opening the bank’s secure payment page…",
