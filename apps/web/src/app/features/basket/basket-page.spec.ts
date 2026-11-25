@@ -265,9 +265,8 @@ describe("BasketPage", () => {
     expect(fixture.nativeElement.textContent).toContain("TEST / MOCK");
     expect(fixture.nativeElement.textContent).toContain("no card is charged");
     expect(
-      fixture.nativeElement.querySelector("[data-testid=card-only-payment]")
-        ?.textContent,
-    ).toContain("Pay by bank card now");
+      fixture.nativeElement.querySelector("[data-testid=card-only-payment]"),
+    ).toBeNull();
     http.expectNone((request) => request.url.endsWith("/public/settings"));
   });
 
@@ -486,9 +485,7 @@ describe("BasketPage", () => {
     expect(
       element.querySelectorAll('input[name="paymentMethod"]'),
     ).toHaveLength(0);
-    expect(
-      element.querySelector("[data-testid=card-only-payment]")?.textContent,
-    ).toContain("Pay by bank card now");
+    expect(element.querySelector("[data-testid=card-only-payment]")).toBeNull();
     expect(element.textContent).toContain("on the bank's secure page");
     const alternatives = element.querySelector(
       "[data-testid=order-alternatives]",
@@ -944,9 +941,6 @@ describe("BasketPage", () => {
     const recreatedForm = recreated.nativeElement.querySelector(
       "form",
     ) as HTMLFormElement;
-    expect(
-      recreated.nativeElement.querySelector("[data-testid=card-only-payment]"),
-    ).not.toBeNull();
     acceptPrivacy(recreatedForm);
     recreatedForm.dispatchEvent(
       new Event("submit", { bubbles: true, cancelable: true }),

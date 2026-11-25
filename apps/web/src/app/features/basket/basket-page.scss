@@ -253,57 +253,13 @@ h1 {
   font: inherit;
 }
 
-.payment-methods {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  border: 1px solid #d5d5d9;
-  border-radius: 12px;
-  padding: 12px;
-}
-
-.payment-method-label {
-  color: #44444a;
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
 .payment-note a {
   color: #171719;
   font-weight: 800;
 }
 
-.payment-method-value {
-  color: #171719;
-  font-size: 0.95rem;
-  font-weight: 800;
-}
-
 .payment-note.payment-unavailable {
   color: #a41622 !important;
-}
-
-.payment-methods legend {
-  padding-inline: 5px;
-  color: #44444a;
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.payment-methods label {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  font-weight: 600;
-}
-
-.payment-methods input[type="radio"] {
-  flex: 0 0 auto;
-  width: 18px;
-  min-height: 18px;
-  height: 18px;
-  margin: 2px 0 0;
-  accent-color: #171719;
 }
 
 .privacy-consent {
