@@ -113,57 +113,38 @@ describe("Public orders", () => {
     global.fetch = originalFetch;
   });
 
-  it("accepts a valid basket and sends an order notification", async () => {
-    await request(app.getHttpServer())
-      .post("/api/v1/public/orders")
-      .set("Idempotency-Key", "e2e-order-0001")
-      .send({
-        locale: "hy",
-        customer: {
-          name: "Անի",
-          email: "ani@example.com",
-          phone: "+374 91 123456",
-          address: "Երևան, Աբովյան 1",
-        },
-        items: [
-          {
-            productId: product.id,
-            quantity: 2,
-            expectedUnitPrice: "24000",
+  it("rejects pay-on-delivery and method-less orders without saving or emailing", async () => {
+    for (const [key, method] of [
+      ["e2e-order-cash-0001", { paymentMethod: "CASH_ON_DELIVERY" }],
+      ["e2e-order-nomethod-0001", {}],
+    ] as const) {
+      await request(app.getHttpServer())
+        .post("/api/v1/public/orders")
+        .set("Idempotency-Key", key)
+        .send({
+          locale: "hy",
+          ...method,
+          customer: {
+            name: "Անի",
+            email: "ani@example.com",
+            phone: "+374 91 123456",
+            address: "Երևան, Աբովյան 1",
           },
-        ],
-      })
-      .expect(201)
-      .expect(({ body }) => {
-        expect(body).toEqual({
-          kind: "COD_ACCEPTED",
-          accepted: true,
-          orderReference: expect.any(String),
+          items: [
+            { productId: product.id, quantity: 2, expectedUnitPrice: "24000" },
+          ],
+        })
+        .expect(400)
+        .expect(({ body }) => {
+          expect(JSON.stringify(body)).toContain(
+            "Only online card payment is available",
+          );
         });
-      });
+    }
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://api.resend.com/emails");
-    expect((init.headers as Record<string, string>)["Idempotency-Key"]).toBe(
-      "e2e-merchant-notification",
-    );
-    const email = JSON.parse(init.body as string);
-    expect(email).toEqual(
-      expect.objectContaining({
-        to: ["athlonsportgoods@gmail.com"],
-        from: "orders@athlonsport.am",
-      }),
-    );
-    expect(email.text).toContain("Պրոտեին");
-    expect(email.text).toContain("48,000");
-    const [, customerInit] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(
-      (customerInit.headers as Record<string, string>)["Idempotency-Key"],
-    ).toBe("e2e-customer-notification");
-    expect(JSON.parse(customerInit.body as string).to).toEqual([
-      "ani@example.com",
-    ]);
+    expect(prisma.product.findMany).not.toHaveBeenCalled();
+    expect(persistence.createPendingOrder).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects missing customer details before trying to send email", async () => {
@@ -174,60 +155,6 @@ describe("Public orders", () => {
       .expect(400);
 
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("sends configured Telegram alongside both emails for an accepted order", async () => {
-    const token = "123456:e2e-order-test";
-    const chatId = "-1001234567890";
-    const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-    process.env.ORDER_TELEGRAM_BOT_TOKEN = token;
-    process.env.ORDER_TELEGRAM_CHAT_ID = chatId;
-    fetchMock.mockImplementation((url: string) =>
-      Promise.resolve(
-        Response.json(
-          url === telegramUrl ? { ok: true } : { id: "email_test_1" },
-        ),
-      ),
-    );
-
-    await request(app.getHttpServer())
-      .post("/api/v1/public/orders")
-      .set("Idempotency-Key", "e2e-order-telegram")
-      .send({
-        locale: "hy",
-        customer: {
-          name: "Անի",
-          email: "ani@example.com",
-          phone: "+374 91 123456",
-          address: "Երևան, Աբովյան 1",
-        },
-        items: [
-          { productId: product.id, quantity: 2, expectedUnitPrice: "24000" },
-        ],
-      })
-      .expect(201)
-      .expect(({ body }) => {
-        expect(body).toMatchObject({ kind: "COD_ACCEPTED", accepted: true });
-      });
-
-    expect(persistence.createMerchantTelegramNotification).toHaveBeenCalledWith(
-      "order-test-id",
-      "ORDER_ACCEPTED",
-    );
-    expect(persistence.markNotificationSent).toHaveBeenCalledWith(
-      "e2e-telegram-notification",
-    );
-    const calls = fetchMock.mock.calls as [string, RequestInit][];
-    expect(
-      calls.filter(([url]) => url === "https://api.resend.com/emails"),
-    ).toHaveLength(2);
-    const telegramRequest = calls.find(([url]) => url === telegramUrl)?.[1];
-    expect(JSON.parse(telegramRequest!.body as string)).toEqual(
-      expect.objectContaining({
-        chat_id: chatId,
-        text: expect.stringContaining("Ընդամենը: 48000 AMD"),
-      }),
-    );
   });
 
   it("requires a valid idempotency key and customer email", async () => {
@@ -315,27 +242,6 @@ describe("Public orders", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a stale basket price without sending an email", async () => {
-    await request(app.getHttpServer())
-      .post("/api/v1/public/orders")
-      .set("Idempotency-Key", "e2e-order-stale-0002")
-      .send({
-        locale: "hy",
-        customer: {
-          name: "Անի",
-          email: "ani@example.com",
-          phone: "091123456",
-          address: "Երևան",
-        },
-        items: [
-          { productId: product.id, quantity: 1, expectedUnitPrice: "100" },
-        ],
-      })
-      .expect(409);
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
   it("does not trust a browser-supplied product name or total", async () => {
     await request(app.getHttpServer())
       .post("/api/v1/public/orders")
@@ -362,39 +268,6 @@ describe("Public orders", () => {
       .expect(400);
 
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("does not send an email if the transactional provider fails", async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ message: "secret provider details" }), {
-        status: 500,
-      }),
-    );
-
-    await request(app.getHttpServer())
-      .post("/api/v1/public/orders")
-      .set("Idempotency-Key", "e2e-order-email-0004")
-      .send({
-        locale: "hy",
-        customer: {
-          name: "Անի",
-          email: "ani@example.com",
-          phone: "091123456",
-          address: "Երևան",
-        },
-        items: [
-          {
-            productId: product.id,
-            quantity: 1,
-            expectedUnitPrice: "24000",
-          },
-        ],
-      })
-      .expect(503)
-      .expect(({ body }) => {
-        expect(JSON.stringify(body)).not.toContain("secret provider details");
-        expect(JSON.stringify(body)).not.toContain("test-only-key");
-      });
   });
 
   it("rejects invalid products and does not contact the email provider", async () => {
@@ -450,7 +323,7 @@ describe("Public orders", () => {
         .set("Idempotency-Key", `e2e-rate-${index}-12345678`)
         .set("x-forwarded-for", "198.51.100.10")
         .send(payload)
-        .expect(201);
+        .expect(400);
     }
 
     await request(app.getHttpServer())
@@ -465,6 +338,6 @@ describe("Public orders", () => {
       .set("Idempotency-Key", "e2e-rate-other-12345678")
       .set("x-forwarded-for", "198.51.100.11")
       .send(payload)
-      .expect(201);
+      .expect(400);
   });
 });

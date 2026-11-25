@@ -89,10 +89,12 @@ export class OrdersService {
       }
       throw new ConflictException("This payment request cannot be resumed");
     }
-    if (
-      paymentMethod === "CARD" &&
-      (!this.paymentInitializer || !this.paymentInitializer.isEnabled)
-    ) {
+    if (paymentMethod !== "CARD") {
+      // Checkout is card-only: customers pay online while ordering. Retries of
+      // cash orders placed before this change are still answered above.
+      throw new BadRequestException("Only online card payment is available");
+    }
+    if (!this.paymentInitializer || !this.paymentInitializer.isEnabled) {
       throw new ServiceUnavailableException("Card payments are unavailable");
     }
 
@@ -191,16 +193,6 @@ export class OrdersService {
     });
     const order = persisted.order;
 
-    if (paymentMethod === "CASH_ON_DELIVERY") {
-      const message = orderEmailMessage(order);
-      await this.dispatchOrderNotifications(order, message, persisted.created);
-      return {
-        kind: "COD_ACCEPTED",
-        accepted: true,
-        orderReference: order.reference,
-      };
-    }
-
     if (!persisted.created) {
       // Another request may have initialized the same idempotency key between
       // the initial lookup and this transaction. Reload once and recover its
@@ -222,10 +214,10 @@ export class OrdersService {
     }
 
     try {
-      const initialized = await this.paymentInitializer!.initialize(order);
+      const initialized = await this.paymentInitializer.initialize(order);
       if (
         !isValidHostedCheckoutUrl(initialized.checkoutUrl) ||
-        !this.paymentInitializer!.isTrustedCheckoutUrl(initialized.checkoutUrl)
+        !this.paymentInitializer.isTrustedCheckoutUrl(initialized.checkoutUrl)
       ) {
         throw new Error("Invalid hosted checkout URL");
       }
@@ -490,7 +482,7 @@ function orderEmailMessage(order: {
   };
 }
 
-function createOrderRequestFingerprint(input: CreateOrderDto): string {
+export function createOrderRequestFingerprint(input: CreateOrderDto): string {
   const canonicalRequest = {
     locale: parseLocale(input.locale),
     paymentMethod: input.paymentMethod ?? "CASH_ON_DELIVERY",

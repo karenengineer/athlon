@@ -128,16 +128,6 @@ export function abandonLiveCardCheckout(checkout: LiveCardCheckout): void {
   }
 }
 
-export function finishRetriedCashCheckout(checkout: LiveCardCheckout): void {
-  const current = readLiveCardCheckout();
-  if (current?.key !== checkout.key || current.phase !== "ready") return;
-  try {
-    window.sessionStorage.removeItem(liveCheckoutKey);
-  } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts.
-  }
-}
-
 export function canRetryCardPayment(response: PaymentStatusResponse): boolean {
   return (
     response.retryAllowed === true &&

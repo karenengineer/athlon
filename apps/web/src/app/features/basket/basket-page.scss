@@ -262,6 +262,27 @@ h1 {
   padding: 12px;
 }
 
+.payment-method-label {
+  color: #44444a;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.payment-note a {
+  color: #171719;
+  font-weight: 800;
+}
+
+.payment-method-value {
+  color: #171719;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.payment-note.payment-unavailable {
+  color: #a41622 !important;
+}
+
 .payment-methods legend {
   padding-inline: 5px;
   color: #44444a;

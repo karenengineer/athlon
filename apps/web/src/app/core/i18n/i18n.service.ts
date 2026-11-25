@@ -123,9 +123,12 @@ type Copy = {
   orderCustomerPhone: string;
   orderDeliveryAddress: string;
   orderPaymentMethod: string;
-  orderPayOnDelivery: string;
   orderPayByCard: string;
-  orderPaymentOnDelivery: string;
+  orderCardOnlyNote: string;
+  orderAltPrefix: string;
+  orderAltMiddle: string;
+  orderAltSuffix: string;
+  cardPaymentsUnavailable: string;
   orderPaymentPending: string;
   orderPaymentConfirmed: string;
   orderPaymentFailed: string;
@@ -187,7 +190,7 @@ const copy: Record<Locale, Copy> = {
       "Банк подтвердил оплату. Мы отправили подтверждение на вашу почту, курьер свяжется с вами для доставки.",
     paymentReturnFailedTitle: "Оплата не завершена",
     paymentReturnFailedText:
-      "Деньги не списаны или платёж отменён. Можно вернуться в корзину и попробовать снова или выбрать оплату при получении.",
+      "Деньги не списаны или платёж отменён. Можно вернуться в корзину и попробовать оплатить снова.",
     paymentReturnPendingTitle: "Платёж ещё обрабатывается",
     paymentReturnPendingText:
       "Банк пока не подтвердил оплату. Это может занять несколько минут — страница обновится сама, а при подтверждении вы получите письмо.",
@@ -313,10 +316,14 @@ const copy: Record<Locale, Copy> = {
     orderCustomerPhone: "Номер телефона",
     orderDeliveryAddress: "Адрес доставки",
     orderPaymentMethod: "Способ оплаты",
-    orderPayOnDelivery: "Наличными или картой курьеру при доставке",
     orderPayByCard: "Оплатить банковской картой сейчас",
-    orderPaymentOnDelivery:
-      "Оплата при получении заказа — наличными или картой.",
+    orderCardOnlyNote:
+      "Оплата при оформлении заказа на защищённой странице банка. Заказ подтверждается после оплаты.",
+    orderAltPrefix: "Также можно сделать заказ по телефону ",
+    orderAltMiddle: " или написав нам в ",
+    orderAltSuffix: ".",
+    cardPaymentsUnavailable:
+      "Онлайн-оплата временно недоступна. Чтобы сделать заказ, позвоните по номеру 041 44 88 55 или напишите нам в Instagram.",
     orderPaymentPending: "Открываем защищённую страницу оплаты банка…",
     orderPaymentConfirmed: "Оплата подтверждена.",
     orderPaymentFailed:
@@ -393,7 +400,7 @@ const copy: Record<Locale, Copy> = {
       "Բանկը հաստատեց վճարումը։ Հաստատումը ուղարկել ենք ձեր էլ. փոստին, առաքիչը կկապվի ձեզ հետ։",
     paymentReturnFailedTitle: "Վճարումը չի ավարտվել",
     paymentReturnFailedText:
-      "Գումարը չի գանձվել կամ վճարումը չեղարկվել է։ Կարող եք վերադառնալ զամբյուղ և փորձել կրկին կամ ընտրել վճարում ստանալիս։",
+      "Գումարը չի գանձվել կամ վճարումը չեղարկվել է։ Կարող եք վերադառնալ զամբյուղ և կրկին փորձել վճարել։",
     paymentReturnPendingTitle: "Վճարումը դեռ մշակվում է",
     paymentReturnPendingText:
       "Բանկը դեռ չի հաստատել վճարումը։ Դա կարող է տևել մի քանի րոպե․ էջը կթարմացվի ինքնաշխատ, իսկ հաստատվելու դեպքում կստանաք նամակ։",
@@ -519,9 +526,14 @@ const copy: Record<Locale, Copy> = {
     orderCustomerPhone: "Հեռախոսահամար",
     orderDeliveryAddress: "Առաքման հասցե",
     orderPaymentMethod: "Վճարման եղանակը",
-    orderPayOnDelivery: "Կանխիկ կամ քարտով՝ առաքման պահին",
     orderPayByCard: "Վճարել բանկային քարտով հիմա",
-    orderPaymentOnDelivery: "Վճարումը՝ պատվերը ստանալիս․ կանխիկ կամ քարտով։",
+    orderCardOnlyNote:
+      "Վճարումը կատարվում է պատվերը ձևակերպելիս՝ բանկի անվտանգ էջում։ Պատվերը հաստատվում է վճարումից հետո։",
+    orderAltPrefix: "Կարող եք նաև պատվիրել՝ զանգահարելով ",
+    orderAltMiddle: " հեռախոսահամարով կամ գրելով մեզ ",
+    orderAltSuffix: "-ում։",
+    cardPaymentsUnavailable:
+      "Առցանց վճարումը ժամանակավորապես հասանելի չէ։ Պատվիրելու համար զանգահարեք 041 44 88 55 հեռախոսահամարով կամ գրեք մեզ Instagram-ում։",
     orderPaymentPending: "Բացում ենք բանկի անվտանգ վճարման էջը…",
     orderPaymentConfirmed: "Վճարումը հաստատվել է։",
     orderPaymentFailed:
@@ -599,7 +611,7 @@ const copy: Record<Locale, Copy> = {
       "The bank confirmed your payment. We emailed you a confirmation, and the courier will contact you about delivery.",
     paymentReturnFailedTitle: "Payment not completed",
     paymentReturnFailedText:
-      "No money was taken or the payment was cancelled. You can go back to the basket and try again, or choose to pay on delivery.",
+      "No money was taken or the payment was cancelled. You can go back to the basket and try paying again.",
     paymentReturnPendingTitle: "Payment still processing",
     paymentReturnPendingText:
       "The bank has not confirmed the payment yet. This can take a few minutes; this page updates by itself and you will get an email once it is confirmed.",
@@ -725,9 +737,14 @@ const copy: Record<Locale, Copy> = {
     orderCustomerPhone: "Phone number",
     orderDeliveryAddress: "Delivery address",
     orderPaymentMethod: "Payment method",
-    orderPayOnDelivery: "Cash or card when the courier delivers",
     orderPayByCard: "Pay by bank card now",
-    orderPaymentOnDelivery: "Pay the courier on delivery by cash or card.",
+    orderCardOnlyNote:
+      "You pay while ordering, on the bank's secure page. Your order is confirmed once the payment goes through.",
+    orderAltPrefix: "You can also order by calling ",
+    orderAltMiddle: " or by messaging us on ",
+    orderAltSuffix: ".",
+    cardPaymentsUnavailable:
+      "Online payment is temporarily unavailable. To order, call 041 44 88 55 or message us on Instagram.",
     orderPaymentPending: "Opening the bank’s secure payment page…",
     orderPaymentConfirmed: "Payment confirmed.",
     orderPaymentFailed:
