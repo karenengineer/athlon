@@ -271,14 +271,6 @@
           >
           }
         </label>
-        <div class="payment-methods" data-testid="card-only-payment">
-          <span class="payment-method-label"
-            >{{ i18n.t("orderPaymentMethod") }}</span
-          >
-          <span class="payment-method-value"
-            >{{ i18n.t("orderPayByCard") }}</span
-          >
-        </div>
         @if (cardPaymentTestMode) {
         <p class="payment-note">
           {{ i18n.t(sandboxMode() ? "paymentSandboxDescription" :
