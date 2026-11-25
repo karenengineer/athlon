@@ -23,12 +23,24 @@
   --athlon-red: #2b2b2f;
   --athlon-light: #f0f0f2;
   --page-width: 1200px;
+  /* Height of the fixed site header; measured at runtime by the shell. */
+  --header-height: 80px;
   --font-slogan:
     "Noto Sans Armenian Display", "Oswald", "Arial Narrow", Arial, sans-serif;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-padding-top: calc(var(--header-height) + 12px);
+}
+
+@media (max-width: 860px) {
+  :root {
+    --header-height: 120px;
+  }
 }
 
 html {

@@ -188,7 +188,7 @@ h1 {
 
 .basket-summary {
   position: sticky;
-  top: 18px;
+  top: calc(var(--header-height) + 18px);
   display: grid;
   gap: 12px;
   padding: 18px;
