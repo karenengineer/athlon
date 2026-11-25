@@ -66,10 +66,7 @@ function useCardPaymentTestRoute(session?: string): void {
   basketRouteStub.parent.paramMap.next(convertToParamMap({ locale: "en" }));
 }
 
-function createBasketFixture(
-  cardPaymentsEnabled = false,
-  testSession?: string,
-) {
+function createBasketFixture(cardPaymentsEnabled = true, testSession?: string) {
   const testMode = arguments.length > 1;
   if (testMode) useCardPaymentTestRoute(testSession);
   const basket = TestBed.inject(BasketService);
@@ -268,11 +265,9 @@ describe("BasketPage", () => {
     expect(fixture.nativeElement.textContent).toContain("TEST / MOCK");
     expect(fixture.nativeElement.textContent).toContain("no card is charged");
     expect(
-      fixture.nativeElement.querySelectorAll('input[name="paymentMethod"]'),
-    ).toHaveLength(1);
-    expect(
-      fixture.nativeElement.querySelector('input[value="CARD"]')?.checked,
-    ).toBe(true);
+      fixture.nativeElement.querySelector("[data-testid=card-only-payment]")
+        ?.textContent,
+    ).toContain("Pay by bank card now");
     http.expectNone((request) => request.url.endsWith("/public/settings"));
   });
 
@@ -482,15 +477,45 @@ describe("BasketPage", () => {
     },
   );
 
-  it("defaults to pay on delivery and only offers card when the public flag is true", () => {
-    const { fixture } = createBasketFixture(false);
-    const radios = fixture.nativeElement.querySelectorAll(
-      'input[name="paymentMethod"]',
-    );
+  it("offers only online card payment, with no pay-on-delivery choice", () => {
+    const { fixture } = createBasketFixture();
+    fixture.componentInstance.i18n.setLocale("en");
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
 
-    expect(radios).toHaveLength(1);
-    expect(radios[0].value).toBe("CASH_ON_DELIVERY");
-    expect(radios[0].checked).toBe(true);
+    expect(
+      element.querySelectorAll('input[name="paymentMethod"]'),
+    ).toHaveLength(0);
+    expect(
+      element.querySelector("[data-testid=card-only-payment]")?.textContent,
+    ).toContain("Pay by bank card now");
+    expect(element.textContent).toContain("on the bank's secure page");
+    expect(element.textContent).not.toMatch(/on delivery|courier/i);
+  });
+
+  it("blocks online ordering and explains alternatives while card payments are off", () => {
+    const { fixture } = createBasketFixture(false);
+    fixture.componentInstance.i18n.setLocale("en");
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
+    const form = element.querySelector("form") as HTMLFormElement;
+
+    expect(
+      element.querySelector(".payment-unavailable")?.textContent,
+    ).toContain("Online payment is temporarily unavailable");
+    expect(
+      element.querySelector<HTMLButtonElement>(".order-button")?.disabled,
+    ).toBe(true);
+    fillOrderForm(form, {
+      customerName: "Ani",
+      customerEmail: "ani@example.com",
+      customerPhone: "+374 91 123456",
+      deliveryAddress: "Yerevan",
+    });
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+    http.expectNone((request) => request.url.endsWith("/public/orders"));
   });
 
   it("requires name, email, phone, and delivery address before placing an order", () => {
@@ -534,11 +559,6 @@ describe("BasketPage", () => {
     component.i18n.setLocale("en");
     const redirect = vi.spyOn(component, "redirectToCheckout");
     const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
-    const cardRadio = form.querySelector<HTMLInputElement>(
-      'input[value="CARD"]',
-    )!;
-    cardRadio.checked = true;
-    cardRadio.dispatchEvent(new Event("change", { bubbles: true }));
     fillOrderForm(form, {
       customerName: "Ani",
       customerEmail: "ani@example.com",
@@ -698,11 +718,6 @@ describe("BasketPage", () => {
     component.i18n.setLocale("en");
     const redirect = vi.spyOn(component, "redirectToCheckout");
     const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
-    const cardRadio = form.querySelector<HTMLInputElement>(
-      'input[value="CARD"]',
-    )!;
-    cardRadio.checked = true;
-    cardRadio.dispatchEvent(new Event("change", { bubbles: true }));
     fillOrderForm(form, {
       customerName: "Ani",
       customerEmail: "ani@example.com",
@@ -754,10 +769,11 @@ describe("BasketPage", () => {
     );
   });
 
-  it("sends the basket and customer details, then clears the basket on acceptance", () => {
+  it("sends the basket and customer details as a card order and never treats a cash answer as success", () => {
     const { fixture, basket } = createBasketFixture();
     const component = fixture.componentInstance;
     component.i18n.setLocale("en");
+    const redirect = vi.spyOn(component, "redirectToCheckout");
     const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
     fillOrderForm(form, {
       customerName: "Ani",
@@ -777,7 +793,7 @@ describe("BasketPage", () => {
     expect(req.request.method).toBe("POST");
     expect(req.request.body).toEqual({
       locale: "en",
-      paymentMethod: "CASH_ON_DELIVERY",
+      paymentMethod: "CARD",
       customer: {
         name: "Ani",
         email: "ani@example.com",
@@ -799,16 +815,6 @@ describe("BasketPage", () => {
       true,
     );
     expect(
-      fixture.nativeElement.querySelector('[type="number"]').disabled,
-    ).toBe(true);
-    expect(
-      fixture.nativeElement.querySelector(".basket-item-actions button")
-        .disabled,
-    ).toBe(true);
-    expect(fixture.nativeElement.querySelector(".clear-button").disabled).toBe(
-      true,
-    );
-    expect(
       fixture.nativeElement.querySelector('[name="customerName"]').disabled,
     ).toBe(true);
     req.flush({
@@ -818,12 +824,14 @@ describe("BasketPage", () => {
     });
     fixture.detectChanges();
 
-    expect(basket.items()).toHaveLength(0);
-    expect(sessionStorage.getItem("athlon_checkout_customer_v1")).toBeNull();
-    expect(sessionStorage.getItem("athlon_checkout_idempotency_v1")).toBeNull();
+    expect(redirect).not.toHaveBeenCalled();
+    expect(basket.items()).toHaveLength(1);
+    expect(fixture.nativeElement.textContent).not.toMatch(
+      /order has been registered|պատվերը գրանցված է/i,
+    );
     expect(
-      fixture.nativeElement.querySelector('[role="status"]').textContent,
-    ).toContain("Your order has been registered.");
+      fixture.nativeElement.querySelector('[role="alert"]').textContent,
+    ).toContain("Could not submit your order.");
   });
 
   it("keeps the basket and checkout values when order submission fails", () => {
@@ -849,9 +857,10 @@ describe("BasketPage", () => {
     expect(
       form.querySelector<HTMLInputElement>('[name="customerName"]')?.value,
     ).toBe("Ani");
-    expect(fixture.nativeElement.querySelector(".order-button").disabled).toBe(
-      false,
-    );
+    // The card attempt may exist at the bank, so the customer checks it first.
+    expect(
+      fixture.nativeElement.querySelector("#live-payment-check"),
+    ).not.toBeNull();
     expect(
       fixture.nativeElement.querySelector('[role="alert"]').textContent,
     ).toContain("Չհաջողվեց ուղարկել պատվերը։ Խնդրում ենք կրկին փորձել։");
@@ -889,52 +898,9 @@ describe("BasketPage", () => {
     ).toBe("Yerevan");
   });
 
-  it("reuses the same request key after a retryable failure and page recreation", () => {
-    const { fixture } = createBasketFixture();
-    const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
-    fillOrderForm(form, {
-      customerName: "Ani",
-      customerEmail: "ani@example.com",
-      customerPhone: "+374 91 123456",
-      deliveryAddress: "Yerevan",
-    });
-    form.dispatchEvent(
-      new Event("submit", { bubbles: true, cancelable: true }),
-    );
-    const first = http.expectOne((request) =>
-      request.url.endsWith("/public/orders"),
-    );
-    const key = first.request.headers.get("Idempotency-Key");
-    first.flush({}, { status: 503, statusText: "Unavailable" });
-    fixture.destroy();
-
-    const recreated = TestBed.createComponent(BasketPage);
-    recreated.detectChanges();
-    flushSettings(false);
-    recreated.detectChanges();
-    const recreatedForm = recreated.nativeElement.querySelector(
-      "form",
-    ) as HTMLFormElement;
-    acceptPrivacy(recreatedForm);
-    recreatedForm.dispatchEvent(
-      new Event("submit", { bubbles: true, cancelable: true }),
-    );
-    const retry = http.expectOne((request) =>
-      request.url.endsWith("/public/orders"),
-    );
-
-    expect(retry.request.headers.get("Idempotency-Key")).toBe(key);
-    retry.flush({}, { status: 503, statusText: "Unavailable" });
-  });
-
-  it("restores the selected card method with a fresh request key after page recreation", () => {
+  it("starts a fresh card request key after page recreation", () => {
     const { fixture } = createBasketFixture(true);
     const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
-    const cardRadio = form.querySelector<HTMLInputElement>(
-      'input[value="CARD"]',
-    )!;
-    cardRadio.checked = true;
-    cardRadio.dispatchEvent(new Event("change", { bubbles: true }));
     fillOrderForm(form, {
       customerName: "Ani",
       customerEmail: "ani@example.com",
@@ -965,9 +931,8 @@ describe("BasketPage", () => {
       "form",
     ) as HTMLFormElement;
     expect(
-      recreatedForm.querySelector<HTMLInputElement>('input[value="CARD"]')
-        ?.checked,
-    ).toBe(true);
+      recreated.nativeElement.querySelector("[data-testid=card-only-payment]"),
+    ).not.toBeNull();
     acceptPrivacy(recreatedForm);
     recreatedForm.dispatchEvent(
       new Event("submit", { bubbles: true, cancelable: true }),
@@ -978,41 +943,6 @@ describe("BasketPage", () => {
 
     expect(retry.request.headers.get("Idempotency-Key")).not.toBe(key);
     expect(retry.request.body.paymentMethod).toBe("CARD");
-    retry.flush({}, { status: 503, statusText: "Unavailable" });
-  });
-
-  it("uses a fresh idempotency key after the customer edits a failed order", () => {
-    const { fixture } = createBasketFixture();
-    const form = fixture.nativeElement.querySelector("form") as HTMLFormElement;
-    fillOrderForm(form, {
-      customerName: "Ani",
-      customerEmail: "ani@example.com",
-      customerPhone: "+374 91 123456",
-      deliveryAddress: "Yerevan",
-    });
-    form.dispatchEvent(
-      new Event("submit", { bubbles: true, cancelable: true }),
-    );
-    const firstRequest = http.expectOne((request) =>
-      request.url.endsWith("/public/orders"),
-    );
-    const firstKey = firstRequest.request.headers.get("Idempotency-Key");
-    firstRequest.flush({}, { status: 503, statusText: "Unavailable" });
-
-    const address = form.querySelector<HTMLInputElement>(
-      '[name="deliveryAddress"]',
-    )!;
-    address.value = "Yerevan, new address";
-    address.dispatchEvent(new Event("input", { bubbles: true }));
-    form.dispatchEvent(
-      new Event("submit", { bubbles: true, cancelable: true }),
-    );
-    const retry = http.expectOne((request) =>
-      request.url.endsWith("/public/orders"),
-    );
-
-    expect(retry.request.headers.get("Idempotency-Key")).not.toBe(firstKey);
-    expect(retry.request.body.customer.address).toBe("Yerevan, new address");
     retry.flush({}, { status: 503, statusText: "Unavailable" });
   });
 
@@ -1059,60 +989,22 @@ describe("BasketPage", () => {
     fixture.detectChanges();
 
     expect(basket.items()).toHaveLength(1);
-    expect(fixture.nativeElement.querySelector('[role="status"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toMatch(
+      /order has been registered|պատվերը գրանցված է/i,
+    );
     expect(
       fixture.nativeElement.querySelector('[role="alert"]').textContent,
     ).toContain("Չհաջողվեց ուղարկել պատվերը։ Խնդրում ենք կրկին փորձել։");
   });
 
   it.each([
-    [
-      "hy",
-      "Վճարումը՝ պատվերը ստանալիս․ կանխիկ կամ քարտով։",
-      "Ձեր պատվերը գրանցված է",
-    ],
-    [
-      "ru",
-      "Оплата при получении заказа — наличными или картой.",
-      "Ваш заказ зарегистрирован.",
-    ],
-    [
-      "en",
-      "Pay the courier on delivery by cash or card.",
-      "Your order has been registered.",
-    ],
-  ] as const)(
-    "shows localized payment terms and success for %s",
-    (locale, note, success) => {
-      const { fixture } = createBasketFixture();
-      const component = fixture.componentInstance;
-      component.i18n.setLocale(locale);
-      fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain(note);
-
-      const form = fixture.nativeElement.querySelector(
-        "form",
-      ) as HTMLFormElement;
-      fillOrderForm(form, {
-        customerName: "Անի",
-        customerEmail: "ani@example.com",
-        customerPhone: "+374 91 123456",
-        deliveryAddress: "Երևան",
-      });
-      form.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
-      http
-        .expectOne((request) => request.url.endsWith("/public/orders"))
-        .flush({
-          kind: "COD_ACCEPTED",
-          accepted: true,
-          orderReference: "ATH-1234ABCD1234ABCD1234ABCD1234ABCD",
-        });
-      fixture.detectChanges();
-      expect(
-        fixture.nativeElement.querySelector('[role="status"]').textContent,
-      ).toContain(success);
-    },
-  );
+    ["hy", "Վճարումը կատարվում է պատվերը ձևակերպելիս՝ բանկի անվտանգ էջում։"],
+    ["ru", "Оплата при оформлении заказа на защищённой странице банка."],
+    ["en", "You pay while ordering, on the bank's secure page."],
+  ] as const)("shows localized card payment terms for %s", (locale, note) => {
+    const { fixture } = createBasketFixture();
+    fixture.componentInstance.i18n.setLocale(locale);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain(note);
+  });
 });

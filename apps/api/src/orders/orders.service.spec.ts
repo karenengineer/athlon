@@ -1,19 +1,18 @@
 import {
   BadRequestException,
   ConflictException,
-  Logger,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service";
 import { OrderEmailService } from "./order-email.service";
 import { OrderPersistenceService } from "./order-persistence.service";
 import { OrderTelegramService } from "./order-telegram.service";
-import { OrdersService } from "./orders.service";
+import { createOrderRequestFingerprint, OrdersService } from "./orders.service";
 
 const productId = "4ebeb944-3503-47a2-9843-d37f1eb34768";
 const orderInput = {
   locale: "hy" as const,
-  paymentMethod: "CASH_ON_DELIVERY" as const,
+  paymentMethod: "CARD" as const,
   customer: {
     name: "Անի",
     email: "ani@example.com",
@@ -22,6 +21,8 @@ const orderInput = {
   },
   items: [{ productId, quantity: 2, expectedUnitPrice: "24000" }],
 };
+/** Cash orders placed before checkout became card-only. */
+const cashInput = { ...orderInput, paymentMethod: "CASH_ON_DELIVERY" as const };
 const persistedOrder = {
   id: "order-id",
   reference: "ATH-1234ABCD1234ABCD1234ABCD1234ABCD",
@@ -151,55 +152,21 @@ describe("OrdersService", () => {
       url.startsWith("https://payments.example.test/");
   });
 
-  it("prices COD from published DB products, persists snapshots, and emails ATHLON", async () => {
-    const result = await service.submit(orderInput, "web-req-1234567890");
-
-    expect(result).toEqual({
-      kind: "COD_ACCEPTED",
-      accepted: true,
-      orderReference: expect.stringMatching(/^ATH-[A-F0-9]{32}$/),
-    });
-    expect(findProducts).toHaveBeenCalledWith({
-      where: {
-        id: { in: [productId] },
-        published: true,
-        category: { slug: { not: "resistance-bands" } },
-      },
-      include: { translations: true },
-    });
-    expect(createPendingOrder).toHaveBeenCalledWith(
-      expect.objectContaining({
-        idempotencyKey: "web-req-1234567890",
-        customerEmail: "ani@example.com",
-        paymentMethod: "CASH_ON_DELIVERY",
-        currency: "AMD",
-        items: [
-          {
-            productId,
-            sku: "SKU-ONE",
-            name: "Պրոտեին",
-            quantity: 2,
-            unitPrice: "24000",
-            lineTotal: "48000",
-          },
-        ],
-        total: "48000",
-      }),
-    );
-    expect(sendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ orderReference: persistedOrder.reference }),
-      "merchant-notification",
-    );
-    expect(sendCustomerEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customer: expect.objectContaining({ email: "ani@example.com" }),
-      }),
-      "customer-notification",
-    );
-    expect(markNotificationSent).toHaveBeenCalledTimes(2);
+  it("rejects new cash-on-delivery orders before pricing, saving or notifying", async () => {
+    const { paymentMethod: _omitted, ...withoutMethod } = orderInput;
+    void _omitted;
+    for (const input of [cashInput, withoutMethod]) {
+      await expect(
+        telegramOrders.submit(input, "web-cash-rejected-1234"),
+      ).rejects.toThrow("Only online card payment is available");
+    }
+    expect(findProducts).not.toHaveBeenCalled();
+    expect(createPendingOrder).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(sendTelegram).not.toHaveBeenCalled();
   });
 
-  it.each(["CASH_ON_DELIVERY", "CARD"] as const)(
+  it.each(["CARD"] as const)(
     "rejects resistance bands for %s before persisting or initializing payment",
     async (paymentMethod) => {
       const band = {
@@ -221,40 +188,11 @@ describe("OrdersService", () => {
     },
   );
 
-  it("returns a prior COD acceptance for duplicate idempotency keys without duplicate emails", async () => {
-    createPendingOrder.mockResolvedValueOnce({
-      order: {
-        ...persistedOrder,
-        notifications: persistedOrder.notifications.map((notification) => ({
-          ...notification,
-          status: "SENT",
-        })),
-      },
-      created: false,
-    });
-
-    await expect(
-      service.submit(orderInput, "web-req-duplicate-1234"),
-    ).resolves.toEqual({
-      kind: "COD_ACCEPTED",
-      accepted: true,
-      orderReference: persistedOrder.reference,
-    });
-    expect(sendEmail).not.toHaveBeenCalled();
-    expect(sendCustomerEmail).not.toHaveBeenCalled();
-  });
-
-  it("replays the exact stored COD order and notification state on a matching idempotency retry", async () => {
-    const first = await service.submit(orderInput, "web-req-retry-1234");
-    const fingerprint = createPendingOrder.mock.calls[0]![0].requestFingerprint;
-    expect(first.kind).toBe("COD_ACCEPTED");
-    sendEmail.mockClear();
-    sendCustomerEmail.mockClear();
-    findProducts.mockClear();
+  it("still answers a retry of a cash order placed before card-only checkout", async () => {
     findOrderByIdempotencyKey.mockResolvedValueOnce({
       ...persistedOrder,
       paymentMethod: "CASH_ON_DELIVERY",
-      requestFingerprint: fingerprint,
+      requestFingerprint: createOrderRequestFingerprint(cashInput),
       notifications: persistedOrder.notifications.map((notification) => ({
         ...notification,
         status: "SENT",
@@ -262,9 +200,14 @@ describe("OrdersService", () => {
     });
 
     await expect(
-      service.submit(orderInput, "web-req-retry-1234"),
-    ).resolves.toEqual(first);
+      service.submit(cashInput, "web-req-retry-1234"),
+    ).resolves.toEqual({
+      kind: "COD_ACCEPTED",
+      accepted: true,
+      orderReference: persistedOrder.reference,
+    });
     expect(findProducts).not.toHaveBeenCalled();
+    expect(createPendingOrder).not.toHaveBeenCalled();
     expect(sendEmail).not.toHaveBeenCalled();
     expect(sendCustomerEmail).not.toHaveBeenCalled();
   });
@@ -408,19 +351,18 @@ describe("OrdersService", () => {
     expect(initializePayment).not.toHaveBeenCalled();
   });
 
-  it("retries only failed durable notifications with the same persisted idempotency key", async () => {
-    createPendingOrder.mockResolvedValueOnce({
-      order: {
-        ...persistedOrder,
-        notifications: [
-          { ...persistedOrder.notifications[0]!, status: "SENT" },
-          { ...persistedOrder.notifications[1]!, status: "FAILED" },
-        ],
-      },
-      created: false,
+  it("retries only failed durable notifications when a historical cash order is retried", async () => {
+    findOrderByIdempotencyKey.mockResolvedValueOnce({
+      ...persistedOrder,
+      paymentMethod: "CASH_ON_DELIVERY",
+      requestFingerprint: createOrderRequestFingerprint(cashInput),
+      notifications: [
+        { ...persistedOrder.notifications[0]!, status: "SENT" },
+        { ...persistedOrder.notifications[1]!, status: "FAILED" },
+      ],
     });
 
-    await service.submit(orderInput, "web-req-duplicate-1234");
+    await service.submit(cashInput, "web-req-duplicate-1234");
 
     expect(sendEmail).not.toHaveBeenCalled();
     expect(sendCustomerEmail).toHaveBeenCalledTimes(1);
@@ -431,72 +373,19 @@ describe("OrdersService", () => {
     expect(markNotificationSent).toHaveBeenCalledTimes(1);
   });
 
-  it("records a failed notification for retry without losing the accepted order", async () => {
-    sendEmail.mockRejectedValueOnce(
-      new Error("provider details must not escape"),
-    );
-
-    await expect(
-      service.submit(orderInput, "web-req-notification-fail"),
-    ).rejects.toThrow(ServiceUnavailableException);
-
-    expect(markNotificationFailed).toHaveBeenCalledWith(
-      "merchant-notification",
-    );
-    expect(sendCustomerEmail).not.toHaveBeenCalled();
-  });
-
-  it("persists and sends Telegram independently for a new configured COD order", async () => {
-    const result = await telegramOrders.submit(orderInput, "web-telegram-new");
-
-    expect(result).toEqual({
-      kind: "COD_ACCEPTED",
-      accepted: true,
-      orderReference: persistedOrder.reference,
-    });
-    expect(createMerchantTelegramNotification).toHaveBeenCalledWith(
-      persistedOrder.id,
-      "ORDER_ACCEPTED",
-    );
-    expect(sendTelegram).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orderReference: persistedOrder.reference,
-        locale: "hy",
-        total: "48000",
-      }),
-    );
-    expect(markNotificationSent).toHaveBeenCalledWith(telegramNotification.id);
-    expect(markNotificationSent).toHaveBeenCalledWith("merchant-notification");
-    expect(markNotificationSent).toHaveBeenCalledWith("customer-notification");
-  });
-
   it("never adds a Telegram intent when replaying a historical COD order", async () => {
-    const key = "web-telegram-historical";
-    await service.submit(orderInput, key);
-    const fingerprint = createPendingOrder.mock.calls[0]![0].requestFingerprint;
     findOrderByIdempotencyKey.mockResolvedValueOnce({
       ...persistedOrder,
       paymentMethod: "CASH_ON_DELIVERY",
-      requestFingerprint: fingerprint,
+      requestFingerprint: createOrderRequestFingerprint(cashInput),
     });
 
-    await expect(telegramOrders.submit(orderInput, key)).resolves.toMatchObject(
-      {
-        kind: "COD_ACCEPTED",
-      },
-    );
-    expect(createPendingOrder).toHaveBeenCalledTimes(1);
+    await expect(
+      telegramOrders.submit(cashInput, "web-telegram-historical"),
+    ).resolves.toMatchObject({ kind: "COD_ACCEPTED" });
+    expect(createPendingOrder).not.toHaveBeenCalled();
     expect(createMerchantTelegramNotification).not.toHaveBeenCalled();
     expect(sendTelegram).not.toHaveBeenCalled();
-  });
-
-  it("does not create a Telegram intent when Telegram is disabled", async () => {
-    telegram.isEnabled = false;
-    await telegramOrders.submit(orderInput, "web-telegram-disabled");
-
-    expect(createMerchantTelegramNotification).not.toHaveBeenCalled();
-    expect(sendTelegram).not.toHaveBeenCalled();
-    expect(markNotificationSent).toHaveBeenCalledTimes(2);
   });
 
   it("does not create a Telegram intent for a card checkout", async () => {
@@ -509,25 +398,11 @@ describe("OrdersService", () => {
     expect(sendTelegram).not.toHaveBeenCalled();
   });
 
-  it("retries a failed Telegram intent and skips it once confirmed sent", async () => {
-    const key = "web-telegram-retry";
-    sendTelegram.mockRejectedValueOnce(new Error("provider details"));
-    const result = await telegramOrders.submit(orderInput, key);
-    expect(markNotificationFailed).toHaveBeenCalledWith(
-      telegramNotification.id,
-      { skipSent: true },
-    );
-    expect(markNotificationSent).not.toHaveBeenCalledWith(
-      telegramNotification.id,
-    );
-    expect(markNotificationSent).toHaveBeenCalledWith("merchant-notification");
-    expect(markNotificationSent).toHaveBeenCalledWith("customer-notification");
-
+  it("retries a failed Telegram intent of a historical cash order and skips it once sent", async () => {
     const replay = {
       ...persistedOrder,
       paymentMethod: "CASH_ON_DELIVERY",
-      requestFingerprint:
-        createPendingOrder.mock.calls[0]![0].requestFingerprint,
+      requestFingerprint: createOrderRequestFingerprint(cashInput),
     };
     const sentEmails = persistedOrder.notifications.map((notification) => ({
       ...notification,
@@ -548,88 +423,19 @@ describe("OrdersService", () => {
           { ...telegramNotification, status: "SENT" },
         ],
       });
+    const key = "web-telegram-retry";
 
-    await expect(telegramOrders.submit(orderInput, key)).resolves.toEqual(
-      result,
-    );
+    await expect(telegramOrders.submit(cashInput, key)).resolves.toMatchObject({
+      kind: "COD_ACCEPTED",
+    });
     expect(markNotificationSent).toHaveBeenLastCalledWith(
       telegramNotification.id,
     );
-    await expect(telegramOrders.submit(orderInput, key)).resolves.toEqual(
-      result,
-    );
-    expect(sendTelegram).toHaveBeenCalledTimes(2);
-    expect(createMerchantTelegramNotification).toHaveBeenCalledTimes(1);
-    expect(sendEmail).toHaveBeenCalledTimes(1);
-    expect(sendCustomerEmail).toHaveBeenCalledTimes(1);
-  });
-
-  it.each(["creation", "attempt", "mark sent", "mark failed"] as const)(
-    "accepts COD and sends both emails when Telegram tracking fails during %s",
-    async (stage) => {
-      const trackingError = new Error("provider or database details");
-      const warning = jest
-        .spyOn(Logger.prototype, "warn")
-        .mockImplementation(() => {});
-      switch (stage) {
-        case "creation":
-          createMerchantTelegramNotification.mockRejectedValueOnce(
-            trackingError,
-          );
-          break;
-        case "attempt":
-          recordNotificationAttempt.mockImplementation((id: string) =>
-            id === telegramNotification.id
-              ? Promise.reject(trackingError)
-              : Promise.resolve(),
-          );
-          break;
-        case "mark sent":
-          markNotificationSent.mockImplementation((id: string) =>
-            id === telegramNotification.id
-              ? Promise.reject(trackingError)
-              : Promise.resolve(),
-          );
-          break;
-        case "mark failed":
-          sendTelegram.mockRejectedValueOnce(trackingError);
-          markNotificationFailed.mockRejectedValueOnce(trackingError);
-          break;
-      }
-
-      try {
-        await expect(
-          telegramOrders.submit(orderInput, "web-telegram-tracking"),
-        ).resolves.toMatchObject({ kind: "COD_ACCEPTED" });
-        expect(markNotificationSent).toHaveBeenCalledWith(
-          "merchant-notification",
-        );
-        expect(markNotificationSent).toHaveBeenCalledWith(
-          "customer-notification",
-        );
-        expect(sendTelegram).toHaveBeenCalledTimes(
-          stage === "creation" || stage === "attempt" ? 0 : 1,
-        );
-        expect(warning).toHaveBeenCalledWith(
-          "Could not track order Telegram notification",
-        );
-      } finally {
-        warning.mockRestore();
-      }
-    },
-  );
-
-  it("keeps the email error response while still delivering Telegram", async () => {
-    sendEmail.mockRejectedValueOnce(new Error("email provider error"));
-
-    await expect(
-      telegramOrders.submit(orderInput, "web-telegram-email-failure"),
-    ).rejects.toThrow("Order notification delivery is unavailable");
-    expect(markNotificationFailed).toHaveBeenCalledWith(
-      "merchant-notification",
-    );
+    await telegramOrders.submit(cashInput, key);
+    expect(sendTelegram).toHaveBeenCalledTimes(1);
+    expect(createMerchantTelegramNotification).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
     expect(sendCustomerEmail).not.toHaveBeenCalled();
-    expect(markNotificationSent).toHaveBeenCalledWith(telegramNotification.id);
   });
 
   it("creates a pending card attempt and returns the validated hosted checkout URL", async () => {
@@ -759,37 +565,34 @@ describe("OrdersService", () => {
     expect(createPendingOrder).not.toHaveBeenCalled();
   });
 
-  describe.each(["CASH_ON_DELIVERY", "CARD"] as const)(
-    "%s availability",
-    (paymentMethod) => {
-      it.each([
-        "OUT_OF_STOCK",
-        "PREORDER",
-        "ON_REQUEST",
-        undefined,
-        null,
-        "UNKNOWN",
-      ])(
-        "rejects %s products before creating orders, payments, or notifications",
-        async (availability) => {
-          findProducts.mockResolvedValueOnce([
-            { ...publishedProduct, availability },
-          ]);
+  describe.each(["CARD"] as const)("%s availability", (paymentMethod) => {
+    it.each([
+      "OUT_OF_STOCK",
+      "PREORDER",
+      "ON_REQUEST",
+      undefined,
+      null,
+      "UNKNOWN",
+    ])(
+      "rejects %s products before creating orders, payments, or notifications",
+      async (availability) => {
+        findProducts.mockResolvedValueOnce([
+          { ...publishedProduct, availability },
+        ]);
 
-          await expect(
-            service.submit(
-              { ...orderInput, paymentMethod },
-              "web-req-stock-123456",
-            ),
-          ).rejects.toThrow(ConflictException);
-          expect(createPendingOrder).not.toHaveBeenCalled();
-          expect(initializePayment).not.toHaveBeenCalled();
-          expect(recordProviderPaymentId).not.toHaveBeenCalled();
-          expect(sendEmail).not.toHaveBeenCalled();
-          expect(sendCustomerEmail).not.toHaveBeenCalled();
-          expect(recordNotificationAttempt).not.toHaveBeenCalled();
-        },
-      );
-    },
-  );
+        await expect(
+          service.submit(
+            { ...orderInput, paymentMethod },
+            "web-req-stock-123456",
+          ),
+        ).rejects.toThrow(ConflictException);
+        expect(createPendingOrder).not.toHaveBeenCalled();
+        expect(initializePayment).not.toHaveBeenCalled();
+        expect(recordProviderPaymentId).not.toHaveBeenCalled();
+        expect(sendEmail).not.toHaveBeenCalled();
+        expect(sendCustomerEmail).not.toHaveBeenCalled();
+        expect(recordNotificationAttempt).not.toHaveBeenCalled();
+      },
+    );
+  });
 });

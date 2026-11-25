@@ -205,19 +205,19 @@ describe("Localized information pages", () => {
     [
       "hy",
       "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից",
-      "կանխիկ կամ քարտով՝ առաքիչին",
+      "Վճարեք բանկային քարտով պատվերը ձևակերպելիս",
       "Նշեք պատվերի համարը և ձեր հարցը",
     ],
     [
       "ru",
       "Бесплатная доставка по всей Армении независимо от суммы заказа",
-      "наличными или картой курьеру",
+      "Оплатите заказ банковской картой при оформлении",
       "Укажите номер заказа и ваш вопрос",
     ],
     [
       "en",
       "Free delivery throughout Armenia, regardless of order value",
-      "cash or card to the courier",
+      "Pay by bank card while placing your order",
       "Include your order reference and question",
     ],
   ])(
@@ -227,6 +227,9 @@ describe("Localized information pages", () => {
       expect(page()).not.toBeNull();
       expect(page().textContent).toContain(free);
       expect(page().textContent).toContain(payment);
+      expect(page().textContent).not.toMatch(
+        /cash|courier|on delivery|наличн|курьер|при получении|կանխիկ|առաքիչ|ստանալիս/i,
+      );
       expect(
         page().querySelector(`a[href="/${locale}/contact"]`),
       ).not.toBeNull();

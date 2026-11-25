@@ -44,12 +44,12 @@ export const informationContent: Record<
     delivery: {
       heading: "Առաքում և վճարում",
       description:
-        "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Վճարեք կանխիկ կամ քարտով՝ առաքիչին, պատվերը ստանալիս։",
+        "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։ Վճարումը՝ առցանց բանկային քարտով, պատվերը ձևակերպելիս։",
       introduction: "Անվճար առաքում ողջ Հայաստանում՝ անկախ պատվերի գումարից։",
       sections: [
         {
-          heading: "Վճարում ստանալիս",
-          text: "Պատվերը ստանալիս վճարեք կանխիկ կամ քարտով՝ առաքիչին։",
+          heading: "Առցանց վճարում",
+          text: "Վճարեք բանկային քարտով պատվերը ձևակերպելիս՝ բանկի անվտանգ էջում։ Պատվերը հաստատվում է վճարումից հետո։",
         },
         {
           heading: "Առաքման հարցեր",
@@ -102,13 +102,13 @@ export const informationContent: Record<
     delivery: {
       heading: "Доставка и оплата",
       description:
-        "Бесплатная доставка по всей Армении независимо от суммы заказа. Оплата наличными или картой курьеру при получении.",
+        "Бесплатная доставка по всей Армении независимо от суммы заказа. Оплата онлайн банковской картой при оформлении заказа.",
       introduction:
         "Бесплатная доставка по всей Армении независимо от суммы заказа.",
       sections: [
         {
-          heading: "Оплата при получении",
-          text: "Оплатите заказ наличными или картой курьеру при получении.",
+          heading: "Онлайн-оплата",
+          text: "Оплатите заказ банковской картой при оформлении — на защищённой странице банка. Заказ подтверждается после оплаты.",
         },
         {
           heading: "Вопросы о доставке",
@@ -161,13 +161,13 @@ export const informationContent: Record<
     delivery: {
       heading: "Delivery and payment",
       description:
-        "Free delivery throughout Armenia, regardless of order value. Pay with cash or card to the courier on delivery.",
+        "Free delivery throughout Armenia, regardless of order value. Pay online by bank card when you place your order.",
       introduction:
         "Free delivery throughout Armenia, regardless of order value.",
       sections: [
         {
-          heading: "Payment on delivery",
-          text: "Pay for your order with cash or card to the courier on delivery.",
+          heading: "Online payment",
+          text: "Pay by bank card while placing your order, on the bank's secure page. Your order is confirmed once the payment goes through.",
         },
         {
           heading: "Delivery questions",

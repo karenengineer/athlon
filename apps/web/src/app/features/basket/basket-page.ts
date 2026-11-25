@@ -23,8 +23,6 @@ import {
   canRetryCardPayment,
   cardOrderReferencePattern,
   CHECKOUT_IDEMPOTENCY_KEY,
-  CHECKOUT_PAYMENT_METHOD_KEY,
-  finishRetriedCashCheckout,
   LiveCardCheckout,
   nextCardCheckoutKey,
   readLiveCardCheckout,
@@ -65,6 +63,14 @@ export class BasketPage {
   readonly validationAttempted = signal(false);
   readonly privacyAccepted = signal(false);
   readonly cardPaymentsEnabled = signal(false);
+  private readonly settingsLoaded = signal(false);
+  /** Checkout is card-only, so ordering online stops when card payments are off. */
+  readonly cardPaymentsUnavailable = computed(
+    () =>
+      !this.cardPaymentTestMode &&
+      this.settingsLoaded() &&
+      !this.cardPaymentsEnabled(),
+  );
   readonly liveCheckout = signal<LiveCardCheckout | null>(null);
   readonly livePaymentState = signal<
     "PENDING" | "CHECKING" | "ERROR" | "RETRY" | "NOT_FOUND" | "PAID"
@@ -89,9 +95,8 @@ export class BasketPage {
   readonly sandboxAttemptComplete = signal(false);
   private readonly cancellableSandboxReference = signal<string | null>(null);
   sandboxAccess = "";
-  readonly paymentMethod = signal<"CARD" | "CASH_ON_DELIVERY">(
-    this.cardPaymentTestMode ? "CARD" : loadPaymentMethod(),
-  );
+  /** Customers pay online by card while ordering; there is no pay on delivery. */
+  readonly paymentMethod = signal<"CARD">("CARD");
   readonly customer = this.cardPaymentTestMode
     ? { name: "", email: "", phone: "", address: "" }
     : loadCustomerDraft();
@@ -127,9 +132,10 @@ export class BasketPage {
         catchError(() => of({ cardPaymentsEnabled: false })),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((settings) =>
-        this.cardPaymentsEnabled.set(settings.cardPaymentsEnabled === true),
-      );
+      .subscribe((settings) => {
+        this.cardPaymentsEnabled.set(settings.cardPaymentsEnabled === true);
+        this.settingsLoaded.set(true);
+      });
   }
 
   restoreLiveCheckout(): void {
@@ -271,7 +277,6 @@ export class BasketPage {
       this.liveCheckout.set(next);
       this.livePaymentState.set("PENDING");
       this.paymentMethod.set("CARD");
-      savePaymentMethod("CARD");
       this.orderError.set("");
     } catch {
       this.livePaymentState.set("ERROR");
@@ -477,8 +482,12 @@ export class BasketPage {
 
     const checkout = this.liveCheckout();
     const paymentMethod = this.paymentMethod();
-    if (paymentMethod === "CARD" && !this.cardPaymentsEnabled()) return;
-    if (checkout?.phase === "pending" && paymentMethod !== "CARD") return;
+    if (!this.cardPaymentsEnabled()) {
+      if (this.settingsLoaded()) {
+        this.orderError.set(this.i18n.t("cardPaymentsUnavailable"));
+      }
+      return;
+    }
     if (!this.idempotencyKey) {
       this.idempotencyKey = createIdempotencyKey();
       saveIdempotencyKey(this.idempotencyKey);
@@ -491,39 +500,37 @@ export class BasketPage {
         quantity: item.quantity,
         expectedUnitPrice: item.price,
       }));
-    if (paymentMethod === "CARD") {
-      const snapshot = items.map(({ productId, quantity }) => ({
-        productId,
-        quantity,
-      }));
-      if (
-        checkout?.phase === "pending" &&
-        checkout.items.length > 0 &&
-        (checkout.items.length !== snapshot.length ||
-          !checkout.items.every((previous) =>
-            snapshot.some(
-              (item) =>
-                item.productId === previous.productId &&
-                item.quantity === previous.quantity,
-            ),
-          ))
-      ) {
-        this.orderError.set(this.i18n.t("livePaymentBasketChanged"));
-        return;
-      }
-      const pending: LiveCardCheckout = {
-        key,
-        reference: null,
-        items: checkout?.phase === "pending" ? checkout.items : snapshot,
-        phase: "pending",
-      };
-      if (!saveLiveCardCheckout(pending)) {
-        this.orderError.set(this.i18n.t("orderFailure"));
-        return;
-      }
-      this.liveCheckout.set(pending);
-      this.livePaymentState.set("PENDING");
+    const snapshot = items.map(({ productId, quantity }) => ({
+      productId,
+      quantity,
+    }));
+    if (
+      checkout?.phase === "pending" &&
+      checkout.items.length > 0 &&
+      (checkout.items.length !== snapshot.length ||
+        !checkout.items.every((previous) =>
+          snapshot.some(
+            (item) =>
+              item.productId === previous.productId &&
+              item.quantity === previous.quantity,
+          ),
+        ))
+    ) {
+      this.orderError.set(this.i18n.t("livePaymentBasketChanged"));
+      return;
     }
+    const pending: LiveCardCheckout = {
+      key,
+      reference: null,
+      items: checkout?.phase === "pending" ? checkout.items : snapshot,
+      phase: "pending",
+    };
+    if (!saveLiveCardCheckout(pending)) {
+      this.orderError.set(this.i18n.t("orderFailure"));
+      return;
+    }
+    this.liveCheckout.set(pending);
+    this.livePaymentState.set("PENDING");
     this.submitting.set(true);
     this.api
       .submitOrder(
@@ -563,35 +570,9 @@ export class BasketPage {
             this.redirectToCheckout(response.checkoutUrl);
             return;
           }
-          if (
-            paymentMethod !== "CASH_ON_DELIVERY" ||
-            response?.kind !== "COD_ACCEPTED" ||
-            response.accepted !== true
-          ) {
-            this.orderError.set(this.i18n.t("orderFailure"));
-            this.submitting.set(false);
-            return;
-          }
-          if (checkout?.phase === "ready") {
-            finishRetriedCashCheckout(checkout);
-            this.liveCheckout.set(null);
-          }
-          this.basket.clear();
-          this.clearIdempotencyKey();
-          clearCustomerDraft();
-          clearPaymentMethodDraft();
-          this.paymentMethod.set("CASH_ON_DELIVERY");
-          this.customer.name = "";
-          this.customer.email = "";
-          this.customer.phone = "";
-          this.customer.address = "";
-          this.privacyAccepted.set(false);
-          this.validationAttempted.set(false);
-          this.orderSuccess.set(true);
+          // Only a hosted card checkout is a valid answer for a new order.
+          this.orderError.set(this.i18n.t("orderFailure"));
           this.submitting.set(false);
-          if (typeof window !== "undefined") {
-            window.setTimeout(() => this.orderSuccess.set(false), 5_000);
-          }
         },
         error: (error: unknown) => {
           const isConflict =
@@ -602,21 +583,6 @@ export class BasketPage {
           this.submitting.set(false);
         },
       });
-  }
-
-  setPaymentMethod(value: string): void {
-    if (this.cardPaymentTestMode) {
-      this.paymentMethod.set("CARD");
-      return;
-    }
-    if (this.liveCheckout()?.phase === "pending") return;
-    if (value === "CARD" && this.cardPaymentsEnabled()) {
-      this.paymentMethod.set("CARD");
-      savePaymentMethod("CARD");
-      return;
-    }
-    this.paymentMethod.set("CASH_ON_DELIVERY");
-    savePaymentMethod("CASH_ON_DELIVERY");
   }
 
   setPrivacyAccepted(accepted: boolean): void {
@@ -965,44 +931,6 @@ function saveCustomerDraft(customer: {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(CUSTOMER_DRAFT_KEY, JSON.stringify(customer));
-  } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts.
-  }
-}
-
-function clearCustomerDraft(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(CUSTOMER_DRAFT_KEY);
-  } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts.
-  }
-}
-
-function loadPaymentMethod(): "CARD" | "CASH_ON_DELIVERY" {
-  if (typeof window === "undefined") return "CASH_ON_DELIVERY";
-  try {
-    return window.sessionStorage.getItem(CHECKOUT_PAYMENT_METHOD_KEY) === "CARD"
-      ? "CARD"
-      : "CASH_ON_DELIVERY";
-  } catch {
-    return "CASH_ON_DELIVERY";
-  }
-}
-
-function savePaymentMethod(value: "CARD" | "CASH_ON_DELIVERY"): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(CHECKOUT_PAYMENT_METHOD_KEY, value);
-  } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts.
-  }
-}
-
-function clearPaymentMethodDraft(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(CHECKOUT_PAYMENT_METHOD_KEY);
   } catch {
     // Storage can be unavailable in privacy-restricted browser contexts.
   }
