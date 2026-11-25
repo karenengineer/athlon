@@ -1,5 +1,13 @@
-import { DOCUMENT } from "@angular/common";
-import { Component, DestroyRef, inject } from "@angular/core";
+import { DOCUMENT, isPlatformBrowser } from "@angular/common";
+import {
+  afterNextRender,
+  Component,
+  DestroyRef,
+  ElementRef,
+  inject,
+  PLATFORM_ID,
+  viewChild,
+} from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
   ActivatedRoute,
@@ -24,7 +32,9 @@ import { Header } from "../header/header";
     BasketBumpDirective,
   ],
   template: `
-    <div class="dark-shell"><app-header /></div>
+    <div class="dark-shell" data-testid="header-spacer">
+      <app-header #siteHeader data-testid="fixed-header" />
+    </div>
     <main><router-outlet /></main>
     <div class="footer-shell"><app-footer /></div>
     <a
@@ -58,6 +68,20 @@ import { Header } from "../header/header";
     .dark-shell,
     .footer-shell {
       background: #080809;
+    }
+    /* The header stays on screen: a full-width black bar fixed to the top,
+       with its content centred. The shell keeps its height free below it. */
+    .dark-shell {
+      height: var(--header-height);
+    }
+    app-header {
+      position: fixed;
+      z-index: 11;
+      top: 0;
+      right: 0;
+      left: 0;
+      background: #080809;
+      box-shadow: 0 1px 0 rgb(255 255 255 / 8%);
     }
     main {
       min-height: 60vh;
@@ -113,10 +137,34 @@ export class PublicShell {
   private readonly document = inject(DOCUMENT);
   readonly basket = inject(BasketService);
   readonly i18n = inject(I18nService);
+  private readonly siteHeader = viewChild.required("siteHeader", {
+    read: ElementRef<HTMLElement>,
+  });
 
   constructor() {
+    const destroyRef = inject(DestroyRef);
+    const browser = isPlatformBrowser(inject(PLATFORM_ID));
+    // CSS gives a close default; measuring keeps the spacer, sticky panels
+    // and anchor scrolling exact when the header wraps or fonts load.
+    afterNextRender(() => {
+      const view = this.document.defaultView;
+      if (!browser || !view || !("ResizeObserver" in view)) return;
+      const root = this.document.documentElement;
+      const header = this.siteHeader().nativeElement;
+      const observer = new view.ResizeObserver(() => {
+        const height = Math.ceil(header.getBoundingClientRect().height);
+        if (height > 0)
+          root.style.setProperty("--header-height", `${height}px`);
+      });
+      observer.observe(header);
+      destroyRef.onDestroy(() => {
+        observer.disconnect();
+        root.style.removeProperty("--header-height");
+      });
+    });
+
     this.route.paramMap
-      .pipe(takeUntilDestroyed(inject(DestroyRef)))
+      .pipe(takeUntilDestroyed(destroyRef))
       .subscribe((params) => {
         this.i18n.setLocale(params.get("locale"));
         this.document.documentElement.lang = this.i18n.locale();
