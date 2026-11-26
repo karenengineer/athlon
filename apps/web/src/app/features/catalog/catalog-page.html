@@ -18,8 +18,13 @@
     <h1 data-testid="catalog-heading">{{ pageHeading() }}</h1>
     <div class="result-count">{{ i18n.productCountLabel(meta().total) }}</div>
   </header>
-
-  @if (publishedCategories().length) {
+  @if ((state() === "ready" || state() === "empty") && meta().correctedQuery; as
+  correctedQuery) {
+  <p class="search-correction" role="status">
+    {{ i18n.t("searchShowingResultsFor") }}
+    <strong>{{ correctedQuery }}</strong>
+  </p>
+  } @if (publishedCategories().length) {
   <nav class="category-navigation" [attr.aria-label]="contentCopy().categories">
     @for (category of publishedCategories(); track category.id) {
     <a

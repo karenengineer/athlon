@@ -83,6 +83,40 @@ describe("Catalog category content and metadata", () => {
     fixture.detectChanges();
   }
 
+  it("shows the corrected search term and clears it during a new unfiltered search", async () => {
+    const correction = () =>
+      fixture.nativeElement.querySelector(".search-correction");
+    await visit("/en/search?q=pratein");
+    http
+      .expectOne((request) => request.url.endsWith("/categories"))
+      .flush(publishedCategories);
+    http.expectOne((request) => request.url.endsWith("/brands")).flush([]);
+    const products = http.expectOne((request) =>
+      request.url.endsWith("/products"),
+    );
+    expect(products.request.params.get("category")).toBeNull();
+    expect(products.request.params.get("q")).toBe("pratein");
+    products.flush({
+      items: [],
+      meta: {
+        page: 1,
+        pageSize: 24,
+        total: 3,
+        totalPages: 1,
+        correctedQuery: "protein",
+      },
+    });
+    fixture.detectChanges();
+    expect(correction()?.textContent).toContain("Showing results for");
+    expect(correction()?.textContent).toContain("protein");
+    expect(meta.getTag("name=robots")?.content).toContain("noindex");
+
+    await visit("/en/search?q=creatine");
+    expect(correction()).toBeNull();
+    flushCatalog();
+    expect(correction()).toBeNull();
+  });
+
   function flushCatalog(categories = publishedCategories): void {
     http
       .match((request) => request.url.endsWith("/categories"))
@@ -202,6 +236,28 @@ describe("Catalog category content and metadata", () => {
       meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
     });
     flushCatalog(categoriesWithAccessories());
+  });
+
+  it("keeps the search query when resetting an explicit category filter", async () => {
+    await visit("/en/catalog/protein?q=pratein&availability=IN_STOCK");
+    flushCatalog();
+    fixture.nativeElement
+      .querySelector('[data-testid="catalog-reset"]')
+      .click();
+    await fixture.whenStable();
+
+    expect(router.url).toBe("/en/search?q=pratein");
+    const products = http.expectOne((request) =>
+      request.url.endsWith("/products"),
+    );
+    expect(products.request.params.get("q")).toBe("pratein");
+    expect(products.request.params.get("category")).toBeNull();
+    expect(products.request.params.get("availability")).toBeNull();
+    products.flush({
+      items: [],
+      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+    });
+    flushCatalog();
   });
 
   function description(): string {

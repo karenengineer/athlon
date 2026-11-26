@@ -80,21 +80,7 @@
       >
     </nav>
 
-    <form
-      class="search"
-      role="search"
-      (submit)="$event.preventDefault(); search(searchBox.value)"
-    >
-      <label class="sr-only" for="site-search">{{ i18n.t("search") }}</label>
-      <input
-        #searchBox
-        id="site-search"
-        type="search"
-        [placeholder]="i18n.t('searchPlaceholder')"
-        autocomplete="off"
-      />
-      <button type="submit" [attr.aria-label]="i18n.t('search')">⌕</button>
-    </form>
+    <ng-container [ngTemplateOutlet]="searchForm"></ng-container>
 
     <div class="languages" aria-label="Language">
       @for (locale of locales; track locale) {
@@ -146,18 +132,49 @@
   </div>
 </header>
 
-<form
-  class="search mobile-search"
-  role="search"
-  (submit)="$event.preventDefault(); search(mobileSearchBox.value)"
->
-  <label class="sr-only" for="mobile-site-search">{{ i18n.t("search") }}</label>
-  <input
-    #mobileSearchBox
-    id="mobile-site-search"
-    type="search"
-    [placeholder]="i18n.t('searchPlaceholder')"
-    autocomplete="off"
-  />
-  <button type="submit" [attr.aria-label]="i18n.t('search')">⌕</button>
-</form>
+<ng-container
+  [ngTemplateOutlet]="searchForm"
+  [ngTemplateOutletContext]="{ mobile: true }"
+></ng-container>
+
+<ng-template #searchForm let-mobile="mobile">
+  @let inputId = mobile ? "mobile-site-search" : "site-search";
+  <form
+    class="search"
+    [class.mobile-search]="mobile"
+    role="search"
+    (submit)="$event.preventDefault(); search(searchBox.value)"
+    (focusout)="onSearchFocusOut($event)"
+    (keydown.escape)="onSearchEscape($event, searchBox)"
+  >
+    <label class="sr-only" [for]="inputId">{{ i18n.t("search") }}</label>
+    <input
+      #searchBox
+      [id]="inputId"
+      type="search"
+      [placeholder]="i18n.t('searchPlaceholder')"
+      autocomplete="off"
+      maxlength="120"
+      (input)="suggest(searchBox)"
+      (focus)="suggest(searchBox)"
+    />
+    <button type="submit" [attr.aria-label]="i18n.t('search')">⌕</button>
+    @if (activeSearchId() === inputId && suggestions().length) {
+    <ul
+      class="search-suggestions"
+      [attr.aria-label]="i18n.t('searchSuggestions')"
+    >
+      @for (item of suggestions(); track item.slug) {
+      <li>
+        <a
+          [routerLink]="['/', i18n.locale(), 'product', item.slug]"
+          (mousedown)="$event.button === 0 && $event.preventDefault()"
+        >
+          {{ item.name }}
+        </a>
+      </li>
+      }
+    </ul>
+    }
+  </form>
+</ng-template>

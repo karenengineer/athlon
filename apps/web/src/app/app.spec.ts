@@ -619,7 +619,7 @@ describe("ATHLON public application", () => {
       ) as HTMLButtonElement
     ).click();
     await fixture.whenStable();
-    expect(router.url).toBe("/en/catalog/sports-nutrition?q=long%20query");
+    expect(router.url).toBe("/en/search?q=long%20query");
 
     const categories = http.match((request) =>
       request.url.endsWith("/categories"),
@@ -629,14 +629,18 @@ describe("ATHLON public application", () => {
       .filter((request) => !request.cancelled)
       .at(-1)!
       .flush([sportsNutritionCategory]);
-    http.expectNone((request) => request.url.endsWith("/brands"));
-    products
+    http
+      .expectOne((request) => request.url.endsWith("/brands"))
+      .flush([{ id: "demo-brand", slug: "demo-brand", name: "Demo Brand" }]);
+    const unfilteredSearch = products
       .filter((request) => !request.cancelled)
-      .at(-1)!
-      .flush({
-        items: [],
-        meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
-      });
+      .at(-1)!;
+    expect(unfilteredSearch.request.params.get("category")).toBeNull();
+    expect(unfilteredSearch.request.params.get("q")).toBe("long query");
+    unfilteredSearch.flush({
+      items: [],
+      meta: { page: 1, pageSize: 24, total: 0, totalPages: 0 },
+    });
   });
 
   it("cancels stale catalog requests and reuses the in-flight brands request", async () => {

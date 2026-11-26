@@ -1,8 +1,83 @@
+import { provideHttpClient } from "@angular/common/http";
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from "@angular/common/http/testing";
 import { TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { BasketService } from "../../core/basket/basket.service";
 import { Header } from "./header";
+
+describe("Header search suggestions", () => {
+  it.each(["site-search", "mobile-site-search"])(
+    "debounces %s suggestions, cancels stale requests, and closes on Escape",
+    async (inputId) => {
+      await TestBed.configureTestingModule({
+        imports: [Header],
+        providers: [
+          provideRouter([]),
+          provideHttpClient(),
+          provideHttpClientTesting(),
+        ],
+      }).compileComponents();
+      TestBed.inject(I18nService).setLocale("en");
+      const http = TestBed.inject(HttpTestingController);
+      const fixture = TestBed.createComponent(Header);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector(
+        `#${inputId}`,
+      ) as HTMLInputElement;
+      const setValue = (value: string) => {
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        fixture.detectChanges();
+      };
+      const url = "/api/v1/products/search-suggestions";
+
+      vi.useFakeTimers();
+      try {
+        setValue("p");
+        vi.advanceTimersByTime(300);
+        http.expectNone((request) => request.url === url);
+        setValue("pro");
+        http.expectNone((request) => request.url === url);
+        vi.advanceTimersByTime(300);
+        const stale = http.expectOne(
+          (request) => request.url === url && request.params.get("q") === "pro",
+        );
+        setValue("pratein");
+        expect(stale.cancelled).toBe(true);
+        vi.advanceTimersByTime(300);
+        http
+          .expectOne(
+            (request) =>
+              request.url === url &&
+              request.params.get("q") === "pratein" &&
+              request.params.get("locale") === "en",
+          )
+          .flush([{ slug: "demo-protein", name: "Demo protein" }]);
+        fixture.detectChanges();
+        const link = input
+          .closest("form")
+          ?.querySelector(".search-suggestions a");
+        expect(link?.getAttribute("href")).toBe("/en/product/demo-protein");
+        expect(link?.textContent?.trim()).toBe("Demo protein");
+
+        input.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+        );
+        fixture.detectChanges();
+        expect(
+          input.closest("form")?.querySelector(".search-suggestions"),
+        ).toBeNull();
+        http.verify();
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+});
 
 describe("Header logo presentation", () => {
   it("keeps the delivery announcement out of the shared header in every locale", async () => {
