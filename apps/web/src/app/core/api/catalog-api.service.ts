@@ -13,7 +13,7 @@ import {
   ProductPageResponse,
   ProductQuery,
   ProductReviews,
-  ProductSearchSuggestion,
+  SearchSuggestion,
   PaymentStatusResponse,
   PublicSettings,
   ReviewInvitation,
@@ -50,13 +50,10 @@ export class CatalogApiService {
     });
   }
 
-  searchSuggestions(
-    q: string,
-    locale: string,
-  ): Observable<ProductSearchSuggestion[]> {
-    return this.http.get<ProductSearchSuggestion[]>(
+  searchSuggestions(q: string, locale: string): Observable<SearchSuggestion[]> {
+    return this.http.get<SearchSuggestion[]>(
       `${this.baseUrl}/products/search-suggestions`,
-      { params: { q, locale }, transferCache: false },
+      { params: { q, locale, includeTerms: true }, transferCache: false },
     );
   }
 

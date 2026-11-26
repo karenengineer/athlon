@@ -17,7 +17,7 @@ import { informationNavigation } from "../../core/i18n/information-navigation";
 import { BasketService } from "../../core/basket/basket.service";
 import { BasketBumpDirective } from "../../shared/basket-bump/basket-bump.directive";
 import { CatalogApiService } from "../../core/api/catalog-api.service";
-import { ProductSearchSuggestion } from "../../core/api/catalog.models";
+import { SearchSuggestion } from "../../core/api/catalog.models";
 
 @Component({
   selector: "app-header",
@@ -36,7 +36,7 @@ export class Header {
   readonly locales = supportedLocales;
   readonly information = informationNavigation;
   readonly activeSearchId = signal("");
-  readonly suggestions = signal<ProductSearchSuggestion[]>([]);
+  readonly suggestions = signal<SearchSuggestion[]>([]);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly suggestionQuery = new Subject<{
@@ -90,6 +90,22 @@ export class Header {
     if (query.length < 2 || query.length > 120) return;
     this.activeSearchId.set(input.id);
     this.suggestionQuery.next({ query, locale: this.i18n.locale() });
+  }
+
+  completeTerm(
+    event: MouseEvent,
+    input: HTMLInputElement,
+    query: string,
+  ): void {
+    if (
+      event.button === 0 &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      input.value = query;
+    }
   }
 
   closeSuggestions(): void {

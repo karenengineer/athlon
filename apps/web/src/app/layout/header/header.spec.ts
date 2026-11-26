@@ -4,7 +4,7 @@ import {
   provideHttpClientTesting,
 } from "@angular/common/http/testing";
 import { TestBed } from "@angular/core/testing";
-import { provideRouter } from "@angular/router";
+import { provideRouter, Router } from "@angular/router";
 import { I18nService } from "../../core/i18n/i18n.service";
 import { BasketService } from "../../core/basket/basket.service";
 import { Header } from "./header";
@@ -71,6 +71,65 @@ describe("Header search suggestions", () => {
         expect(
           input.closest("form")?.querySelector(".search-suggestions"),
         ).toBeNull();
+        http.verify();
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it.each(["site-search", "mobile-site-search"])(
+    "links %s term completions to search results alongside product suggestions",
+    async (inputId) => {
+      await TestBed.configureTestingModule({
+        imports: [Header],
+        providers: [
+          provideRouter([]),
+          provideHttpClient(),
+          provideHttpClientTesting(),
+        ],
+      }).compileComponents();
+      TestBed.inject(I18nService).setLocale("en");
+      const http = TestBed.inject(HttpTestingController);
+      const fixture = TestBed.createComponent(Header);
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector(
+        `#${inputId}`,
+      ) as HTMLInputElement;
+
+      vi.useFakeTimers();
+      try {
+        input.value = "prot";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        vi.advanceTimersByTime(300);
+        const request = http.expectOne(
+          ({ url, params }) =>
+            url === "/api/v1/products/search-suggestions" &&
+            params.get("q") === "prot",
+        );
+        expect(request.request.params.get("includeTerms")).toBe("true");
+        request.flush([
+          { query: "protein", name: "protein" },
+          { slug: "protein", name: "Demo protein" },
+        ]);
+        fixture.detectChanges();
+
+        const links = Array.from(
+          input.closest("form")!.querySelectorAll(".search-suggestions a"),
+        );
+        expect(links.map((link) => link.textContent?.trim())).toEqual([
+          "protein",
+          "Demo protein",
+        ]);
+        expect(links.map((link) => link.getAttribute("href"))).toEqual([
+          "/en/search?q=protein",
+          "/en/product/protein",
+        ]);
+        vi.spyOn(TestBed.inject(Router), "navigateByUrl").mockResolvedValue(
+          true,
+        );
+        (links[0] as HTMLAnchorElement).click();
+        expect(input.value).toBe("protein");
         http.verify();
       } finally {
         vi.useRealTimers();

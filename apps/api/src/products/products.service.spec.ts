@@ -197,6 +197,72 @@ describe("public product search", () => {
     },
   );
 
+  it.each([
+    [" PROT ", "en", "protein"],
+    ["прот", "ru", "протеин"],
+    ["սպի", "hy", "սպիտակուց"],
+  ])(
+    "completes %s using a published search term",
+    async (prefix, locale, query) => {
+      prisma.product.findFirst.mockResolvedValue({ id: product.id });
+      prisma.product.findMany.mockResolvedValue([product]);
+
+      expect(await service.suggestions(prefix, locale, true)).toEqual([
+        { query, name: query },
+        { slug: "whey-blend", name: "Whey Blend" },
+      ]);
+      expect(prisma.product.findFirst).toHaveBeenCalledWith({
+        where: { published: true, AND: [expectProteinCategory] },
+        select: { id: true },
+      });
+    },
+  );
+
+  it("keeps the existing product-only response unless term suggestions are requested", async () => {
+    prisma.product.findMany.mockResolvedValue([product]);
+
+    expect(await service.suggestions("prot", "en")).toEqual([
+      { slug: "whey-blend", name: "Whey Blend" },
+    ]);
+    expect(prisma.product.findFirst).not.toHaveBeenCalled();
+  });
+
+  it.each(["pr", "protein", "999"])(
+    "skips term availability queries for %s with no longer known term",
+    async (query) => {
+      prisma.product.findMany.mockResolvedValue([product]);
+
+      expect(await service.suggestions(query, "en", true)).toEqual([
+        { slug: "whey-blend", name: "Whey Blend" },
+      ]);
+      expect(prisma.product.findFirst).not.toHaveBeenCalled();
+    },
+  );
+
+  it("omits term completions without published matches", async () => {
+    prisma.product.findMany.mockResolvedValue([product]);
+
+    expect(await service.suggestions("prot", "en", true)).toEqual([
+      { slug: "whey-blend", name: "Whey Blend" },
+    ]);
+    expect(prisma.product.findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the combined suggestion list within eight results", async () => {
+    prisma.product.findFirst.mockResolvedValue({ id: product.id });
+    prisma.product.findMany.mockResolvedValue(
+      Array.from({ length: 8 }, (_, index) => ({
+        ...product,
+        slug: `whey-${index}`,
+      })),
+    );
+
+    const result = await service.suggestions("prot", "en", true);
+    expect(result).toHaveLength(8);
+    expect(result[0]).toEqual({ query: "protein", name: "protein" });
+    expect(result[7]).toEqual({ slug: "whey-6", name: "Whey Blend" });
+  });
+
   it("bounds suggestion input before using the database", async () => {
     expect(await service.suggestions("a".repeat(121))).toEqual([]);
     expect(prisma.product.findMany).not.toHaveBeenCalled();

@@ -164,14 +164,26 @@
       class="search-suggestions"
       [attr.aria-label]="i18n.t('searchSuggestions')"
     >
-      @for (item of suggestions(); track item.slug) {
+      @for (item of suggestions(); track 'query' in item ? 'term:' + item.query
+      : 'product:' + item.slug) {
       <li>
+        @if ('query' in item) {
+        <a
+          [routerLink]="['/', i18n.locale(), 'search']"
+          [queryParams]="{ q: item.query }"
+          (mousedown)="$event.button === 0 && $event.preventDefault()"
+          (click)="completeTerm($event, searchBox, item.query)"
+        >
+          {{ item.name }}
+        </a>
+        } @else {
         <a
           [routerLink]="['/', i18n.locale(), 'product', item.slug]"
           (mousedown)="$event.button === 0 && $event.preventDefault()"
         >
           {{ item.name }}
         </a>
+        }
       </li>
       }
     </ul>

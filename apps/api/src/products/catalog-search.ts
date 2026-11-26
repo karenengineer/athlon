@@ -92,6 +92,15 @@ export function aliasCorrections(query: string): string[] {
   return corrections(query, [...aliasToCategory.keys()]);
 }
 
+export function aliasCompletions(query: string): string[] {
+  const prefix = query.toLowerCase();
+  if ((prefix.match(/\p{L}/gu)?.length ?? 0) < 3) return [];
+
+  return [...aliasToCategory.keys()]
+    .filter((alias) => alias !== prefix && alias.startsWith(prefix))
+    .slice(0, candidateLimit);
+}
+
 export function titleCorrections(
   query: string,
   titles: Array<{ name: string }>,
