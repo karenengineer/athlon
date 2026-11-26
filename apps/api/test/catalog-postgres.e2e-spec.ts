@@ -420,4 +420,106 @@ integration("Isolated actual PostgreSQL catalog acceptance", () => {
       expect(product.status === 201 && deletion.status === 204).toBe(false);
     }
   });
+
+  it("corrects public search typos within active filters and recognizes localized category aliases", async () => {
+    const category = await prisma!.category.create({
+      data: { code: "protein", slug: "protein", published: true },
+    });
+    const fixture = {
+      categoryId: category.id,
+      price: 1500,
+      currency: "AMD",
+      availability: "IN_STOCK" as const,
+    };
+    await prisma!.product.create({
+      data: {
+        ...fixture,
+        sku: "FIXTURE-WHEY",
+        slug: "fixture-whey",
+        published: true,
+        translations: {
+          create: [
+            { locale: "EN", name: "Vanilla Blend" },
+            { locale: "HY", name: "Վանիլային խառնուրդ" },
+          ],
+        },
+      },
+    });
+    await prisma!.product.create({
+      data: {
+        ...fixture,
+        sku: "DRAFT-PROTEIN",
+        slug: "draft-protein",
+        published: false,
+        translations: {
+          create: { locale: "EN", name: "Hiddenunique Protein" },
+        },
+      },
+    });
+
+    const products = (q: string, options = {}) =>
+      request(server())
+        .get("/api/v1/products")
+        .query({ q, locale: "en", ...options })
+        .expect(200);
+    for (const q of ["protein", "ПРОТЕИН", "սպիտակուց", "պրոտեին"]) {
+      const result = await products(q);
+      expect(result.body.items).toEqual([
+        expect.objectContaining({ slug: "fixture-whey" }),
+      ]);
+      expect(result.body.meta).not.toHaveProperty("correctedQuery");
+    }
+    const corrected = await products("pratein", {
+      category: "protein",
+      sort: "priceAsc",
+    });
+    expect(corrected.body.meta).toMatchObject({
+      total: 1,
+      correctedQuery: "protein",
+    });
+    expect(corrected.body.items).toEqual([
+      expect.objectContaining({ slug: "fixture-whey" }),
+    ]);
+    const secondPage = await products("pratein", { page: 2, pageSize: 1 });
+    expect(secondPage.body.items).toEqual([]);
+    expect(secondPage.body.meta).toMatchObject({
+      page: 2,
+      total: 1,
+      correctedQuery: "protein",
+    });
+
+    const localized = await products("vanila", { locale: "hy" });
+    expect(localized.body.meta).toMatchObject({ correctedQuery: "vanilla" });
+    expect(localized.body.items[0]).toMatchObject({
+      name: "Վանիլային խառնուրդ",
+    });
+    for (const result of [
+      await products("pratein", { minPrice: 2000 }),
+      await products("hiddenuniqe"),
+      await products("%"),
+    ]) {
+      expect(result.body.items).toEqual([]);
+      expect(result.body.meta).not.toHaveProperty("correctedQuery");
+    }
+
+    await request(server())
+      .get("/api/v1/products/search-suggestions")
+      .query({ q: "pratein", locale: "en" })
+      .expect(200, [{ slug: "fixture-whey", name: "Vanilla Blend" }]);
+
+    await prisma!.product.create({
+      data: {
+        ...fixture,
+        sku: "EXACT-FIXTURE",
+        slug: "exact-fixture",
+        published: true,
+        translations: { create: { locale: "EN", name: "Pratein Mix" } },
+      },
+    });
+    const exact = await products("pratein");
+    expect(exact.body.items).toEqual([
+      expect.objectContaining({ slug: "exact-fixture" }),
+    ]);
+    expect(exact.body.meta).not.toHaveProperty("correctedQuery");
+  });
 });

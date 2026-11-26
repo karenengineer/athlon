@@ -115,8 +115,8 @@ export class CatalogPage {
   applyFilters(): void {
     this.filtersOpen.set(false);
     const query = this.route.snapshot.queryParamMap.get("q") || undefined;
-    const category = this.categoryFilter || DEFAULT_CATEGORY_SLUG;
-    void this.router.navigate(["/", this.i18n.locale(), "catalog", category], {
+    const route = this.listingRoute(this.categoryFilter);
+    void this.router.navigate(route, {
       queryParams: {
         q: query,
         brand: this.brandFilter || undefined,
@@ -130,10 +130,16 @@ export class CatalogPage {
 
   resetFilters(): void {
     const query = this.route.snapshot.queryParamMap.get("q") || undefined;
-    void this.router.navigate(
-      ["/", this.i18n.locale(), "catalog", DEFAULT_CATEGORY_SLUG],
-      { queryParams: { q: query } },
-    );
+    void this.router.navigate(this.listingRoute(""), {
+      queryParams: { q: query },
+    });
+  }
+
+  private listingRoute(category: string): string[] {
+    const root = ["/", this.i18n.locale()];
+    return !category && this.isSearch()
+      ? [...root, "search"]
+      : [...root, "catalog", category || DEFAULT_CATEGORY_SLUG];
   }
 
   goToPage(page: number): void {
@@ -211,8 +217,9 @@ export class CatalogPage {
   }
 
   categoryOptions(): CategoryOption[] {
+    const searching = this.isSearch();
     const options = this.publishedCategories().filter(
-      (item) => item.slug !== DEFAULT_CATEGORY_SLUG,
+      (item) => searching || item.slug !== DEFAULT_CATEGORY_SLUG,
     );
 
     return [...options].sort((left, right) => {
@@ -245,7 +252,10 @@ export class CatalogPage {
   private load(locale: string, routeParams: ParamMap, params: ParamMap): void {
     this.loadSubscription?.unsubscribe();
     this.i18n.setLocale(locale);
-    const category = routeParams.get("categorySlug") || DEFAULT_CATEGORY_SLUG;
+    const categoryParam = routeParams.get("categorySlug");
+    const searchRoute = this.route.snapshot.routeConfig?.path === "search";
+    const category =
+      categoryParam || (searchRoute ? undefined : DEFAULT_CATEGORY_SLUG);
     const q = params.get("q") || undefined;
     const parsedPage = Number(params.get("page") ?? "1");
     const page =
@@ -265,7 +275,10 @@ export class CatalogPage {
       this.seoQuery[key] = params.get(key) ?? "";
       if (key !== "page") this.nonindexableQuery = true;
     }
-    this.categoryFilter = category === DEFAULT_CATEGORY_SLUG ? "" : category;
+    this.categoryFilter =
+      categoryParam && (q || categoryParam !== DEFAULT_CATEGORY_SLUG)
+        ? categoryParam
+        : "";
     this.brandFilter = params.get("brand") ?? "";
     this.availabilityFilter = this.parseAvailability(
       params.get("availability"),

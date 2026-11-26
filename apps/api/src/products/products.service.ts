@@ -5,6 +5,14 @@ import { parseLocale, selectTranslation } from "../common/localization/locale";
 import { PrismaService } from "../database/prisma.service";
 import { productVideoMetadata } from "../media/product-video";
 import { ProductQueryDto } from "./dto/product-query.dto";
+import {
+  aliasCorrections,
+  canCorrectProductSearch,
+  normalizeProductSearch,
+  productSearchWhere,
+  searchVocabularyLimit,
+  titleCorrections,
+} from "./catalog-search";
 
 @Injectable()
 export class ProductsService {
@@ -14,7 +22,7 @@ export class ProductsService {
     const locale = parseLocale(query.locale);
     const page = query.page ?? 1;
     const pageSize = Math.min(query.pageSize ?? 24, 48);
-    const where: Prisma.ProductWhereInput = {
+    const scope: Prisma.ProductWhereInput = {
       published: true,
       ...(query.category
         ? {
@@ -36,28 +44,40 @@ export class ProductsService {
             },
           }
         : {}),
-      ...(query.q
-        ? {
-            translations: {
-              some: { name: { contains: query.q, mode: "insensitive" } },
-            },
-          }
-        : {}),
     };
+    const term = normalizeProductSearch(query.q);
     const orderBy = this.orderBy(query.sort);
-    const [total, products] = await Promise.all([
-      this.prisma.product.count({ where }),
-      this.prisma.product.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: this.publicInclude(),
-      }),
-    ]);
+    const fetchPage = (where: Prisma.ProductWhereInput) =>
+      Promise.all([
+        this.prisma.product.count({ where }),
+        this.prisma.product.findMany({
+          where,
+          orderBy,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          include: this.publicInclude(),
+        }),
+      ]);
+    let [total, products] = await fetchPage(productSearchWhere(scope, term));
+    let correctedQuery: string | undefined;
+    if (total === 0 && canCorrectProductSearch(term)) {
+      const candidate = await this.findCorrection(scope, term);
+      if (candidate) {
+        [total, products] = await fetchPage(
+          productSearchWhere(scope, candidate),
+        );
+        if (total > 0) correctedQuery = candidate;
+      }
+    }
     return {
       items: products.map((product) => this.toPublicProduct(product, locale)),
-      meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+        ...(correctedQuery ? { correctedQuery } : {}),
+      },
     };
   }
 
@@ -81,24 +101,58 @@ export class ProductsService {
 
   async suggestions(q: string, localeValue?: string): Promise<unknown[]> {
     const locale = parseLocale(localeValue);
-    if (q.trim().length < 2) return [];
-    const products = await this.prisma.product.findMany({
-      where: {
-        published: true,
-        translations: {
-          some: { name: { contains: q.trim(), mode: "insensitive" } },
-        },
-      },
-      take: 8,
-      orderBy: [{ displayOrder: "asc" }, { slug: "asc" }],
-      include: { translations: true },
-    });
+    const term = normalizeProductSearch(q);
+    if (term.length < 2) return [];
+    const scope = { published: true };
+    const fetchSuggestions = (value: string) =>
+      this.prisma.product.findMany({
+        where: productSearchWhere(scope, value),
+        take: 8,
+        orderBy: [{ displayOrder: "asc" }, { slug: "asc" }],
+        include: { translations: true },
+      });
+    let products = await fetchSuggestions(term);
+    if (!products.length && canCorrectProductSearch(term)) {
+      const corrected = await this.findCorrection(scope, term);
+      if (corrected) products = await fetchSuggestions(corrected);
+    }
     return products.map((product) => ({
       slug: product.slug,
       name:
         selectTranslation<any>(product.translations, locale)?.name ??
         product.slug,
     }));
+  }
+
+  private async findCorrection(
+    scope: Prisma.ProductWhereInput,
+    term: string,
+  ): Promise<string | undefined> {
+    const aliases = aliasCorrections(term);
+    const findMatch = async (options: string[]) => {
+      for (const option of options) {
+        const match = await this.prisma.product.findFirst({
+          where: productSearchWhere(scope, option),
+          select: { id: true },
+        });
+        if (match) return option;
+      }
+      return undefined;
+    };
+    const alias = await findMatch(aliases);
+    if (alias) return alias;
+
+    const titles = await this.prisma.productTranslation.findMany({
+      where: { product: scope },
+      select: { name: true },
+      orderBy: [{ productId: "asc" }, { locale: "asc" }],
+      take: searchVocabularyLimit,
+    });
+    return findMatch(
+      titleCorrections(term, titles).filter(
+        (option) => !aliases.includes(option),
+      ),
+    );
   }
 
   private async listFlagged(

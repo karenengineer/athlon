@@ -42,6 +42,8 @@ type Copy = {
   nutrition: string;
   searchPlaceholder: string;
   search: string;
+  searchSuggestions: string;
+  searchShowingResultsFor: string;
   heroEyebrow: string;
   heroTitle: string;
   heroTrust: string;
@@ -235,6 +237,8 @@ const copy: Record<Locale, Copy> = {
     nutrition: "Спортивное питание",
     searchPlaceholder: "Найти…",
     search: "Найти",
+    searchSuggestions: "Подсказки поиска",
+    searchShowingResultsFor: "Показаны результаты по запросу",
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Создай тело под стать своему духу",
     heroTrust: "Оригинальная продукция напрямую от производителя",
@@ -445,6 +449,8 @@ const copy: Record<Locale, Copy> = {
     nutrition: "Սպորտային սնունդ",
     searchPlaceholder: "Որոնել…",
     search: "Որոնել",
+    searchSuggestions: "Որոնման առաջարկներ",
+    searchShowingResultsFor: "Ցուցադրվում են արդյունքներ հետևյալ հարցման համար",
     heroEyebrow: "ATHLON · ՍՊՈՐՏԱՅԻՆ ՍՆՆԴԻ ՕՆԼԱՅՆ ԽԱՆՈՒԹ",
     heroTitle: "Կառուցիր մարմինդ հոգուդ համապատասխան",
     heroTrust: "Օրիգինալ ապրանք միայն արտադրողից",
@@ -656,6 +662,8 @@ const copy: Record<Locale, Copy> = {
     nutrition: "Sports nutrition",
     searchPlaceholder: "Search…",
     search: "Search",
+    searchSuggestions: "Search suggestions",
+    searchShowingResultsFor: "Showing results for",
     heroEyebrow: "ATHLON · SPORTS NUTRITION STORE",
     heroTitle: "Build a body to match your spirit",
     heroTrust: "Original products directly from the manufacturer",

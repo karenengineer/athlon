@@ -61,8 +61,16 @@ export interface Brand {
 
 export interface ProductPageResponse {
   items: Product[];
-  meta: { page: number; pageSize: number; total: number; totalPages: number };
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    correctedQuery?: string;
+  };
 }
+
+export type ProductSearchSuggestion = Pick<Product, "slug" | "name">;
 
 export interface ProductQuery {
   locale: string;
