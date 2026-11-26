@@ -6,6 +6,7 @@ import { PrismaService } from "../database/prisma.service";
 import { productVideoMetadata } from "../media/product-video";
 import { ProductQueryDto } from "./dto/product-query.dto";
 import {
+  aliasCompletions,
   aliasCorrections,
   canCorrectProductSearch,
   normalizeProductSearch,
@@ -13,6 +14,8 @@ import {
   searchVocabularyLimit,
   titleCorrections,
 } from "./catalog-search";
+
+const suggestionLimit = 8;
 
 @Injectable()
 export class ProductsService {
@@ -99,7 +102,11 @@ export class ProductsService {
     return this.toPublicProduct(product, locale, true);
   }
 
-  async suggestions(q: string, localeValue?: string): Promise<unknown[]> {
+  async suggestions(
+    q: string,
+    localeValue?: string,
+    includeTerms = false,
+  ): Promise<unknown[]> {
     const locale = parseLocale(localeValue);
     const term = normalizeProductSearch(q);
     if (term.length < 2) return [];
@@ -107,21 +114,38 @@ export class ProductsService {
     const fetchSuggestions = (value: string) =>
       this.prisma.product.findMany({
         where: productSearchWhere(scope, value),
-        take: 8,
+        take: suggestionLimit,
         orderBy: [{ displayOrder: "asc" }, { slug: "asc" }],
         include: { translations: true },
       });
-    let products = await fetchSuggestions(term);
+    const completions = includeTerms ? aliasCompletions(term) : [];
+    const [directProducts, termSuggestions] = await Promise.all([
+      fetchSuggestions(term),
+      Promise.all(
+        completions.map(async (query) => {
+          const match = await this.prisma.product.findFirst({
+            where: productSearchWhere(scope, query),
+            select: { id: true },
+          });
+          return match ? { query, name: query } : null;
+        }),
+      ),
+    ]);
+    let products = directProducts;
     if (!products.length && canCorrectProductSearch(term)) {
       const corrected = await this.findCorrection(scope, term);
       if (corrected) products = await fetchSuggestions(corrected);
     }
-    return products.map((product) => ({
+    const productSuggestions = products.map((product) => ({
       slug: product.slug,
       name:
         selectTranslation<any>(product.translations, locale)?.name ??
         product.slug,
     }));
+    return [
+      ...termSuggestions.filter((suggestion) => suggestion !== null),
+      ...productSuggestions,
+    ].slice(0, suggestionLimit);
   }
 
   private async findCorrection(

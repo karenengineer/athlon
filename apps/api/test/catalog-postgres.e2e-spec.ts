@@ -507,6 +507,15 @@ integration("Isolated actual PostgreSQL catalog acceptance", () => {
       .query({ q: "pratein", locale: "en" })
       .expect(200, [{ slug: "fixture-whey", name: "Vanilla Blend" }]);
 
+    await request(server())
+      .get("/api/v1/products/search-suggestions")
+      .query({ q: "prot", locale: "en", includeTerms: "true" })
+      .expect(200, [{ query: "protein", name: "protein" }]);
+    await request(server())
+      .get("/api/v1/products/search-suggestions")
+      .query({ q: "prot", locale: "en" })
+      .expect(200, []);
+
     await prisma!.product.create({
       data: {
         ...fixture,

@@ -70,7 +70,9 @@ export interface ProductPageResponse {
   };
 }
 
-export type ProductSearchSuggestion = Pick<Product, "slug" | "name">;
+export type SearchSuggestion =
+  | Pick<Product, "slug" | "name">
+  | { query: string; name: string };
 
 export interface ProductQuery {
   locale: string;

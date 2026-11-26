@@ -27,8 +27,9 @@ export class PublicProductsController {
   suggestions(
     @Query("q") q = "",
     @Query("locale") locale?: string,
+    @Query("includeTerms") includeTerms?: string,
   ): Promise<unknown[]> {
-    return this.products.suggestions(q, locale);
+    return this.products.suggestions(q, locale, includeTerms === "true");
   }
 
   @Get(":slug")
