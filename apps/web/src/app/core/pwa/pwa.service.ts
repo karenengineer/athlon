@@ -35,6 +35,15 @@ export function isIosHomeScreenCapable(navigator: Navigator): boolean {
   );
 }
 
+/** Where the Share button lives differs per iOS browser. */
+export type IosBrowser = "safari" | "chrome" | "other";
+
+export function iosBrowser(userAgent: string): IosBrowser {
+  if (/CriOS\//.test(userAgent)) return "chrome";
+  if (/FxiOS|EdgiOS|OPiOS|YaBrowser|DuckDuckGo/.test(userAgent)) return "other";
+  return "safari";
+}
+
 /**
  * Install suggestion, connectivity and new-version state for the storefront.
  * Everything here is browser-only; on the server it stays inert.
@@ -51,6 +60,8 @@ export class PwaService {
   readonly online = signal(true);
   /** "prompt": the browser can install; "ios": show the Share hint. */
   readonly install = signal<"none" | "prompt" | "ios">("none");
+  /** Set with install "ios": which step-by-step guide to show. */
+  readonly iosBrowser = signal<IosBrowser>("safari");
   readonly updateReady = signal(false);
 
   constructor() {
@@ -73,7 +84,10 @@ export class PwaService {
         this.installEvent = event as BeforeInstallPromptEvent;
         this.install.set("prompt");
       });
-      if (isIosHomeScreenCapable(window.navigator)) this.install.set("ios");
+      if (isIosHomeScreenCapable(window.navigator)) {
+        this.iosBrowser.set(iosBrowser(window.navigator.userAgent));
+        this.install.set("ios");
+      }
     }
     listen(window, "appinstalled", () => {
       this.installEvent = null;

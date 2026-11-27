@@ -117,6 +117,13 @@ type Copy = {
   pwaInstallAction: string;
   pwaIosHint: string;
   pwaDismiss: string;
+  pwaHowTo: string;
+  pwaGuideTitle: string;
+  pwaStepShareChrome: string;
+  pwaStepShareSafari: string;
+  pwaStepShareOther: string;
+  pwaStepAdd: string;
+  pwaGuideDone: string;
   pwaOffline: string;
   pwaUpdateAvailable: string;
   pwaReload: string;
@@ -321,6 +328,15 @@ const copy: Record<Locale, Copy> = {
     pwaInstallAction: "Установить",
     pwaIosHint: "Нажмите «Поделиться», затем «На экран „Домой“».",
     pwaDismiss: "Закрыть",
+    pwaHowTo: "Как?",
+    pwaGuideTitle: "Добавьте ATHLON на экран «Домой»",
+    pwaStepShareChrome: "Нажмите «Поделиться» в адресной строке вверху.",
+    pwaStepShareSafari:
+      "Нажмите «Поделиться» внизу экрана. В iOS 26 сначала нажмите •••.",
+    pwaStepShareOther: "Откройте меню браузера и нажмите «Поделиться».",
+    pwaStepAdd:
+      "Прокрутите вниз, нажмите «На экран „Домой“», затем «Добавить».",
+    pwaGuideDone: "Понятно",
     pwaOffline:
       "Нет подключения к интернету. Корзина сохранена — подключитесь, чтобы оформить заказ.",
     pwaUpdateAvailable: "Доступна новая версия сайта.",
@@ -543,6 +559,16 @@ const copy: Record<Locale, Copy> = {
     pwaInstallAction: "Տեղադրել",
     pwaIosHint: "Սեղմեք «Կիսվել», ապա՝ «Ավելացնել գլխավոր էկրանին»։",
     pwaDismiss: "Փակել",
+    pwaHowTo: "Ինչպե՞ս",
+    pwaGuideTitle: "Ավելացրեք ATHLON-ը գլխավոր էկրանին",
+    pwaStepShareChrome:
+      "Սեղմեք «Share» (Կիսվել) կոճակը վերևում՝ հասցեի տողում։",
+    pwaStepShareSafari:
+      "Սեղմեք «Share» (Կիսվել) կոճակը էկրանի ներքևում։ iOS 26-ում նախ սեղմեք •••։",
+    pwaStepShareOther: "Բացեք բրաուզերի ընտրացանկը և սեղմեք «Share» (Կիսվել)։",
+    pwaStepAdd:
+      "Թերթեք ներքև, սեղմեք «Add to Home Screen» (Ավելացնել գլխավոր էկրանին), ապա՝ «Add»։",
+    pwaGuideDone: "Հասկանալի է",
     pwaOffline:
       "Ինտերնետ կապ չկա։ Զամբյուղը պահպանված է․ միացեք՝ պատվերը ձևակերպելու համար։",
     pwaUpdateAvailable: "Կայքի նոր տարբերակը հասանելի է։",
@@ -767,6 +793,14 @@ const copy: Record<Locale, Copy> = {
     pwaInstallAction: "Install",
     pwaIosHint: "Tap Share, then “Add to Home Screen”.",
     pwaDismiss: "Close",
+    pwaHowTo: "How?",
+    pwaGuideTitle: "Add ATHLON to your Home Screen",
+    pwaStepShareChrome: "Tap Share in the address bar at the top.",
+    pwaStepShareSafari:
+      "Tap Share at the bottom of the screen. On iOS 26, tap ••• first.",
+    pwaStepShareOther: "Open the browser menu and tap Share.",
+    pwaStepAdd: "Scroll down, tap “Add to Home Screen”, then “Add”.",
+    pwaGuideDone: "Got it",
     pwaOffline:
       "You're offline. Your basket is saved — reconnect to place your order.",
     pwaUpdateAvailable: "A new version of the site is available.",

@@ -4,6 +4,7 @@ import { Subject } from "rxjs";
 import {
   BeforeInstallPromptEvent,
   INSTALL_DISMISSED_KEY,
+  iosBrowser,
   isIosHomeScreenCapable,
   PwaService,
 } from "./pwa.service";
@@ -147,4 +148,13 @@ describe("PwaService", () => {
       ).toBe(expected);
     },
   );
+
+  it.each([
+    [iphoneSafari, "safari"],
+    [iphoneSafari.replace("Version/18.1", "CriOS/131.0"), "chrome"],
+    [iphoneSafari.replace("Version/18.1", "FxiOS/133.0"), "other"],
+    [iphoneSafari.replace("Version/18.1", "EdgiOS/131.0"), "other"],
+  ] as const)("knows where Share is for %s", (userAgent, browser) => {
+    expect(iosBrowser(userAgent)).toBe(browser);
+  });
 });
