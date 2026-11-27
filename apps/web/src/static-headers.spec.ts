@@ -15,6 +15,9 @@ describe("setStaticHeaders", () => {
     "/app/dist/browser/ngsw.json",
     "/app/dist/browser/safety-worker.js",
     "/app/dist/browser/worker-basic.min.js",
+    "/app/dist/browser/favicon.ico",
+    "/app/dist/browser/apple-touch-icon.png",
+    "/app/dist/browser/apple-touch-icon-precomposed.png",
   ])("always revalidates %s so installed apps pick up new versions", (path) => {
     expect(headersFor(path)).toEqual({ "Cache-Control": "no-cache" });
   });

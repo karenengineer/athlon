@@ -18,19 +18,20 @@ export interface BeforeInstallPromptEvent extends Event {
   readonly userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-/** iPhone/iPad Safari, which has no install event: users add from Share. */
-export function isIosSafari(navigator: Navigator): boolean {
+/**
+ * iPhone/iPad browsers that can add a site to the home screen from their Share
+ * menu (Safari, and Chrome/Edge/Firefox since iOS 16.4). iOS has no install
+ * event, so these get a hint. In-app browsers (Instagram, Facebook, ...) cannot.
+ */
+export function isIosHomeScreenCapable(navigator: Navigator): boolean {
   const agent = navigator.userAgent;
   const ios =
     /iPad|iPhone|iPod/.test(agent) ||
     // iPadOS 13+ reports itself as a Mac with touch.
     (agent.includes("Macintosh") && navigator.maxTouchPoints > 1);
-  // Other iOS browsers (Chrome, Firefox, in-app browsers) cannot add to the
-  // home screen the same way, so only Safari gets the hint.
-  return (
-    ios &&
-    /Safari/.test(agent) &&
-    !/CriOS|FxiOS|EdgiOS|OPiOS|FBAN|FBAV|Instagram/.test(agent)
+  if (!ios || !/Safari\//.test(agent)) return false;
+  return !/FBAN|FBAV|FB_IAB|Instagram|Line\/|Twitter|TikTok|Snapchat|GSA\//.test(
+    agent,
   );
 }
 
@@ -72,7 +73,7 @@ export class PwaService {
         this.installEvent = event as BeforeInstallPromptEvent;
         this.install.set("prompt");
       });
-      if (isIosSafari(window.navigator)) this.install.set("ios");
+      if (isIosHomeScreenCapable(window.navigator)) this.install.set("ios");
     }
     listen(window, "appinstalled", () => {
       this.installEvent = null;
