@@ -4,7 +4,7 @@ import { Subject } from "rxjs";
 import {
   BeforeInstallPromptEvent,
   INSTALL_DISMISSED_KEY,
-  isIosSafari,
+  isIosHomeScreenCapable,
   PwaService,
 } from "./pwa.service";
 
@@ -121,8 +121,11 @@ describe("PwaService", () => {
       5,
       true,
     ],
-    [iphoneSafari.replace("Version/18.1", "CriOS/131.0"), 0, false],
+    // Chrome on iPhone (Share → Add to Home Screen works since iOS 16.4).
+    [iphoneSafari.replace("Version/18.1", "CriOS/131.0"), 0, true],
+    [iphoneSafari.replace("Version/18.1", "FxiOS/133.0"), 0, true],
     [`${iphoneSafari} Instagram 350.0`, 0, false],
+    [iphoneSafari.replace("Safari/604.1", "[FBAN/FBIOS;FBAV/490.0]"), 0, false],
     [
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
       0,
@@ -133,9 +136,15 @@ describe("PwaService", () => {
       5,
       false,
     ],
-  ])("detects iOS Safari for %s (touch %s)", (userAgent, touch, expected) => {
-    expect(isIosSafari({ userAgent, maxTouchPoints: touch } as Navigator)).toBe(
-      expected,
-    );
-  });
+  ])(
+    "detects iOS home-screen support for %s (touch %s)",
+    (userAgent, touch, expected) => {
+      expect(
+        isIosHomeScreenCapable({
+          userAgent,
+          maxTouchPoints: touch,
+        } as Navigator),
+      ).toBe(expected);
+    },
+  );
 });

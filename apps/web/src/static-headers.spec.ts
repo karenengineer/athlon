@@ -15,6 +15,11 @@ describe("setStaticHeaders", () => {
     "/app/dist/browser/ngsw.json",
     "/app/dist/browser/safety-worker.js",
     "/app/dist/browser/worker-basic.min.js",
+    "/app/dist/browser/favicon.ico",
+    "/app/dist/browser/apple-touch-icon.png",
+    "/app/dist/browser/apple-touch-icon-precomposed.png",
+    "/app/dist/browser/icons/icon-192.png",
+    "/app/dist/browser/icons/apple-touch-icon.png",
   ])("always revalidates %s so installed apps pick up new versions", (path) => {
     expect(headersFor(path)).toEqual({ "Cache-Control": "no-cache" });
   });
@@ -28,6 +33,8 @@ describe("setStaticHeaders", () => {
 
   it("leaves hashed bundles and images on the long default cache", () => {
     expect(headersFor("/app/dist/browser/main-ABC123.js")).toEqual({});
-    expect(headersFor("/app/dist/browser/icons/icon-192.png")).toEqual({});
+    expect(headersFor("/app/dist/browser/brand/athlon-logo-128.webp")).toEqual(
+      {},
+    );
   });
 });
