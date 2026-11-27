@@ -476,6 +476,38 @@ describe("BasketPage", () => {
     },
   );
 
+  it("blocks ordering while offline and keeps the basket", () => {
+    const { fixture, basket } = createBasketFixture();
+    const component = fixture.componentInstance;
+    component.i18n.setLocale("en");
+    component.online.set(false);
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
+    const form = element.querySelector("form") as HTMLFormElement;
+
+    expect(
+      element.querySelector("[data-testid=order-offline]")?.textContent,
+    ).toContain("You're offline");
+    expect(
+      element.querySelector<HTMLButtonElement>(".order-button")?.disabled,
+    ).toBe(true);
+    fillOrderForm(form, {
+      customerName: "Ani",
+      customerEmail: "ani@example.com",
+      customerPhone: "+374 91 123456",
+      deliveryAddress: "Yerevan",
+    });
+    form.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+    http.expectNone((request) => request.url.endsWith("/public/orders"));
+    expect(basket.items()).toHaveLength(1);
+
+    component.online.set(true);
+    fixture.detectChanges();
+    expect(element.querySelector("[data-testid=order-offline]")).toBeNull();
+  });
+
   it("offers only online card payment, with no pay-on-delivery choice", () => {
     const { fixture } = createBasketFixture();
     fixture.componentInstance.i18n.setLocale("en");

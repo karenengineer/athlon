@@ -1,3 +1,4 @@
+import { PwaService } from "../../core/pwa/pwa.service";
 import {
   INSTAGRAM_PROFILE_URL,
   ORDER_PHONE_DISPLAY,
@@ -70,6 +71,7 @@ export class BasketPage {
   readonly cardPaymentsEnabled = signal(false);
   private readonly settingsLoaded = signal(false);
   /** Checkout is card-only, so ordering online stops when card payments are off. */
+  readonly online = inject(PwaService).online;
   readonly cardPaymentsUnavailable = computed(
     () =>
       !this.cardPaymentTestMode &&
@@ -490,6 +492,10 @@ export class BasketPage {
 
     const checkout = this.liveCheckout();
     const paymentMethod = this.paymentMethod();
+    if (!this.online()) {
+      this.orderError.set(this.i18n.t("orderOffline"));
+      return;
+    }
     if (!this.cardPaymentsEnabled()) {
       if (this.settingsLoaded()) {
         this.orderError.set(this.i18n.t("cardPaymentsUnavailable"));

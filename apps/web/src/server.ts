@@ -8,6 +8,7 @@ import express from "express";
 import { join } from "node:path";
 import { adminRobotsMiddleware } from "./admin-robots.middleware";
 import { createSeoCrawlerMiddleware } from "./seo-crawler.middleware";
+import { setStaticHeaders } from "./static-headers";
 
 const browserDistFolder = join(import.meta.dirname, "../browser");
 
@@ -33,6 +34,7 @@ app.use(
     maxAge: "1y",
     index: false,
     redirect: false,
+    setHeaders: setStaticHeaders,
   }),
 );
 

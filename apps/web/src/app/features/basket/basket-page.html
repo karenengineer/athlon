@@ -292,6 +292,14 @@
             >Instagram</a
           >{{ i18n.t("orderAltSuffix") }}
         </p>
+        } @if (!online()) {
+        <p
+          class="payment-note payment-unavailable"
+          role="alert"
+          data-testid="order-offline"
+        >
+          {{ i18n.t("orderOffline") }}
+        </p>
         }
         <div class="privacy-consent">
           <label for="order-privacy">
@@ -324,7 +332,7 @@
         <button
           type="submit"
           class="order-button"
-          [disabled]="submitting() || checkoutBlocked() || cardPaymentsUnavailable() || (liveCheckout()?.phase === 'pending' && !cardPaymentsEnabled()) || (cardPaymentTestMode && !testReady()) || (sandboxMode() && (sandboxAccessRequired() || sandboxStorageBlocked() || sandboxAttemptComplete() || sandboxStatusPending() || verifyingSandbox()))"
+          [disabled]="submitting() || !online() || checkoutBlocked() || cardPaymentsUnavailable() || (liveCheckout()?.phase === 'pending' && !cardPaymentsEnabled()) || (cardPaymentTestMode && !testReady()) || (sandboxMode() && (sandboxAccessRequired() || sandboxStorageBlocked() || sandboxAttemptComplete() || sandboxStatusPending() || verifyingSandbox()))"
         >
           {{ submitting() ? i18n.t("orderSending") : i18n.t("orderPlace") }}
         </button>
