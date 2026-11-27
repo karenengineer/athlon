@@ -1,0 +1,74 @@
+{
+  "$schema": "../../node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.csr.html",
+  "navigationRequestStrategy": "freshness",
+  "navigationUrls": [
+    "/**",
+    "!/**/*.*",
+    "!/**/*__*",
+    "!/**/*__*/**",
+    "!/api/**",
+    "!/uploads/**",
+    "!/admin",
+    "!/admin/**",
+    "!/card-payment-test/**",
+    "!/*/payment/**",
+    "!/*/review/**"
+  ],
+  "assetGroups": [
+    {
+      "name": "app-shell",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/index.csr.html",
+          "/manifest.webmanifest",
+          "/favicon.ico",
+          "/main-*.js",
+          "/polyfills-*.js",
+          "/styles-*.css"
+        ]
+      }
+    },
+    {
+      "name": "app-chunks",
+      "installMode": "prefetch",
+      "updateMode": "lazy",
+      "resources": {
+        "files": [
+          "/*.js",
+          "/*.css",
+          "!/ngsw-worker.js",
+          "!/safety-worker.js",
+          "!/worker-basic.min.js"
+        ]
+      }
+    },
+    {
+      "name": "brand",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/brand/**",
+          "/icons/**",
+          "/fonts/**",
+          "/**/*.(svg|webp|png|jpg|jpeg|gif|ico|woff|woff2|ttf|otf)"
+        ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "product-images",
+      "urls": ["/api/v1/media/**"],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 300,
+        "maxAge": "30d",
+        "timeout": "5s"
+      }
+    }
+  ]
+}

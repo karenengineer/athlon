@@ -2,15 +2,18 @@ import { DOCUMENT, isPlatformBrowser } from "@angular/common";
 import {
   afterNextRender,
   Component,
+  computed,
   DestroyRef,
   ElementRef,
   inject,
   PLATFORM_ID,
   viewChild,
 } from "@angular/core";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import {
   ActivatedRoute,
+  NavigationEnd,
+  Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
@@ -18,6 +21,8 @@ import {
 import { BasketService } from "../../core/basket/basket.service";
 import { BasketBumpDirective } from "../../shared/basket-bump/basket-bump.directive";
 import { I18nService } from "../../core/i18n/i18n.service";
+import { PwaBanners } from "../../shared/pwa-banners/pwa-banners";
+import { filter, map } from "rxjs";
 import { Footer } from "../footer/footer";
 import { Header } from "../header/header";
 
@@ -30,13 +35,16 @@ import { Header } from "../header/header";
     RouterLinkActive,
     RouterOutlet,
     BasketBumpDirective,
+    PwaBanners,
   ],
   template: `
     <div class="dark-shell" data-testid="header-spacer">
       <app-header #siteHeader data-testid="fixed-header" />
     </div>
+    <app-pwa-banners part="offline" />
     <main><router-outlet /></main>
     <div class="footer-shell"><app-footer /></div>
+    <app-pwa-banners [quiet]="checkoutFlow()" />
     <a
       class="floating-basket"
       data-testid="floating-basket-link"
@@ -137,6 +145,18 @@ export class PublicShell {
   private readonly document = inject(DOCUMENT);
   readonly basket = inject(BasketService);
   readonly i18n = inject(I18nService);
+  private readonly router = inject(Router);
+  private readonly url = toSignal(
+    this.router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map((event) => event.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+  /** Basket, bank return and review pages: no install suggestion there. */
+  readonly checkoutFlow = computed(() =>
+    /^\/[a-z]{2}\/(basket|payment|review)(\/|\?|$)/.test(this.url()),
+  );
   private readonly siteHeader = viewChild.required("siteHeader", {
     read: ElementRef<HTMLElement>,
   });

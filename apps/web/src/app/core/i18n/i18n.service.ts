@@ -112,6 +112,15 @@ type Copy = {
   notFoundText: string;
   footerText: string;
   basket: string;
+  pwaInstallTitle: string;
+  pwaInstallText: string;
+  pwaInstallAction: string;
+  pwaIosHint: string;
+  pwaDismiss: string;
+  pwaOffline: string;
+  pwaUpdateAvailable: string;
+  pwaReload: string;
+  orderOffline: string;
   basketSuggestions: string;
   addToBasket: string;
   inBasket: string;
@@ -307,6 +316,16 @@ const copy: Record<Locale, Copy> = {
     notFoundText: "Возможно, ссылка устарела или страница была перемещена.",
     footerText: "Спортивное питание в Армении.",
     basket: "Корзина",
+    pwaInstallTitle: "Установите приложение ATHLON",
+    pwaInstallText: "Быстрый доступ к магазину с главного экрана.",
+    pwaInstallAction: "Установить",
+    pwaIosHint: "Нажмите «Поделиться», затем «На экран „Домой“».",
+    pwaDismiss: "Закрыть",
+    pwaOffline:
+      "Нет подключения к интернету. Корзина сохранена — подключитесь, чтобы оформить заказ.",
+    pwaUpdateAvailable: "Доступна новая версия сайта.",
+    pwaReload: "Обновить",
+    orderOffline: "Вы офлайн. Подключитесь к интернету, чтобы оформить заказ.",
     basketSuggestions: "Вам также может понравиться",
     addToBasket: "В корзину",
     inBasket: "В корзине",
@@ -519,6 +538,17 @@ const copy: Record<Locale, Copy> = {
     notFoundText: "Հնարավոր է՝ հղումը հին է, կամ էջը տեղափոխվել է։",
     footerText: "Սպորտային սնունդ Հայաստանում։",
     basket: "Զամբյուղ",
+    pwaInstallTitle: "Տեղադրեք ATHLON հավելվածը",
+    pwaInstallText: "Արագ մուտք խանութ՝ անմիջապես գլխավոր էկրանից։",
+    pwaInstallAction: "Տեղադրել",
+    pwaIosHint: "Սեղմեք «Կիսվել», ապա՝ «Ավելացնել գլխավոր էկրանին»։",
+    pwaDismiss: "Փակել",
+    pwaOffline:
+      "Ինտերնետ կապ չկա։ Զամբյուղը պահպանված է․ միացեք՝ պատվերը ձևակերպելու համար։",
+    pwaUpdateAvailable: "Կայքի նոր տարբերակը հասանելի է։",
+    pwaReload: "Թարմացնել",
+    orderOffline:
+      "Դուք անցանց եք։ Միացեք ինտերնետին՝ պատվերը ձևակերպելու համար։",
     basketSuggestions: "Ձեզ կարող է հետաքրքրել",
     addToBasket: "Ավելացնել",
     inBasket: "Զամբյուղում",
@@ -732,6 +762,17 @@ const copy: Record<Locale, Copy> = {
     notFoundText: "The link may be outdated or the page may have moved.",
     footerText: "Sports nutrition in Armenia.",
     basket: "Basket",
+    pwaInstallTitle: "Install the ATHLON app",
+    pwaInstallText: "Open the store straight from your home screen.",
+    pwaInstallAction: "Install",
+    pwaIosHint: "Tap Share, then “Add to Home Screen”.",
+    pwaDismiss: "Close",
+    pwaOffline:
+      "You're offline. Your basket is saved — reconnect to place your order.",
+    pwaUpdateAvailable: "A new version of the site is available.",
+    pwaReload: "Reload",
+    orderOffline:
+      "You're offline. Connect to the internet to place your order.",
     basketSuggestions: "You may also like",
     addToBasket: "Add to basket",
     inBasket: "In basket",

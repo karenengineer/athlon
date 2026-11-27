@@ -1,0 +1,67 @@
+{
+  "id": "/",
+  "name": "ATHLON Sports Nutrition",
+  "short_name": "ATHLON",
+  "description": "ATHLON sports nutrition store in Armenia: proteins, creatine, gainers, vitamins and accessories.",
+  "lang": "hy",
+  "dir": "ltr",
+  "start_url": "/hy/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#080809",
+  "background_color": "#080809",
+  "categories": ["shopping", "health", "sports"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Կատալոգ",
+      "short_name": "Կատալոգ",
+      "url": "/hy/catalog?source=pwa-shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Զամբյուղ",
+      "short_name": "Զամբյուղ",
+      "url": "/hy/basket?source=pwa-shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
