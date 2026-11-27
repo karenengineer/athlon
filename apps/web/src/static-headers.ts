@@ -15,6 +15,11 @@ const revalidatedFiles = new Set([
   "favicon.ico",
   "apple-touch-icon.png",
   "apple-touch-icon-precomposed.png",
+  "favicon-32.png",
+  "icon-192.png",
+  "icon-512.png",
+  "icon-maskable-192.png",
+  "icon-maskable-512.png",
 ]);
 
 export function setStaticHeaders(
