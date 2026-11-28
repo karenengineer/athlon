@@ -6,7 +6,16 @@ import {
   PLATFORM_ID,
   signal,
 } from "@angular/core";
+import { NavigationStart, Router } from "@angular/router";
 import { SwUpdate, VersionEvent } from "@angular/service-worker";
+import { filter } from "rxjs";
+
+/** Look for a new version at most this often (app resume, timer). */
+export const UPDATE_CHECK_THROTTLE_MS = 60_000;
+/** While the app stays open, also check this often. */
+export const UPDATE_CHECK_INTERVAL_MS = 30 * 60_000;
+/** A new version found this soon after opening, before any tap, reloads at once. */
+export const SILENT_RELOAD_WINDOW_MS = 15_000;
 
 /** How long a dismissed install suggestion stays hidden. */
 export const INSTALL_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -54,7 +63,11 @@ export class PwaService {
   private readonly browser = isPlatformBrowser(inject(PLATFORM_ID));
   // Absent in tests and whenever the service worker is not provided.
   private readonly updates = inject(SwUpdate, { optional: true });
+  private readonly router = inject(Router, { optional: true });
   private installEvent: BeforeInstallPromptEvent | null = null;
+  private lastUpdateCheck = 0;
+  private openedAt = Date.now();
+  private interacted = false;
 
   /** False only when the browser reports no connection. */
   readonly online = signal(true);
@@ -96,19 +109,74 @@ export class PwaService {
 
     const updates = this.updates;
     if (updates?.isEnabled) {
+      // An installed app (especially on iPhone) is usually resumed from
+      // memory, not reloaded, so the service worker would never look for a
+      // new version on its own. Check on start, on every return to the
+      // screen, and periodically while open.
+      const markInteraction = () => (this.interacted = true);
+      listen(window, "pointerdown", markInteraction);
+      listen(window, "keydown", markInteraction);
+      listen(this.document, "visibilitychange", () => {
+        if (this.document.visibilityState !== "visible") return;
+        this.openedAt = Date.now();
+        this.interacted = false;
+        this.checkForUpdate();
+      });
+      const timer = window.setInterval(() => {
+        if (this.document.visibilityState === "visible") this.checkForUpdate();
+      }, UPDATE_CHECK_INTERVAL_MS);
+      destroyRef.onDestroy(() => window.clearInterval(timer));
+      window.setTimeout(() => this.checkForUpdate(), 5_000);
+
       const subscription = updates.versionUpdates.subscribe(
         (event: VersionEvent) => {
-          if (event.type === "VERSION_READY") this.updateReady.set(true);
+          if (event.type !== "VERSION_READY") return;
+          this.updateReady.set(true);
+          // Just opened and untouched: switch right away, nobody is mid-task.
+          if (
+            !this.interacted &&
+            Date.now() - this.openedAt < SILENT_RELOAD_WINDOW_MS
+          ) {
+            this.reload();
+          }
         },
       );
       const unrecoverable = updates.unrecoverable.subscribe(() =>
         this.updateReady.set(true),
       );
+      // Otherwise move to the new version on the next page change, as a
+      // normal page load: no prompt needed, the basket is in storage.
+      const navigation = this.router?.events
+        .pipe(filter((event) => event instanceof NavigationStart))
+        .subscribe((event) => {
+          if (this.updateReady()) this.loadFresh(event.url);
+        });
       destroyRef.onDestroy(() => {
         subscription.unsubscribe();
         unrecoverable.unsubscribe();
+        navigation?.unsubscribe();
       });
     }
+  }
+
+  /** Ask the service worker whether a new version was deployed. */
+  checkForUpdate(): void {
+    const now = Date.now();
+    if (
+      !this.updates?.isEnabled ||
+      now - this.lastUpdateCheck < UPDATE_CHECK_THROTTLE_MS
+    ) {
+      return;
+    }
+    this.lastUpdateCheck = now;
+    this.updates.checkForUpdate().catch(() => {
+      // Offline or the worker is not active yet: try again next time.
+    });
+  }
+
+  /** Full page load of an in-app URL, picking up the newest version. */
+  loadFresh(url: string): void {
+    this.document.defaultView?.location.assign(url);
   }
 
   /** Opens the browser's own install dialog. */
