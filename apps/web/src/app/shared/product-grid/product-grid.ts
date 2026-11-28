@@ -1,14 +1,16 @@
 import { Component, input } from "@angular/core";
 import { Product } from "../../core/api/catalog.models";
 import { ProductCard } from "../product-card/product-card";
+import { RevealOnScroll } from "../reveal/reveal-on-scroll";
 
 @Component({
   selector: "app-product-grid",
-  imports: [ProductCard],
+  imports: [ProductCard, RevealOnScroll],
   template: `
     <div class="product-grid" [class.has-insert]="insertAfterFirstRow()">
       @for (product of products(); track product.id; let index = $index) {
         <app-product-card
+          appRevealOnScroll
           [product]="product"
           [eager]="eagerFirstRow() && index < 4"
         />
@@ -21,6 +23,22 @@ import { ProductCard } from "../product-card/product-card";
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 18px;
+    }
+    /* Cards fade in and rise as their row scrolls into view (see RevealOnScroll). */
+    app-product-card.reveal-pending {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    app-product-card.reveal-in {
+      transition:
+        opacity 550ms ease-out,
+        transform 650ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      app-product-card.reveal-pending {
+        opacity: 1;
+        transform: none;
+      }
     }
     /* Projected content (marked with an order of 1 by its owner) sits after the first row. */
     .has-insert > app-product-card:nth-of-type(n + 5) {
